@@ -28,6 +28,7 @@ export class CLIRenderer {
     this.spinner = ora({
       text: chalk.dim('Thinking...'),
       spinner: 'dots',
+      discardStdin: false,
     }).start();
   }
 
