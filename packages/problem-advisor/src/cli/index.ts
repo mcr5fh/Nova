@@ -2,6 +2,17 @@ import { createInterface } from 'readline';
 import { ProblemAdvisor } from '../api/advisor.js';
 import { CLIRenderer } from './renderer.js';
 
+function question(rl: ReturnType<typeof createInterface>, prompt: string): Promise<string | null> {
+  return new Promise((resolve) => {
+    rl.question(prompt, (answer) => {
+      resolve(answer);
+    });
+    rl.once('close', () => {
+      resolve(null);
+    });
+  });
+}
+
 export async function runCLI(options: {
   apiKey: string;
   modelId?: string;
@@ -31,54 +42,53 @@ export async function runCLI(options: {
     output: process.stdout,
   });
 
-  // Return a promise that resolves when the user exits
-  return new Promise<void>((resolve) => {
-    const prompt = () => {
-      rl.question('You: ', async (input) => {
-        const trimmed = input.trim();
+  // Main conversation loop
+  while (true) {
+    const input = await question(rl, 'You: ');
 
-        if (!trimmed) {
-          prompt();
-          return;
-        }
+    // Handle EOF or closed input
+    if (input === null) {
+      console.log('\nGoodbye!\n');
+      break;
+    }
 
-        if (trimmed.toLowerCase() === 'exit' || trimmed.toLowerCase() === 'quit') {
-          console.log('\nGoodbye!\n');
-          rl.close();
-          resolve();
-          return;
-        }
+    const trimmed = input.trim();
 
-        renderer.newLine();
-        renderer.startThinking();
+    if (!trimmed) {
+      continue;
+    }
 
-        let firstChunk = true;
+    if (trimmed.toLowerCase() === 'exit' || trimmed.toLowerCase() === 'quit') {
+      console.log('\nGoodbye!\n');
+      break;
+    }
 
-        try {
-          for await (const chunk of advisor.chat(sessionId, trimmed)) {
-            if (chunk.type === 'text' && chunk.text) {
-              if (firstChunk) {
-                renderer.stopThinking();
-                process.stdout.write('Advisor: ');
-                firstChunk = false;
-              }
-              renderer.streamText(chunk.text);
-            } else if (chunk.type === 'progress') {
-              // Could show mini progress indicator here
-            }
+    renderer.newLine();
+    renderer.startThinking();
+
+    let firstChunk = true;
+
+    try {
+      for await (const chunk of advisor.chat(sessionId, trimmed)) {
+        if (chunk.type === 'text' && chunk.text) {
+          if (firstChunk) {
+            renderer.stopThinking();
+            process.stdout.write('Advisor: ');
+            firstChunk = false;
           }
-
-          renderer.newLine();
-          renderer.newLine();
-        } catch (error) {
-          renderer.stopThinking();
-          renderer.showError(error instanceof Error ? error.message : 'Unknown error');
+          renderer.streamText(chunk.text);
+        } else if (chunk.type === 'progress') {
+          // Could show mini progress indicator here
         }
+      }
 
-        prompt();
-      });
-    };
+      renderer.newLine();
+      renderer.newLine();
+    } catch (error) {
+      renderer.stopThinking();
+      renderer.showError(error instanceof Error ? error.message : 'Unknown error');
+    }
+  }
 
-    prompt();
-  });
+  rl.close();
 }
