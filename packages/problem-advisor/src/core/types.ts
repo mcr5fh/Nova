@@ -62,3 +62,26 @@ export interface AdvisorConfig {
   streamResponses?: boolean;
   maxTurns?: number;        // Safety limit, default 50
 }
+
+// Export formats for project files
+export type ExportFormat = 'json' | 'markdown';
+
+// Structured export data
+export interface ExportedProblemStatement {
+  problem: string;
+  who: string;
+  frequencySeverity: string;
+  businessImpact: string;
+  validation: string;
+  confidence: 'low' | 'medium' | 'high';
+  gaps: DimensionId[];
+  metadata: {
+    sessionId: string;
+    exportedAt: string;
+    version: string;
+  };
+  dimensions: Record<DimensionId, {
+    coverage: CoverageLevel;
+    evidence: string[];
+  }>;
+}

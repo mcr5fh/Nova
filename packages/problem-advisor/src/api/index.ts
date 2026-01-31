@@ -5,7 +5,19 @@ export type {
   ProblemStatement,
   DimensionId,
   CoverageLevel,
-  Message
+  Message,
+  ExportFormat,
+  ExportedProblemStatement
 } from '../core/types.js';
 export { DIMENSIONS, canSignOff } from '../core/dimensions.js';
 export { formatOutput, formatProgress, generateProblemStatement } from '../core/output-formatter.js';
+export {
+  exportToJson,
+  exportToMarkdown,
+  exportSession,
+  createExportData,
+  exportToProjectMarkdown,
+  writeProjectFile,
+  detectSaveIntent,
+} from '../core/file-exporter.js';
+export type { SaveIntentResult } from '../core/file-exporter.js';
