@@ -1,5 +1,5 @@
-import { SessionState, SolutionSpec } from './types.js';
-import { LLMAdapter } from '../llm/types.js';
+import type { SessionState, SolutionSpec } from './types.js';
+import type { LLMAdapter } from '../llm/types.js';
 
 /**
  * Generate an ASCII UX flow diagram based on the solution spec

@@ -1,4 +1,4 @@
-import { SessionState, DimensionId, ExportFormat, ExportedSolutionSpec, LoadedProblem } from './types.js';
+import type { SessionState, DimensionId, ExportFormat, ExportedSolutionSpec, LoadedProblem } from './types.js';
 import { generateSolutionSpec } from './output-formatter.js';
 import { DIMENSIONS } from './dimensions.js';
 import * as fs from 'fs/promises';
@@ -6,7 +6,7 @@ import * as path from 'path';
 
 const EXPORT_VERSION = '1.0.0';
 
-export { ExportFormat };
+export type { ExportFormat };
 
 /**
  * Creates the structured export data from a session state

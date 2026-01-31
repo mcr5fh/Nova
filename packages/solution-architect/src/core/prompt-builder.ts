@@ -1,4 +1,4 @@
-import { SessionState, DimensionId, LoadedProblem } from './types.js';
+import type { SessionState, DimensionId, LoadedProblem } from './types.js';
 import { DIMENSIONS, canSignOff } from './dimensions.js';
 
 export function buildSystemPrompt(state: SessionState): string {

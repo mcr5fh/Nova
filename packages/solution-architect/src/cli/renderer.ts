@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import ora, { Ora } from 'ora';
 import boxen from 'boxen';
-import { SessionState, DimensionId, LoadedProblem } from '../core/types.js';
+import type { SessionState, DimensionId, LoadedProblem } from '../core/types.js';
 import { DIMENSIONS, canSignOff } from '../core/dimensions.js';
 
 export class CLIRenderer {

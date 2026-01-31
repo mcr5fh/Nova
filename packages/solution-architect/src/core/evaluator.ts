@@ -1,7 +1,7 @@
-import { SessionState, DimensionId, EvaluationResult, CoverageLevel } from './types.js';
+import type { SessionState, DimensionId, EvaluationResult, CoverageLevel } from './types.js';
 import { DIMENSIONS } from './dimensions.js';
 import { buildEvaluationPrompt } from './prompt-builder.js';
-import { LLMAdapter } from '../llm/types.js';
+import type { LLMAdapter } from '../llm/types.js';
 
 export async function evaluateAllDimensions(
   state: SessionState,

@@ -1,4 +1,4 @@
-import {
+import type {
   ArchitectConfig,
   SessionState,
   SolutionSpec,
@@ -6,7 +6,7 @@ import {
   LoadedProblem
 } from '../core/types.js';
 import { AnthropicAdapter } from '../llm/anthropic.js';
-import { LLMAdapter } from '../llm/types.js';
+import type { LLMAdapter } from '../llm/types.js';
 import {
   createSession,
   addMessage,
@@ -25,7 +25,7 @@ import {
   detectSaveIntent,
   writeSolutionFile,
   loadProblemStatement,
-  SaveSolutionResult
+  type SaveSolutionResult
 } from '../core/file-exporter.js';
 
 export class SolutionArchitect {

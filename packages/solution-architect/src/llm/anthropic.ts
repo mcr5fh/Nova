@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { LLMAdapter, LLMMessage, LLMResponse, LLMStreamChunk } from './types.js';
+import type { LLMAdapter, LLMMessage, LLMResponse, LLMStreamChunk } from './types.js';
 
 export class AnthropicAdapter implements LLMAdapter {
   private client: Anthropic;

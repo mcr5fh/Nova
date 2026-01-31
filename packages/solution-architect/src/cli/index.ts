@@ -4,14 +4,84 @@ import { CLIRenderer } from './renderer.js';
 import { loadProblemStatement } from '../core/file-exporter.js';
 import { setLoadedProblem } from '../core/state-machine.js';
 
-function question(rl: ReturnType<typeof createInterface>, prompt: string): Promise<string | null> {
+/**
+ * Reads multi-line input from the user.
+ * - Shows prompt for first line, then continuation prompt for additional lines
+ * - Supports pasted multi-line content (detects rapid successive lines)
+ * - User submits by pressing Enter on an empty line
+ * - Returns null if the readline is closed (EOF)
+ */
+function readMultilineInput(rl: ReturnType<typeof createInterface>, prompt: string): Promise<string | null> {
   return new Promise((resolve) => {
-    rl.question(prompt, (answer) => {
-      resolve(answer);
-    });
-    rl.once('close', () => {
-      resolve(null);
-    });
+    const lines: string[] = [];
+    let lastLineTime = 0;
+    let waitingForMore = false;
+    let timeoutId: NodeJS.Timeout | null = null;
+    let closed = false;
+
+    const cleanup = () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+      rl.removeListener('line', onLine);
+      rl.removeListener('close', onClose);
+    };
+
+    const submit = () => {
+      cleanup();
+      if (closed && lines.length === 0) {
+        resolve(null);
+      } else {
+        resolve(lines.join('\n'));
+      }
+    };
+
+    const onClose = () => {
+      closed = true;
+      submit();
+    };
+
+    const onLine = (line: string) => {
+      const now = Date.now();
+      const timeSinceLastLine = now - lastLineTime;
+      lastLineTime = now;
+
+      // Clear any pending timeout
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+
+      // If this is a rapid paste (< 50ms between lines), accumulate without prompting
+      const isRapidPaste = timeSinceLastLine < 50 && lines.length > 0;
+
+      if (line === '' && !isRapidPaste) {
+        // Empty line that's not part of a paste = submit
+        submit();
+        return;
+      }
+
+      lines.push(line);
+
+      // After receiving a line, wait briefly to see if more lines are coming (paste detection)
+      // If no more lines come within 100ms, show continuation prompt or submit
+      timeoutId = setTimeout(() => {
+        timeoutId = null;
+        if (!waitingForMore) {
+          waitingForMore = true;
+          // Show continuation prompt to indicate we're waiting for more input
+          process.stdout.write('... ');
+        }
+      }, 100);
+    };
+
+    rl.on('line', onLine);
+    rl.once('close', onClose);
+
+    // Show initial prompt
+    process.stdout.write(prompt);
+    lastLineTime = Date.now();
   });
 }
 
@@ -60,7 +130,7 @@ export async function runCLI(options: {
 
   // Main conversation loop
   while (true) {
-    const input = await question(rl, 'You: ');
+    const input = await readMultilineInput(rl, 'You: ');
 
     // Handle EOF or closed input
     if (input === null) {

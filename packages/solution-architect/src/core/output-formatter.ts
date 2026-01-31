@@ -1,4 +1,4 @@
-import { SessionState, SolutionSpec, DimensionId } from './types.js';
+import type { SessionState, SolutionSpec, DimensionId } from './types.js';
 import { DIMENSIONS, canSignOff } from './dimensions.js';
 
 export function generateSolutionSpec(state: SessionState): SolutionSpec {
