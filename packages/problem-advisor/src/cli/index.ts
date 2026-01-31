@@ -31,50 +31,54 @@ export async function runCLI(options: {
     output: process.stdout,
   });
 
-  const prompt = () => {
-    rl.question('You: ', async (input) => {
-      const trimmed = input.trim();
+  // Return a promise that resolves when the user exits
+  return new Promise<void>((resolve) => {
+    const prompt = () => {
+      rl.question('You: ', async (input) => {
+        const trimmed = input.trim();
 
-      if (!trimmed) {
-        prompt();
-        return;
-      }
+        if (!trimmed) {
+          prompt();
+          return;
+        }
 
-      if (trimmed.toLowerCase() === 'exit' || trimmed.toLowerCase() === 'quit') {
-        console.log('\nGoodbye!\n');
-        rl.close();
-        process.exit(0);
-      }
-
-      renderer.newLine();
-      renderer.startThinking();
-
-      let firstChunk = true;
-
-      try {
-        for await (const chunk of advisor.chat(sessionId, trimmed)) {
-          if (chunk.type === 'text' && chunk.text) {
-            if (firstChunk) {
-              renderer.stopThinking();
-              process.stdout.write('Advisor: ');
-              firstChunk = false;
-            }
-            renderer.streamText(chunk.text);
-          } else if (chunk.type === 'progress') {
-            // Could show mini progress indicator here
-          }
+        if (trimmed.toLowerCase() === 'exit' || trimmed.toLowerCase() === 'quit') {
+          console.log('\nGoodbye!\n');
+          rl.close();
+          resolve();
+          return;
         }
 
         renderer.newLine();
-        renderer.newLine();
-      } catch (error) {
-        renderer.stopThinking();
-        renderer.showError(error instanceof Error ? error.message : 'Unknown error');
-      }
+        renderer.startThinking();
 
-      prompt();
-    });
-  };
+        let firstChunk = true;
 
-  prompt();
+        try {
+          for await (const chunk of advisor.chat(sessionId, trimmed)) {
+            if (chunk.type === 'text' && chunk.text) {
+              if (firstChunk) {
+                renderer.stopThinking();
+                process.stdout.write('Advisor: ');
+                firstChunk = false;
+              }
+              renderer.streamText(chunk.text);
+            } else if (chunk.type === 'progress') {
+              // Could show mini progress indicator here
+            }
+          }
+
+          renderer.newLine();
+          renderer.newLine();
+        } catch (error) {
+          renderer.stopThinking();
+          renderer.showError(error instanceof Error ? error.message : 'Unknown error');
+        }
+
+        prompt();
+      });
+    };
+
+    prompt();
+  });
 }
