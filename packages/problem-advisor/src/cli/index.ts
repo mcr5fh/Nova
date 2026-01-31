@@ -1,6 +1,6 @@
 import { createInterface } from 'readline';
-import { ProblemAdvisor } from '../api/advisor';
-import { CLIRenderer } from './renderer';
+import { ProblemAdvisor } from '../api/advisor.js';
+import { CLIRenderer } from './renderer.js';
 
 export async function runCLI(options: {
   apiKey: string;

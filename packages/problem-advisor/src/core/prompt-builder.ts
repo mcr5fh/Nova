@@ -1,5 +1,5 @@
-import { SessionState, DimensionId } from './types';
-import { DIMENSIONS, canSignOff } from './dimensions';
+import { SessionState, DimensionId } from './types.js';
+import { DIMENSIONS, canSignOff } from './dimensions.js';
 
 export function buildSystemPrompt(state: SessionState): string {
   const { ready, gaps } = canSignOff(state.dimensions);

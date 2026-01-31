@@ -5,8 +5,8 @@ import {
   CoverageLevel,
   Message,
   EvaluationResult
-} from './types';
-import { DIMENSIONS } from './dimensions';
+} from './types.js';
+import { DIMENSIONS } from './dimensions.js';
 
 export function createSession(id: string): SessionState {
   const now = Date.now();

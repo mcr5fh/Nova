@@ -1,4 +1,4 @@
-import { DimensionId, CoverageLevel } from './types';
+import { DimensionId, CoverageLevel } from './types.js';
 
 export interface DimensionDefinition {
   id: DimensionId;

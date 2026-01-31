@@ -3,7 +3,7 @@ import {
   SessionState,
   ProblemStatement,
   Message
-} from '../core/types';
+} from '../core/types.js';
 import {
   createSession,
   addMessage,
@@ -11,12 +11,12 @@ import {
   selectNextFocus,
   serializeState,
   deserializeState
-} from '../core/state-machine';
-import { buildSystemPrompt } from '../core/prompt-builder';
-import { evaluateAllDimensions } from '../core/evaluator';
-import { generateProblemStatement, formatOutput, formatProgress } from '../core/output-formatter';
-import { AnthropicAdapter } from '../llm/anthropic';
-import { LLMAdapter, LLMStreamChunk } from '../llm/types';
+} from '../core/state-machine.js';
+import { buildSystemPrompt } from '../core/prompt-builder.js';
+import { evaluateAllDimensions } from '../core/evaluator.js';
+import { generateProblemStatement, formatOutput, formatProgress } from '../core/output-formatter.js';
+import { AnthropicAdapter } from '../llm/anthropic.js';
+import { LLMAdapter, LLMStreamChunk } from '../llm/types.js';
 
 export class ProblemAdvisor {
   private config: AdvisorConfig;

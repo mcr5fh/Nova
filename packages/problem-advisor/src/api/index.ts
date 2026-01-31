@@ -1,4 +1,4 @@
-export { ProblemAdvisor } from './advisor';
+export { ProblemAdvisor } from './advisor.js';
 export type {
   AdvisorConfig,
   SessionState,
@@ -6,6 +6,6 @@ export type {
   DimensionId,
   CoverageLevel,
   Message
-} from '../core/types';
-export { DIMENSIONS, canSignOff } from '../core/dimensions';
-export { formatOutput, formatProgress, generateProblemStatement } from '../core/output-formatter';
+} from '../core/types.js';
+export { DIMENSIONS, canSignOff } from '../core/dimensions.js';
+export { formatOutput, formatProgress, generateProblemStatement } from '../core/output-formatter.js';

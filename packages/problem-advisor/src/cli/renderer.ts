@@ -1,8 +1,8 @@
 import chalk from 'chalk';
 import ora, { Ora } from 'ora';
 import boxen from 'boxen';
-import { SessionState, DimensionId } from '../core/types';
-import { DIMENSIONS, canSignOff } from '../core/dimensions';
+import { SessionState, DimensionId } from '../core/types.js';
+import { DIMENSIONS, canSignOff } from '../core/dimensions.js';
 
 export class CLIRenderer {
   private spinner: Ora | null = null;

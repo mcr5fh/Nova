@@ -1,5 +1,5 @@
-import { SessionState, ProblemStatement, DimensionId } from './types';
-import { DIMENSIONS, canSignOff } from './dimensions';
+import { SessionState, ProblemStatement, DimensionId } from './types.js';
+import { DIMENSIONS, canSignOff } from './dimensions.js';
 
 export function generateProblemStatement(state: SessionState): ProblemStatement {
   const { ready, gaps } = canSignOff(state.dimensions);

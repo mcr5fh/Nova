@@ -1,6 +1,7 @@
 {
   "name": "problem-advisor",
   "version": "0.1.0",
+  "type": "module",
   "description": "Conversational agent that helps define clear, testable problem statements",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
