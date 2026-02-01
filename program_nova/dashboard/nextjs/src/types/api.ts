@@ -51,8 +51,8 @@ export interface StatusResponse {
   tasks: Record<string, Task>;
   rollups: Rollups;
   hierarchy: Hierarchy;
-  milestones: Milestone[];
-  all_tasks_completed: boolean;
+  milestones?: Milestone[];
+  all_tasks_completed?: boolean;
   task_definitions: Record<string, TaskDefinition>;
 }
 
