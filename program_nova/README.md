@@ -1,6 +1,13 @@
-# Program Nova - Execution Engine + Dashboard
+# Program Nova - Developer Documentation
 
-Program Nova reads a CASCADE.md file (a hierarchical task breakdown), executes worker agents to complete tasks, and provides a real-time web dashboard for observability.
+This document is for developers working on Nova internals. For user documentation, see:
+- [README.md](../README.md) - User guide and quick start
+- [QUICKSTART.md](../QUICKSTART.md) - Step-by-step tutorial
+- [SERVICES.md](../SERVICES.md) - Service management
+
+## Overview
+
+Program Nova is the execution engine and dashboard for the Nova task orchestration system. It reads CASCADE.md files (hierarchical task breakdowns), executes worker agents to complete tasks, and provides a real-time web dashboard for observability.
 
 ## Directory Structure
 
@@ -126,12 +133,33 @@ state = sm.read_state()
 - **Thread-safe**: Multiple threads/processes can safely access the state file
 - **Type-safe**: Uses `TaskStatus` enum for status values
 
+## Installation for Development
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/Nova.git
+cd Nova
+
+# Install in development mode
+uv pip install -e .
+
+# Or with pip
+pip install -e .
+```
+
 ## Testing
 
 Run the test suite:
 
 ```bash
+# Run all tests
+uv run pytest program_nova/ -v
+
+# Run specific test file
 uv run pytest program_nova/engine/test_state.py -v
+
+# Run with coverage
+uv run pytest program_nova/ --cov=program_nova --cov-report=html
 ```
 
 The test suite includes:
@@ -140,3 +168,98 @@ The test suite includes:
 - Project-level timestamp management
 - Task completion and failure handling
 - Token usage tracking
+
+## Development Workflow
+
+### Running Services Locally
+
+For development, run services interactively (not as daemons):
+
+```bash
+# Terminal 1: Run orchestrator
+python -m program_nova.engine.orchestrator
+
+# Terminal 2: Run dashboard
+python -m program_nova.dashboard.server
+
+# Terminal 3: Make changes and test
+nova status
+```
+
+### Code Style
+
+This project follows PEP 8 style guidelines. Before submitting changes:
+
+```bash
+# Format code
+black program_nova/
+
+# Check types
+mypy program_nova/
+
+# Run linter
+ruff check program_nova/
+```
+
+### Adding New Features
+
+1. Write tests first (TDD approach)
+2. Implement the feature
+3. Run tests to verify
+4. Update documentation
+5. Submit pull request
+
+## Architecture Details
+
+### State File Thread Safety
+
+The StateManager uses file locking to ensure thread-safe access:
+
+```python
+# Exclusive write lock
+with open(self.state_file, 'r+') as f:
+    fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+    # ... modify state ...
+    fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+
+# Shared read lock
+with open(self.state_file, 'r') as f:
+    fcntl.flock(f.fileno(), fcntl.LOCK_SH)
+    # ... read state ...
+    fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+```
+
+### Worker Process Management
+
+Workers are spawned as separate processes:
+
+```python
+# Spawn worker
+process = subprocess.Popen(
+    ["python", "-m", "worker_agent", task_id],
+    stdout=subprocess.PIPE,
+    stderr=subprocess.PIPE
+)
+
+# Monitor with non-blocking reads
+while process.poll() is None:
+    output = process.stdout.readline()
+    # Process output...
+```
+
+### Dashboard Real-Time Updates
+
+The dashboard uses polling to update task status:
+
+```javascript
+// Poll every 2 seconds
+setInterval(() => {
+    fetch('/api/state')
+        .then(response => response.json())
+        .then(data => updateUI(data));
+}, 2000);
+```
+
+## Contributing
+
+See the main [README.md](../README.md) for contribution guidelines.

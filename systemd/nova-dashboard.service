@@ -6,6 +6,8 @@ Documentation=https://github.com/yourusername/nova
 [Service]
 Type=simple
 User=%i
+# Update WorkingDirectory to point to your project directory
+# All paths (CASCADE.md, cascade_state.json, logs/) will be relative to this directory
 WorkingDirectory=%h/nova
 Environment="PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin"
 ExecStart=/usr/bin/python3 -m program_nova.dashboard.server --daemon

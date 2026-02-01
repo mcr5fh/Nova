@@ -21,14 +21,15 @@ from program_nova.dashboard.milestones import MilestoneEvaluator
 
 
 # Default paths (can be overridden in create_app)
-LOGS_DIR = Path("program_nova/logs")
+# LOGS_DIR is now set relative to cwd where the app is run
+LOGS_DIR = Path.cwd() / "logs"
 STATIC_DIR = Path(__file__).parent / "static"
 
 
 def create_app(
-    state_file: str = "cascade_state.json",
-    cascade_file: str = "CASCADE.md",
-    milestones_file: str = "program_nova/milestones.yaml",
+    state_file: str = "./cascade_state.json",
+    cascade_file: str = "./CASCADE.md",
+    milestones_file: str = "./program_nova/milestones.yaml",
 ) -> FastAPI:
     """Create and configure the FastAPI application.
 
@@ -203,8 +204,8 @@ def setup_logging(daemon_mode: bool = False):
     import logging.handlers
     from pathlib import Path
 
-    # Create logs directory if it doesn't exist
-    logs_dir = Path("logs")
+    # Create logs directory if it doesn't exist (relative to cwd)
+    logs_dir = Path.cwd() / "logs"
     logs_dir.mkdir(exist_ok=True)
 
     # Configure root logger
@@ -277,18 +278,18 @@ def main():
     )
     parser.add_argument(
         "--state-file",
-        default="cascade_state.json",
-        help="Path to state file (default: cascade_state.json)",
+        default="./cascade_state.json",
+        help="Path to state file (default: ./cascade_state.json)",
     )
     parser.add_argument(
         "--cascade-file",
-        default="CASCADE.md",
-        help="Path to cascade file (default: CASCADE.md)",
+        default="./CASCADE.md",
+        help="Path to cascade file (default: ./CASCADE.md)",
     )
     parser.add_argument(
         "--milestones-file",
-        default="program_nova/milestones.yaml",
-        help="Path to milestones file (default: program_nova/milestones.yaml)",
+        default="./program_nova/milestones.yaml",
+        help="Path to milestones file (default: ./program_nova/milestones.yaml)",
     )
 
     args = parser.parse_args()

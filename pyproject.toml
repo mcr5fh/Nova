@@ -29,3 +29,6 @@ python_functions = "test_*"
 
 [tool.hatch.build.targets.wheel]
 packages = ["program_nova"]
+
+[project.scripts]
+nova = "program_nova.cli:main"

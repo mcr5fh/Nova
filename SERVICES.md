@@ -1,71 +1,58 @@
 # Nova Service Management
 
-This document describes how to run Nova as a standalone service using systemd.
+This document describes how to run Nova services and manage them with systemd.
 
 ## Overview
 
-Nova provides two services that can run as daemons:
+Nova provides two services that run as background daemons:
 
-1. **Orchestrator** - Executes cascade tasks in the background
-2. **Dashboard** - Provides a web UI for monitoring task progress
+1. **Orchestrator** - Executes CASCADE tasks in the background
+2. **Dashboard** - Provides a web UI at http://localhost:8000 for monitoring task progress
 
 Both services support daemon mode with proper logging and systemd integration.
 
-## Quick Start
+## Installation (One-Time Setup)
 
-### Using the Nova CLI
+Nova is designed to be installed once and used anywhere, like git.
 
-The simplest way to manage Nova services is using the `nova` CLI script:
+### 1. Install Nova Package
 
 ```bash
-# Start all services (orchestrator + dashboard)
-./bin/nova start
+# Clone the Nova repository
+git clone https://github.com/yourusername/Nova.git
+cd Nova
 
-# Start only the orchestrator
-./bin/nova start orchestrator
+# Install with uv (recommended)
+uv pip install -e .
 
-# Start only the dashboard
-./bin/nova start dashboard
-
-# Check status of all services
-./bin/nova status
-
-# View logs
-./bin/nova logs orchestrator
-./bin/nova logs dashboard --follow  # Follow logs in real-time
-
-# Stop all services
-./bin/nova stop
-
-# Restart all services
-./bin/nova restart
+# Or with pip
+pip install -e .
 ```
 
-## Installation
+This makes the `nova` command available globally.
 
-### 1. Install Python Dependencies
+### 2. Install Systemd Service Files (Optional)
 
-```bash
-pip install -r requirements.txt
-```
-
-### 2. Install Systemd Service Files
-
-Copy the service files to your systemd user directory:
+If you want to manage Nova services with systemd instead of the `nova` CLI:
 
 ```bash
+# Copy service files
 mkdir -p ~/.config/systemd/user
 cp systemd/nova-orchestrator.service ~/.config/systemd/user/
 cp systemd/nova-dashboard.service ~/.config/systemd/user/
-```
 
-### 3. Reload Systemd
+# Edit service files to set your project directory
+nano ~/.config/systemd/user/nova-orchestrator.service
+nano ~/.config/systemd/user/nova-dashboard.service
 
-```bash
+# Change this line in both files:
+# WorkingDirectory=%h/nova
+# to your actual project directory:
+# WorkingDirectory=/path/to/your/project
+
+# Reload systemd
 systemctl --user daemon-reload
 ```
-
-### 4. Enable Services (Optional)
 
 To start services automatically on login:
 
@@ -74,9 +61,72 @@ systemctl --user enable nova-orchestrator
 systemctl --user enable nova-dashboard
 ```
 
-## Manual Service Control
+**Note:** When using systemd service files, you need to manually edit the `WorkingDirectory` in the service files for each project. The `nova` CLI is simpler as it automatically uses your current directory.
 
-You can also manage services directly with systemctl:
+## Quick Start
+
+### Using the Nova CLI (Recommended)
+
+The `nova` CLI provides the simplest way to manage services:
+
+```bash
+# Navigate to your project directory
+cd /path/to/your/project
+
+# Initialize a new CASCADE.md file
+nova init
+
+# Start all services (orchestrator + dashboard)
+nova start
+
+# View dashboard
+open http://localhost:8000
+
+# Check status
+nova status
+
+# View logs
+nova logs orchestrator
+nova logs dashboard --follow  # Follow logs in real-time
+
+# Stop all services
+nova stop
+
+# Restart all services
+nova restart
+```
+
+### Service Targets
+
+You can start individual services:
+
+```bash
+nova start orchestrator  # Start only orchestrator
+nova start dashboard     # Start only dashboard
+nova start              # Start both (default)
+```
+
+## Using Nova from Any Directory
+
+Once installed, you can use Nova from any project directory:
+
+```bash
+# Project 1
+cd ~/projects/webapp
+nova init
+nova start
+
+# Project 2 (Nova is already installed)
+cd ~/projects/api-service
+nova init
+nova start
+```
+
+Each project gets its own CASCADE.md, cascade_state.json, and logs/ directory. The Nova services run from wherever you start them.
+
+## Manual Service Control (Advanced)
+
+If you installed systemd service files, you can also manage services directly with systemctl:
 
 ```bash
 # Start services

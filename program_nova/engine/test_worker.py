@@ -27,11 +27,20 @@ class TestWorkerInitialization:
         assert worker.process is None
 
     def test_worker_computes_log_path_correctly(self):
-        """Worker should compute log file path as logs/<task_id>.log"""
+        """Worker should compute log file path relative to cwd as ./logs/<task_id>.log"""
         worker = Worker(task_id="F1", task_description="Foundation task")
 
-        expected_path = Path("logs/F1.log")
+        expected_path = Path.cwd() / "logs" / "F1.log"
         assert worker.log_path == expected_path
+
+    def test_worker_uses_cwd_for_log_path(self):
+        """Worker log path should use current working directory"""
+        worker = Worker(task_id="TEST-CWD", task_description="CWD test")
+
+        # Log path should be absolute and include current working directory
+        assert worker.log_path.is_absolute()
+        assert str(Path.cwd()) in str(worker.log_path)
+        assert worker.log_path.name == "TEST-CWD.log"
 
 
 class TestWorkerSpawning:

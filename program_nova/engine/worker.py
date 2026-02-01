@@ -51,7 +51,8 @@ class Worker:
         self.status = WorkerStatus.PENDING
         self.process: Optional[subprocess.Popen] = None
         self.pid: Optional[int] = None
-        self.log_path = Path(f"logs/{task_id}.log")
+        # Use current working directory for logs
+        self.log_path = Path.cwd() / "logs" / f"{task_id}.log"
 
         # Token usage tracking
         self._token_usage = {

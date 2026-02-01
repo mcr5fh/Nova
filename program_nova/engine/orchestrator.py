@@ -377,8 +377,8 @@ def setup_logging(daemon_mode: bool = False):
     import logging.handlers
     from pathlib import Path
 
-    # Create logs directory if it doesn't exist
-    logs_dir = Path("logs")
+    # Create logs directory if it doesn't exist (relative to cwd)
+    logs_dir = Path.cwd() / "logs"
     logs_dir.mkdir(exist_ok=True)
 
     # Configure root logger
@@ -437,8 +437,8 @@ def main():
     parser.add_argument(
         "cascade_file",
         nargs="?",
-        default="CASCADE.md",
-        help="Path to CASCADE.md file (default: CASCADE.md)",
+        default="./CASCADE.md",
+        help="Path to CASCADE.md file (default: ./CASCADE.md)",
     )
     parser.add_argument(
         "--daemon",
@@ -453,8 +453,8 @@ def main():
     )
     parser.add_argument(
         "--state-file",
-        default="cascade_state.json",
-        help="Path to state file (default: cascade_state.json)",
+        default="./cascade_state.json",
+        help="Path to state file (default: ./cascade_state.json)",
     )
 
     args = parser.parse_args()
