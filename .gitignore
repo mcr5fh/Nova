@@ -6,6 +6,7 @@
 *.dylib
 bin/
 nova-go/nova-go
+nova-go/cmd/nova-go/nova-go
 
 # Test binary, built with `go test -c`
 *.test
