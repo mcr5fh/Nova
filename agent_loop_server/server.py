@@ -25,6 +25,7 @@ class ConnectionManager:
 
     def __init__(self):
         self.active_connections: Set[WebSocket] = set()
+        self.session_agents: dict[str, AgentLoopRunner] = {}
 
     async def connect(self, websocket: WebSocket):
         """Accept and register a WebSocket connection."""
@@ -52,6 +53,17 @@ class ConnectionManager:
         # Clean up dead connections
         self.active_connections -= dead_connections
 
+    def get_session_agent(self, session_id: str, on_event) -> AgentLoopRunner:
+        """Get or create an agent for a logical session."""
+        agent = self.session_agents.get(session_id)
+        if agent is None:
+            agent = AgentLoopRunner(
+                working_dir=".",
+                on_event=on_event,
+            )
+            self.session_agents[session_id] = agent
+        return agent
+
 
 manager = ConnectionManager()
 
@@ -62,8 +74,8 @@ async def lifespan(app: FastAPI):
     print("=" * 60)
     print("Agent Loop Server starting")
     print("=" * 60)
-    print(f"Backend: http://localhost:{os.getenv('AGENT_LOOP_PORT', 8000)}")
-    print(f"WebSocket: ws://localhost:{os.getenv('AGENT_LOOP_PORT', 8000)}/ws")
+    print(f"Backend: http://localhost:{os.getenv('AGENT_LOOP_PORT', 8001)}")
+    print(f"WebSocket: ws://localhost:{os.getenv('AGENT_LOOP_PORT', 8001)}/ws")
     print()
     print("NOTE: Run Vite dev server separately for frontend:")
     print("  cd agent_loop_server/frontend && npm run dev")
@@ -97,10 +109,10 @@ async def websocket_endpoint(websocket: WebSocket):
         """Broadcast agent events in real-time."""
         await manager.broadcast(event.to_dict())
 
-    # Create agent with async callback
-    agent = AgentLoopRunner(
+    # Default agent (per-connection, non-persistent across reconnects)
+    default_agent = AgentLoopRunner(
         working_dir=".",
-        on_event=on_event
+        on_event=on_event,
     )
 
     try:
@@ -111,6 +123,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
             if message_type == "chat":
                 user_message = data.get("message", "").strip()
+                session_id = (data.get("session_id") or "").strip()
 
                 if not user_message:
                     await manager.broadcast(
@@ -124,6 +137,10 @@ async def websocket_endpoint(websocket: WebSocket):
                 )
 
                 # Run agent (fully async - no threads!)
+                if session_id:
+                    agent = manager.get_session_agent(session_id, on_event)
+                else:
+                    agent = default_agent
                 await agent.run(user_message)
 
             else:
