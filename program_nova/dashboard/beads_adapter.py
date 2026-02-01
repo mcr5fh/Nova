@@ -111,16 +111,13 @@ def get_epic_status(epic_id: str) -> dict:
     task_definitions: Dict[str, Dict[str, Any]] = {}
 
     for layer_idx, layer_beads in enumerate(graph["layout"]["Layers"]):
-        # Skip layer 0 (the epic itself)
-        if layer_idx == 0:
-            continue
-
         layer_name = f"Layer {layer_idx}"
         hierarchy[layer_name] = {"All": []}
 
         for bead_id in layer_beads:
+            # Skip the epic itself, but process all other tasks in all layers
             if bead_id == epic_id:
-                continue  # Skip epic itself
+                continue
 
             hierarchy[layer_name]["All"].append(bead_id)
 
