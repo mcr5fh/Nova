@@ -18,7 +18,7 @@ let appState = {
 
 // API Configuration
 const API_BASE = window.location.origin;
-const POLL_INTERVAL = 2000; // 2 seconds
+const POLL_INTERVAL = 1000; // 1 seconds
 
 // Initialize the app
 document.addEventListener('DOMContentLoaded', () => {
