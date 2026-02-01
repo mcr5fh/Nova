@@ -137,6 +137,7 @@ class ToolExecutor:
             tools={"type": "preset", "preset": "claude_code"},
             system_prompt={"type": "preset", "preset": "claude_code"},
             permission_mode="bypassPermissions",
+            model="haiku",
             setting_sources=["project", "local"],
         )
 

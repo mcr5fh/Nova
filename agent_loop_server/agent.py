@@ -148,11 +148,11 @@ class AgentLoopRunner:
             response_chunks.append(f"Error: {str(e)}")
 
         result = "".join(response_chunks).strip() or "No output from claude"
-        await self._emit_event(ToolResultEvent(
-            tool_name="AgentTool",
-            result=result,
-            success=success and not result.startswith("Error:"),
-        ))
+        # await self._emit_event(ToolResultEvent(
+        #     tool_name="AgentTool",
+        #     result=result,
+        #     success=success and not result.startswith("Error:"),
+        # ))
         self._add_assistant_message(result)
         await self._emit_event(AgentMessageEvent(message=result))
         return result
