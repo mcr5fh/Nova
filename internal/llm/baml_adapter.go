@@ -53,6 +53,7 @@ func (p *BAMLPlanner) Plan(ctx context.Context, taskID string) (*engine.PlannerO
 
 	for i, subtask := range bamlResult.Subtasks {
 		result.Subtasks[i] = engine.SubtaskDefinition{
+			ID:          subtask.Id,
 			Title:       subtask.Title,
 			Description: subtask.Description,
 			Type:        extractTaskType(subtask.Type),
@@ -212,6 +213,18 @@ func convertEscalationAction(action types.EscalationAction) engine.EscalationAct
 		return engine.EscalationActionSkip
 	default:
 		return engine.EscalationActionSkip
+	}
+}
+
+// convertBAMLSubtask converts a BAML subtask to an engine SubtaskDefinition
+// This is a helper function that can be tested independently
+func convertBAMLSubtask(id, title, description string, priority int64, dependsOn []string) engine.SubtaskDefinition {
+	return engine.SubtaskDefinition{
+		ID:          id,
+		Title:       title,
+		Description: description,
+		Priority:    int(priority),
+		DependsOn:   dependsOn,
 	}
 }
 

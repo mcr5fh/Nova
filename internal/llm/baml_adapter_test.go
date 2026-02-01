@@ -156,3 +156,75 @@ func TestBAMLEscalator_RouteEscalation_NoAPIKey(t *testing.T) {
 		t.Logf("RouteEscalation failed as expected without API key: %v", err)
 	}
 }
+
+// Test that convertBAMLSubtasks correctly maps the ID field
+func TestConvertBAMLSubtasks_IDFieldMapping(t *testing.T) {
+	tests := []struct {
+		name     string
+		id       string
+		title    string
+		desc     string
+		priority int64
+		deps     []string
+	}{
+		{
+			name:     "simple ID",
+			id:       "db-schema",
+			title:    "Create database schema",
+			desc:     "Design and implement the database schema",
+			priority: 2,
+			deps:     nil,
+		},
+		{
+			name:     "ID with dependencies",
+			id:       "api-endpoint",
+			title:    "Create API endpoint",
+			desc:     "Implement REST API endpoint",
+			priority: 1,
+			deps:     []string{"db-schema"},
+		},
+		{
+			name:     "complex ID with hyphens",
+			id:       "user-auth-middleware",
+			title:    "Authentication middleware",
+			desc:     "Add JWT verification middleware",
+			priority: 0,
+			deps:     []string{"api-endpoint", "db-schema"},
+		},
+		{
+			name:     "empty dependencies",
+			id:       "init-task",
+			title:    "Initialize project",
+			desc:     "Set up project structure",
+			priority: 3,
+			deps:     []string{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := convertBAMLSubtask(tt.id, tt.title, tt.desc, tt.priority, tt.deps)
+
+			if result.ID != tt.id {
+				t.Errorf("ID mismatch: got %q, want %q", result.ID, tt.id)
+			}
+			if result.Title != tt.title {
+				t.Errorf("Title mismatch: got %q, want %q", result.Title, tt.title)
+			}
+			if result.Description != tt.desc {
+				t.Errorf("Description mismatch: got %q, want %q", result.Description, tt.desc)
+			}
+			if result.Priority != int(tt.priority) {
+				t.Errorf("Priority mismatch: got %d, want %d", result.Priority, tt.priority)
+			}
+			if len(result.DependsOn) != len(tt.deps) {
+				t.Errorf("DependsOn length mismatch: got %d, want %d", len(result.DependsOn), len(tt.deps))
+			}
+			for i, dep := range tt.deps {
+				if result.DependsOn[i] != dep {
+					t.Errorf("DependsOn[%d] mismatch: got %q, want %q", i, result.DependsOn[i], dep)
+				}
+			}
+		})
+	}
+}
