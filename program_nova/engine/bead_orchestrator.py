@@ -13,6 +13,7 @@ Main responsibilities:
 
 import json
 import subprocess
+import threading
 import time
 from typing import Dict, List, Optional
 
@@ -61,6 +62,7 @@ class BeadOrchestrator:
         self.max_workers = max_workers
         self.active_workers: Dict[str, Worker] = {}
         self.task_start_times: Dict[str, float] = {}
+        self.stop_flag = threading.Event()
 
     def get_tasks(self) -> Dict[str, dict]:
         """
@@ -187,6 +189,15 @@ class BeadOrchestrator:
         # Clean up start time tracking
         self.task_start_times.pop(bead_id, None)
 
+    def stop(self):
+        """
+        Signal the orchestrator to stop gracefully.
+
+        Sets the stop_flag to signal the main loop to exit.
+        Workers will be allowed to complete their current tasks.
+        """
+        self.stop_flag.set()
+
     def start(self, check_interval: float = 2.0, max_iterations: Optional[int] = None):
         """
         Start the orchestrator main loop.
@@ -196,7 +207,7 @@ class BeadOrchestrator:
         2. Start workers (up to max_workers limit)
         3. Monitor workers for completion
         4. Complete tasks when workers finish
-        5. Repeat until no more tasks are ready
+        5. Repeat until no more tasks are ready or stop_flag is set
 
         Args:
             check_interval: Time in seconds between status checks (default: 2.0)
@@ -209,7 +220,7 @@ class BeadOrchestrator:
         """
         iteration = 0
 
-        while True:
+        while not self.stop_flag.is_set():
             # Check iteration limit
             if max_iterations is not None and iteration >= max_iterations:
                 break

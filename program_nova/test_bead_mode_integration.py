@@ -283,7 +283,7 @@ class TestBeadModeIntegration:
 
         # Record start time
         orch.task_start_times[task_id] = time.time()
-        time.sleep(0.1)  # Small delay to measure duration
+        time.sleep(1.1)  # Delay to measure duration (duration is stored as int seconds)
 
         # Complete the task
         orch.complete_task(task_id, mock_worker)
@@ -298,20 +298,34 @@ class TestBeadModeIntegration:
         task_data = json.loads(result.stdout)[0]
         assert task_data["status"] == "closed"
 
-        # Verify metrics were stored in notes
-        notes = task_data.get("notes", "")
-        assert "Metrics:" in notes, "Metrics should be present in notes"
+        # Verify metrics were stored in comments
+        comments_result = subprocess.run(
+            ["bd", "comments", task_id, "--json"],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        comments = json.loads(comments_result.stdout)
+        assert len(comments) > 0, "Should have at least one comment"
 
-        # Parse and verify metrics using the adapter's parse function
-        from program_nova.dashboard.beads_adapter import parse_metrics_from_notes
-        metrics = parse_metrics_from_notes(notes)
+        # Find and verify metrics comment
+        metrics_comment = None
+        for comment in comments:
+            try:
+                data = json.loads(comment.get("text", ""))
+                if data.get("type") == "metrics":
+                    metrics_comment = data
+                    break
+            except json.JSONDecodeError:
+                continue
 
-        assert "token_usage" in metrics, "Should have token_usage in metrics"
-        assert metrics["token_usage"]["input_tokens"] == 1000
-        assert metrics["token_usage"]["output_tokens"] == 500
-        assert "cost_usd" in metrics, "Should have cost_usd in metrics"
-        assert "duration_seconds" in metrics, "Should have duration_seconds in metrics"
-        assert metrics["duration_seconds"] > 0, "Duration should be positive"
+        assert metrics_comment is not None, "Should have a metrics comment"
+        assert "token_usage" in metrics_comment, "Should have token_usage in metrics"
+        assert metrics_comment["token_usage"]["input_tokens"] == 1000
+        assert metrics_comment["token_usage"]["output_tokens"] == 500
+        assert "cost_usd" in metrics_comment, "Should have cost_usd in metrics"
+        assert "duration_seconds" in metrics_comment, "Should have duration_seconds in metrics"
+        assert metrics_comment["duration_seconds"] > 0, "Duration should be positive"
 
     def test_list_epics_command_works(self):
         """Test that bd list --type=epic works correctly."""

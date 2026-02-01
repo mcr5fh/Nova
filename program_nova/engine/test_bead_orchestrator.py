@@ -10,6 +10,7 @@ Tests verify that the orchestrator correctly:
 
 import json
 import subprocess
+import threading
 from pathlib import Path
 from unittest.mock import Mock, patch, call, MagicMock
 import pytest
@@ -506,3 +507,92 @@ class TestBeadOrchestrator:
 
         # Should only start 2 workers even though 3 tasks were ready
         assert mock_worker_class.call_count == 2
+
+    @patch("program_nova.engine.bead_orchestrator.Worker")
+    @patch("program_nova.engine.bead_orchestrator.time")
+    def test_stop_flag_initialized(self, mock_time, mock_worker_class, mock_subprocess_run):
+        """Test that stop_flag is initialized as threading.Event."""
+        orch = BeadOrchestrator("Nova-gyd")
+        assert hasattr(orch, "stop_flag")
+        assert isinstance(orch.stop_flag, threading.Event)
+        assert not orch.stop_flag.is_set()
+
+    @patch("program_nova.engine.bead_orchestrator.Worker")
+    @patch("program_nova.engine.bead_orchestrator.time")
+    def test_stop_method_sets_flag(self, mock_time, mock_worker_class, mock_subprocess_run):
+        """Test that stop() method sets the stop_flag."""
+        orch = BeadOrchestrator("Nova-gyd")
+        assert not orch.stop_flag.is_set()
+        orch.stop()
+        assert orch.stop_flag.is_set()
+
+    @patch("program_nova.engine.bead_orchestrator.Worker")
+    @patch("program_nova.engine.bead_orchestrator.time")
+    def test_start_exits_on_stop_flag(self, mock_time, mock_worker_class, mock_subprocess_run):
+        """Test that start() exits when stop_flag is set."""
+        # Mock time
+        mock_time.time.return_value = 1000.0
+        mock_time.sleep = lambda x: None
+
+        # Mock get_ready_tasks to return tasks
+        ready_tasks_response = [{"id": "Nova-gyd.1"}]
+        mock_subprocess_run.return_value = Mock(stdout=json.dumps(ready_tasks_response))
+
+        orch = BeadOrchestrator("Nova-gyd")
+
+        # Set stop flag before starting
+        orch.stop_flag.set()
+
+        # start() should exit immediately without starting workers
+        orch.start(check_interval=0.1, max_iterations=10)
+
+        # No workers should be created
+        assert mock_worker_class.call_count == 0
+
+    @patch("program_nova.engine.bead_orchestrator.Worker")
+    @patch("program_nova.engine.bead_orchestrator.time")
+    def test_start_can_be_stopped_during_execution(
+        self, mock_time, mock_worker_class, mock_subprocess_run
+    ):
+        """Test that start() can be stopped during execution."""
+        # Mock time
+        mock_time.time.return_value = 1000.0
+
+        # Track sleep calls to trigger stop after first iteration
+        sleep_count = [0]
+        def mock_sleep(duration):
+            sleep_count[0] += 1
+            # Stop after first sleep (first iteration complete)
+            if sleep_count[0] == 1:
+                orch.stop()
+        mock_time.sleep = mock_sleep
+
+        # Mock get_ready_tasks to keep returning tasks
+        ready_tasks_response = [{"id": "Nova-gyd.1"}]
+
+        # Mock bd show response
+        bead_response = [{"id": "Nova-gyd.1", "title": "Task 1", "description": "First", "status": "open"}]
+
+        mock_subprocess_run.side_effect = [
+            # First iteration: get_ready_tasks
+            Mock(stdout=json.dumps(ready_tasks_response)),
+            # bd update
+            Mock(returncode=0),
+            # bd show
+            Mock(stdout=json.dumps(bead_response)),
+            # Second iteration: get_ready_tasks (but we stop during sleep)
+            Mock(stdout=json.dumps(ready_tasks_response)),
+        ]
+
+        # Mock worker that stays alive
+        mock_worker = Mock()
+        mock_worker.is_alive.return_value = True
+        mock_worker_class.return_value = mock_worker
+
+        orch = BeadOrchestrator("Nova-gyd")
+        orch.start(check_interval=0.1, max_iterations=10)
+
+        # Should have created exactly 1 worker before stopping
+        assert mock_worker_class.call_count == 1
+        # Sleep should have been called once
+        assert sleep_count[0] == 1
