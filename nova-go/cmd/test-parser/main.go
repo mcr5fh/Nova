@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/mattruiters/nova/nova-go/internal/hook"
+	"github.com/mattruiters/nova/internal/hook"
 )
 
 func main() {

@@ -55,3 +55,4 @@ line_count_report.txt
 # Session debugging
 .claude/session-events.log
 .debug/
+bin/

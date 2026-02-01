@@ -26,37 +26,42 @@ repos:
       - id: go-fmt
         args: [-w]
       - id: go-imports
+        files: '^nova-go/'
+        types: [go]
 
   # golangci-lint
   - repo: local
     hooks:
       - id: golangci-lint
         name: golangci-lint
-        entry: bash -c 'GODEBUG=gotypesalias=1 golangci-lint run --timeout=5m --config=.golangci.yml'
+        entry: bash -c 'cd nova-go && GODEBUG=gotypesalias=1 golangci-lint run --timeout=5m --config=.golangci.yml'
         language: system
         pass_filenames: false
         types: [go]
+        files: '^nova-go/'
 
   # Go tests and checks
   - repo: local
     hooks:
       - id: go-vet
         name: go vet
-        entry: go vet ./...
+        entry: bash -c 'cd nova-go && go vet ./...'
         language: system
         pass_filenames: false
         types: [go]
+        files: '^nova-go/'
 
       - id: go-mod-tidy
         name: go mod tidy
-        entry: bash -c 'go mod tidy && git diff --exit-code go.mod go.sum'
+        entry: bash -c 'cd nova-go && go mod tidy && git diff --exit-code go.mod go.sum'
         language: system
         pass_filenames: false
-        files: 'go\.(mod|sum)$'
+        files: '^nova-go/(go\.(mod|sum))?$'
 
       - id: go-test
         name: go test
-        entry: go test -race -short ./...
+        entry: bash -c 'cd nova-go && go test -race -short ./...'
         language: system
         pass_filenames: false
         types: [go]
+        files: '^nova-go/'

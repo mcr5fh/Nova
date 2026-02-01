@@ -17,7 +17,7 @@ all: build
 build:
 	@echo "Building $(BINARY_NAME)..."
 	@mkdir -p $(BIN_DIR)
-	$(GO) build $(GOFLAGS) $(LDFLAGS) -o $(BIN_DIR)/$(BINARY_NAME) ./cmd/$(BINARY_NAME)
+	cd nova-go && $(GO) build $(GOFLAGS) $(LDFLAGS) -o ../$(BIN_DIR)/$(BINARY_NAME) ./cmd/$(BINARY_NAME)
 	@echo "Binary built at $(BIN_DIR)/$(BINARY_NAME)"
 
 # Install the binary to system path
@@ -29,43 +29,43 @@ install: build
 # Run tests
 test:
 	@echo "Running tests..."
-	$(GO) test -v -race -coverprofile=coverage.out ./...
+	cd nova-go && $(GO) test -v -race -coverprofile=coverage.out ./...
 	@echo "Tests completed"
 
 # Run tests with coverage report
 coverage: test
 	@echo "Generating coverage report..."
-	$(GO) tool cover -html=coverage.out -o coverage.html
+	cd nova-go && $(GO) tool cover -html=coverage.out -o coverage.html
 	@echo "Coverage report generated at coverage.html"
 
 # Clean build artifacts
 clean:
 	@echo "Cleaning build artifacts..."
 	@rm -rf $(BIN_DIR)
+	@rm -f $(BINARY_NAME)
 	@rm -f coverage.out coverage.html
-	@rm -f nova-go/$(BINARY_NAME)
 	@echo "Clean completed"
 
 # Format code
 fmt:
 	@echo "Formatting code..."
-	$(GO) fmt ./...
+	cd nova-go && $(GO) fmt ./...
 
 # Run linter
 lint:
 	@echo "Running linter..."
-	$(GO) vet ./...
+	cd nova-go && $(GO) vet ./...
 
 # Run golangci-lint
 golangci-lint:
 	@echo "Running golangci-lint..."
-	GODEBUG=gotypesalias=1 golangci-lint run --config=.golangci.yml --timeout=5m
+	cd nova-go && GODEBUG=gotypesalias=1 golangci-lint run --config=.golangci.yml --timeout=5m
 
 # Run nilaway (nil pointer dereference checker)
 nilaway:
 	@echo "Running nilaway..."
-	@which nilaway > /dev/null 2>&1 || (echo "Installing nilaway..." && $(GO) install go.uber.org/nilaway/cmd/nilaway@latest)
-	nilaway ./...
+	cd nova-go && which nilaway > /dev/null 2>&1 || (echo "Installing nilaway..." && $(GO) install go.uber.org/nilaway/cmd/nilaway@latest)
+	cd nova-go && nilaway ./...
 
 # Build and run
 run: build
