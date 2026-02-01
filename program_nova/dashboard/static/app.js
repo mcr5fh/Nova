@@ -1067,6 +1067,9 @@ function renderDependencyView() {
     try {
         const { task_definitions, tasks } = appState.data;
 
+        console.log('[renderDependencyView] task_definitions:', task_definitions);
+        console.log('[renderDependencyView] tasks:', tasks);
+
         if (!task_definitions) {
             console.error('[renderDependencyView] task_definitions not available');
             document.getElementById('dependency-graph-container').innerHTML =
@@ -1074,8 +1077,14 @@ function renderDependencyView() {
             return;
         }
 
+        console.log('[renderDependencyView] Number of tasks:', Object.keys(task_definitions).length);
+
         // Build dependency graph data structure
         const graph = buildDependencyGraph(task_definitions, tasks);
+
+        console.log('[renderDependencyView] Graph built:', graph);
+        console.log('[renderDependencyView] Levels:', graph.levels);
+        console.log('[renderDependencyView] Edges:', graph.edges);
 
         // Render the graph
         renderDependencyGraphSVG(graph);
@@ -1083,6 +1092,7 @@ function renderDependencyView() {
         console.log('[renderDependencyView] Dependency graph render completed');
     } catch (error) {
         console.error('[renderDependencyView] Error rendering dependency graph:', error);
+        console.error('[renderDependencyView] Stack trace:', error.stack);
         document.getElementById('dependency-graph-container').innerHTML =
             `<div class="error-message" style="padding: 1rem; color: #dc3545; background: #f8d7da; border-radius: 4px;">
                 <strong>Error rendering dependency graph:</strong><br>
