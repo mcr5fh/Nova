@@ -6,13 +6,29 @@ export type { TTSService };
 
 export type TTSProvider = 'openai' | 'web-speech';
 
+/**
+ * Create a TTS service instance.
+ *
+ * For OpenAI provider, prefers server proxy (VITE_TTS_PROXY_URL) over direct API calls
+ * (VITE_OPENAI_API_KEY) for security. Falls back to Web Speech API if neither is configured.
+ */
 export function createTTSService(provider: TTSProvider = 'openai'): TTSService {
   if (provider === 'openai') {
+    // Prefer server proxy for security (keeps API key on server)
+    const proxyUrl = import.meta.env.VITE_TTS_PROXY_URL;
+    if (proxyUrl) {
+      console.log('Using TTS server proxy');
+      return new OpenAITTSService(proxyUrl);
+    }
+
+    // Fallback to direct API calls (not recommended for production)
     const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
     if (apiKey) {
+      console.warn('Using direct OpenAI API calls (consider using VITE_TTS_PROXY_URL instead)');
       return new OpenAITTSService(apiKey);
     }
-    console.warn('OpenAI API key not found, falling back to Web Speech API');
+
+    console.warn('No TTS configuration found, falling back to Web Speech API');
   }
   return new WebSpeechTTSService();
 }

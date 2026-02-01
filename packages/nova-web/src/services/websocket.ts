@@ -85,12 +85,24 @@ export class WebSocketService {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
     }
-    
+
     if (this.ws) {
-      this.ws.close(1000, 'Client disconnect');
+      // Remove event handlers to prevent callbacks after disconnect
+      this.ws.onopen = null;
+      this.ws.onclose = null;
+      this.ws.onerror = null;
+      this.ws.onmessage = null;
+
+      // Only call close() if the WebSocket is OPEN or CLOSING
+      // If it's still CONNECTING (readyState = 0), calling close() throws an error
+      // in some browsers. Let it fail naturally instead.
+      if (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CLOSING) {
+        this.ws.close(1000, 'Client disconnect');
+      }
+
       this.ws = null;
     }
-    
+
     this.setConnectionState('disconnected');
   }
 

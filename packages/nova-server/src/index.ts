@@ -1,12 +1,14 @@
 /**
  * Nova Server - WebSocket server for voice interface
- * 
+ *
  * Entry point for the nova-server package
  */
 
+import 'dotenv/config';
 import { WebSocketServer } from 'ws';
 import express from 'express';
 import { createServer } from 'http';
+import multer from 'multer';
 import { SessionManager } from './sessions/manager.js';
 import { setupWebSocketHandler } from './websocket/handler.js';
 
@@ -37,9 +39,12 @@ export interface NovaServerConfig {
   port?: number;
   host?: string;
   apiKey?: string;
+  openaiApiKey?: string;
   modelId?: string;
   basePath?: string;
   enableHealthCheck?: boolean;
+  enableTTSProxy?: boolean;
+  corsOrigin?: string;
 }
 
 export interface NovaServer {
@@ -56,9 +61,12 @@ export function createNovaServer(config: NovaServerConfig = {}): NovaServer {
   const port = config.port || parseInt(process.env.NOVA_PORT || '3001', 10);
   const host = config.host || process.env.NOVA_HOST || '0.0.0.0';
   const apiKey = config.apiKey || process.env.ANTHROPIC_API_KEY;
+  const openaiApiKey = config.openaiApiKey || process.env.OPENAI_API_KEY;
   const modelId = config.modelId || process.env.NOVA_MODEL || 'claude-sonnet-4-20250514';
   const basePath = config.basePath || process.env.NOVA_BASE_PATH || process.cwd();
   const enableHealthCheck = config.enableHealthCheck ?? true;
+  const enableTTSProxy = config.enableTTSProxy ?? !!openaiApiKey;
+  const corsOrigin = config.corsOrigin || process.env.NOVA_CORS_ORIGIN || '*';
 
   if (!apiKey) {
     throw new Error('ANTHROPIC_API_KEY environment variable or apiKey config is required');
@@ -71,15 +79,39 @@ export function createNovaServer(config: NovaServerConfig = {}): NovaServer {
     basePath,
   });
 
-  // Create Express app for health check
+  // Create Express app for health check and API endpoints
   const app = express();
-  
+
+  // Enable CORS for frontend
+  app.use((_req, res, next) => {
+    res.header('Access-Control-Allow-Origin', corsOrigin);
+    res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type');
+    if (_req.method === 'OPTIONS') {
+      res.sendStatus(204);
+      return;
+    }
+    next();
+  });
+
+  // Parse JSON bodies for TTS endpoint
+  app.use(express.json());
+
+  // Configure multer for audio file uploads (memory storage for small audio clips)
+  const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+      fileSize: 25 * 1024 * 1024, // 25MB max (OpenAI Whisper limit)
+    },
+  });
+
   if (enableHealthCheck) {
     app.get('/health', (_req, res) => {
       res.json({
         status: 'ok',
         timestamp: new Date().toISOString(),
         activeSessions: sessionManager.getActiveSessionIds().length,
+        ttsEnabled: enableTTSProxy,
       });
     });
 
@@ -88,6 +120,102 @@ export function createNovaServer(config: NovaServerConfig = {}): NovaServer {
         sessions: sessionManager.getActiveSessionIds(),
       });
     });
+  }
+
+  // TTS proxy endpoint - proxies requests to OpenAI TTS API
+  if (enableTTSProxy && openaiApiKey) {
+    app.post('/api/tts', async (req, res) => {
+      const { text, voice = 'nova', model = 'tts-1', speed = 1.0 } = req.body;
+
+      if (!text || typeof text !== 'string') {
+        res.status(400).json({ error: 'Missing or invalid "text" field' });
+        return;
+      }
+
+      try {
+        const response = await fetch('https://api.openai.com/v1/audio/speech', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openaiApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model,
+            input: text,
+            voice,
+            speed,
+            response_format: 'mp3',
+          }),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('[TTS Proxy] OpenAI error:', response.status, errorText);
+          res.status(response.status).json({ error: `OpenAI TTS error: ${response.status}` });
+          return;
+        }
+
+        // Stream the audio response back to client
+        res.setHeader('Content-Type', 'audio/mpeg');
+        const arrayBuffer = await response.arrayBuffer();
+        res.send(Buffer.from(arrayBuffer));
+      } catch (error) {
+        console.error('[TTS Proxy] Error:', error);
+        res.status(500).json({ error: 'TTS proxy error' });
+      }
+    });
+
+    console.log('[Nova Server] TTS proxy enabled at /api/tts');
+
+    // Transcription endpoint - proxies requests to OpenAI Whisper API
+    app.post('/api/transcribe', upload.single('audio'), async (req, res) => {
+      const file = req.file;
+      const language = (req.body.language as string) || 'en';
+      const model = (req.body.model as string) || 'whisper-1';
+
+      if (!file) {
+        res.status(400).json({ error: 'Missing audio file' });
+        return;
+      }
+
+      try {
+        // Create FormData for OpenAI API
+        const formData = new FormData();
+
+        // OpenAI expects a File or Blob with a filename
+        const blob = new Blob([file.buffer], { type: file.mimetype });
+        formData.append('file', blob, file.originalname || 'audio.webm');
+        formData.append('model', model);
+        formData.append('language', language);
+        formData.append('response_format', 'json');
+
+        const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openaiApiKey}`,
+          },
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('[Transcribe] OpenAI error:', response.status, errorText);
+          res.status(response.status).json({ error: `OpenAI Whisper error: ${response.status}` });
+          return;
+        }
+
+        const result = await response.json() as { text: string; language?: string };
+        res.json({
+          text: result.text,
+          language: result.language || language,
+        });
+      } catch (error) {
+        console.error('[Transcribe] Error:', error);
+        res.status(500).json({ error: 'Transcription error' });
+      }
+    });
+
+    console.log('[Nova Server] Transcription endpoint enabled at /api/transcribe');
   }
 
   // Create HTTP server
@@ -110,6 +238,9 @@ export function createNovaServer(config: NovaServerConfig = {}): NovaServer {
           console.log(`[Nova Server] WebSocket server listening on ws://${host}:${port}`);
           if (enableHealthCheck) {
             console.log(`[Nova Server] Health check available at http://${host}:${port}/health`);
+          }
+          if (enableTTSProxy && openaiApiKey) {
+            console.log(`[Nova Server] TTS proxy available at http://${host}:${port}/api/tts`);
           }
           
           // Start cleanup interval

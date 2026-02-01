@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNovaSession } from './hooks/useNovaSession';
 import { useSpeechRecognition } from './hooks/useSpeechRecognition';
+import { useWhisperTranscription } from './hooks/useWhisperTranscription';
 import { useTextToSpeech } from './hooks/useTextToSpeech';
 import { VoiceButton } from './components/VoiceButton';
 import { ConversationView } from './components/ConversationView';
@@ -9,8 +10,12 @@ import { ModeSelector } from './components/ModeSelector';
 import type { VoiceState, SessionMode } from './types';
 import './App.css';
 
+// Use Whisper transcription by default, can be disabled via env var
+const USE_WHISPER = import.meta.env.VITE_USE_WHISPER !== 'false';
+
 export default function App() {
   const [voiceState, setVoiceState] = useState<VoiceState>('IDLE');
+  const prevIsListeningRef = useRef(false);
 
   const {
     connect,
@@ -38,23 +43,68 @@ export default function App() {
 
   const { speak, stop: stopSpeaking, isSpeaking } = useTextToSpeech();
 
+  // Web Speech API recognition (fallback)
   const {
-    isListening,
-    isSupported: isSpeechSupported,
-    transcript,
+    isListening: isWebSpeechListening,
+    isSupported: isWebSpeechSupported,
+    transcript: webSpeechTranscript,
     interimTranscript,
-    start: startListening,
-    stop: stopListening,
+    start: startWebSpeechListening,
+    stop: stopWebSpeechListening,
   } = useSpeechRecognition({
     onSpeechEnd: (finalTranscript) => {
-      if (finalTranscript.trim()) {
+      if (!USE_WHISPER && finalTranscript.trim()) {
         setVoiceState('PROCESSING');
         sendMessage(finalTranscript);
-      } else {
+      } else if (!USE_WHISPER) {
         setVoiceState('IDLE');
       }
     },
   });
+
+  // Whisper transcription (primary)
+  const {
+    isRecording: isWhisperRecording,
+    isTranscribing,
+    isSupported: isWhisperSupported,
+    start: startWhisperRecording,
+    stop: stopWhisperRecording,
+  } = useWhisperTranscription({
+    onTranscript: (text) => {
+      if (text.trim()) {
+        setVoiceState('PROCESSING');
+        sendMessage(text);
+      } else {
+        setVoiceState('IDLE');
+      }
+    },
+    onError: (error) => {
+      console.error('Whisper transcription error:', error);
+      setVoiceState('IDLE');
+    },
+  });
+
+  // Determine which transcription method to use
+  const useWhisper = USE_WHISPER && isWhisperSupported;
+  const isListening = useWhisper ? isWhisperRecording : isWebSpeechListening;
+  const isSpeechSupported = useWhisper ? isWhisperSupported : isWebSpeechSupported;
+  const transcript = useWhisper ? '' : webSpeechTranscript; // Whisper doesn't provide interim transcripts
+
+  const startListening = useCallback(() => {
+    if (useWhisper) {
+      startWhisperRecording();
+    } else {
+      startWebSpeechListening();
+    }
+  }, [useWhisper, startWhisperRecording, startWebSpeechListening]);
+
+  const stopListening = useCallback(() => {
+    if (useWhisper) {
+      stopWhisperRecording();
+    } else {
+      stopWebSpeechListening();
+    }
+  }, [useWhisper, stopWhisperRecording, stopWebSpeechListening]);
 
   // Connect on mount
   useEffect(() => {
@@ -68,19 +118,28 @@ export default function App() {
     }
   }, [isSpeaking, voiceState]);
 
-  // Sync processing state
+  // Sync processing state (including transcribing for Whisper)
   useEffect(() => {
-    if (isProcessing && voiceState !== 'PROCESSING') {
+    if ((isProcessing || isTranscribing) && voiceState !== 'PROCESSING') {
       setVoiceState('PROCESSING');
     }
-  }, [isProcessing, voiceState]);
+  }, [isProcessing, isTranscribing, voiceState]);
 
   // Sync listening state
   useEffect(() => {
     if (isListening && voiceState !== 'LISTENING') {
       setVoiceState('LISTENING');
     }
-  }, [isListening, voiceState]);
+    // Reset to IDLE when listening stops without triggering onSpeechEnd
+    // (onSpeechEnd handles the case where there's a transcript)
+    // Only reset if we were actually listening before (prevIsListeningRef.current === true)
+    // to avoid resetting immediately after clicking the button but before recognition starts
+    // For Whisper, don't reset to IDLE here - let the transcription callback handle it
+    if (!useWhisper && !isListening && prevIsListeningRef.current && voiceState === 'LISTENING') {
+      setVoiceState('IDLE');
+    }
+    prevIsListeningRef.current = isListening;
+  }, [isListening, voiceState, useWhisper]);
 
   const handleVoiceButtonClick = useCallback(() => {
     switch (voiceState) {
@@ -137,9 +196,9 @@ export default function App() {
         <div className="app__conversation-area">
           <ConversationView messages={messages} currentResponse={currentResponse} />
 
-          {(transcript || interimTranscript) && (
-            <div className={`app__transcript ${interimTranscript ? 'app__transcript--interim' : 'app__transcript--final'}`}>
-              {interimTranscript || transcript}
+          {(transcript || interimTranscript || (useWhisper && isListening)) && (
+            <div className={`app__transcript ${interimTranscript || (useWhisper && isListening) ? 'app__transcript--interim' : 'app__transcript--final'}`}>
+              {useWhisper && isListening ? 'Recording...' : (interimTranscript || transcript)}
             </div>
           )}
         </div>
