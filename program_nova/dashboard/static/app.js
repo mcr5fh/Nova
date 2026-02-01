@@ -1186,12 +1186,12 @@ function renderDependencyGraphSVG(graph) {
     console.log('[renderDependencyGraphSVG] Number of levels:', Object.keys(levels).length);
     console.log('[renderDependencyGraphSVG] Number of edges:', edges.length);
 
-    // Layout constants
-    const NODE_WIDTH = 200;
-    const NODE_HEIGHT = 80;
-    const LEVEL_SPACING = 200;
-    const NODE_SPACING = 30;
-    const MARGIN = 40;
+    // Layout constants - increased for better readability and spacing
+    const NODE_WIDTH = 240;
+    const NODE_HEIGHT = 100;
+    const LEVEL_SPACING = 300;
+    const NODE_SPACING = 50;
+    const MARGIN = 60;
 
     // Calculate dimensions
     const maxLevel = Math.max(...Object.keys(levels).map(Number));
@@ -1200,8 +1200,8 @@ function renderDependencyGraphSVG(graph) {
     console.log('[renderDependencyGraphSVG] maxLevel:', maxLevel);
     console.log('[renderDependencyGraphSVG] maxNodesInLevel:', maxNodesInLevel);
 
-    const width = Math.max(1200, (maxLevel + 1) * LEVEL_SPACING + MARGIN * 2);
-    const height = Math.max(600, maxNodesInLevel * (NODE_HEIGHT + NODE_SPACING) + MARGIN * 2);
+    const width = Math.max(1400, (maxLevel + 1) * LEVEL_SPACING + MARGIN * 2);
+    const height = Math.max(800, maxNodesInLevel * (NODE_HEIGHT + NODE_SPACING) + MARGIN * 2);
 
     console.log('[renderDependencyGraphSVG] SVG dimensions:', width, 'x', height);
 
@@ -1275,17 +1275,18 @@ function renderDependencyGraphSVG(graph) {
 
     svg.appendChild(edgesGroup);
 
-    // Draw level labels
+    // Draw level labels (at top of each column)
     const labelsGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     labelsGroup.setAttribute('class', 'level-labels');
 
     for (let level = 0; level <= maxLevel; level++) {
-        const x = MARGIN + level * LEVEL_SPACING;
-        const y = MARGIN - 10;
+        const x = MARGIN + level * LEVEL_SPACING + NODE_WIDTH / 2;
+        const y = MARGIN - 20;
 
         const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         text.setAttribute('x', x);
         text.setAttribute('y', y);
+        text.setAttribute('text-anchor', 'middle');
         text.setAttribute('class', 'dep-level-label');
         text.textContent = `Level ${level}`;
 
@@ -1318,23 +1319,23 @@ function renderDependencyGraphSVG(graph) {
 
         nodeGroup.appendChild(rect);
 
-        // Task ID
+        // Task ID (larger and more prominent)
         const taskIdText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         taskIdText.setAttribute('x', pos.x + NODE_WIDTH / 2);
-        taskIdText.setAttribute('y', pos.y + 22);
+        taskIdText.setAttribute('y', pos.y + 28);
         taskIdText.setAttribute('text-anchor', 'middle');
-        taskIdText.setAttribute('class', 'dep-node-text');
+        taskIdText.setAttribute('class', 'dep-node-text dep-node-id');
         taskIdText.textContent = taskId;
 
         nodeGroup.appendChild(taskIdText);
 
-        // Task name (truncated)
+        // Task name (truncated, with better length for new width)
         const taskName = taskDef.name || '';
-        const truncatedName = taskName.length > 25 ? taskName.substring(0, 22) + '...' : taskName;
+        const truncatedName = taskName.length > 30 ? taskName.substring(0, 27) + '...' : taskName;
 
         const nameText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         nameText.setAttribute('x', pos.x + NODE_WIDTH / 2);
-        nameText.setAttribute('y', pos.y + 40);
+        nameText.setAttribute('y', pos.y + 50);
         nameText.setAttribute('text-anchor', 'middle');
         nameText.setAttribute('class', 'dep-node-subtext');
         nameText.textContent = truncatedName;
@@ -1351,7 +1352,7 @@ function renderDependencyGraphSVG(graph) {
 
             const metaText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
             metaText.setAttribute('x', pos.x + NODE_WIDTH / 2);
-            metaText.setAttribute('y', pos.y + 58);
+            metaText.setAttribute('y', pos.y + 72);
             metaText.setAttribute('text-anchor', 'middle');
             metaText.setAttribute('class', 'dep-node-meta');
             metaText.textContent = `⏱ ${formatDuration(duration)} | 💰 ${formatCost(cost)}`;
