@@ -22,6 +22,8 @@ import argparse
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 
+import weave
+
 # Import local modules
 import db
 from program_nova.anthropic_wrapper import AnthropicWrapper, AnthropicError
@@ -73,6 +75,7 @@ def load_user_messages_from_jsonl(jsonl_path: str) -> List[str]:
     return user_messages
 
 
+@weave.op
 def analyze_session_with_claude(
     user_messages: List[str],
     anthropic_wrapper: AnthropicWrapper,
@@ -334,6 +337,9 @@ Environment Variables:
         print("\nPlease set your API key:")
         print("  export ANTHROPIC_API_KEY='your-api-key'")
         sys.exit(1)
+
+    # Initialize Weave tracing
+    weave.init('eric_m-consus/nova')
 
     # Initialize Anthropic wrapper
     try:
