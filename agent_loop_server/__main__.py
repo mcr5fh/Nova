@@ -11,7 +11,7 @@ load_dotenv()
 def main():
     """Run the server."""
     host = os.getenv("AGENT_LOOP_HOST", "0.0.0.0")
-    port = int(os.getenv("AGENT_LOOP_PORT", 8000))
+    port = int(os.getenv("AGENT_LOOP_PORT", 8001))
 
     uvicorn.run(
         "agent_loop_server.server:app",
