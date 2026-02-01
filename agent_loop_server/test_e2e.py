@@ -163,24 +163,25 @@ class TestBackendIntegration:
             json_str = json.dumps(event_dict)
             assert isinstance(json_str, str)
 
-    def test_tool_executor_validates_input(self):
+    @pytest.mark.asyncio
+    async def test_tool_executor_validates_input(self):
         """Test ToolExecutor properly validates input."""
         from agent_loop_server.tools import ToolExecutor
 
         executor = ToolExecutor(working_dir=".")
 
         # Test invalid JSON
-        result = executor.execute("AgentTool", "not json")
+        result = await executor.execute("AgentTool", "not json")
         assert "Error" in result
         assert "Invalid JSON" in result
 
         # Test unknown tool
-        result = executor.execute("UnknownTool", '{"test": "data"}')
+        result = await executor.execute("UnknownTool", '{"test": "data"}')
         assert "Error" in result
         assert "Unknown tool" in result
 
         # Test missing required parameter
-        result = executor.execute("AgentTool", '{}')
+        result = await executor.execute("AgentTool", '{}')
         assert "Error" in result
 
 
