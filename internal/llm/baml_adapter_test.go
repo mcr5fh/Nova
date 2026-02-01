@@ -24,12 +24,6 @@ func TestBAMLPlanner_InterfaceCompliance(t *testing.T) {
 	var _ engine.Planner = NewBAMLPlanner(beadsClient)
 }
 
-// Test BAML executor interface compliance
-func TestBAMLExecutor_InterfaceCompliance(t *testing.T) {
-	beadsClient := beads.NewClient()
-	var _ engine.Executor = NewBAMLExecutor(beadsClient)
-}
-
 // Test BAML validator interface compliance
 func TestBAMLValidator_InterfaceCompliance(t *testing.T) {
 	beadsClient := beads.NewClient()
@@ -66,33 +60,6 @@ func TestBAMLPlanner_Plan_NoAPIKey(t *testing.T) {
 		t.Log("Plan succeeded (unexpected, but OK if API key is set)")
 	} else {
 		t.Logf("Plan failed as expected without API key: %v", err)
-	}
-}
-
-// Test executor without API key (should fail gracefully)
-func TestBAMLExecutor_Execute_NoAPIKey(t *testing.T) {
-	beadsClient := beads.NewClient()
-	executor := NewBAMLExecutor(beadsClient)
-
-	// Create a test task
-	task, err := beadsClient.CreateTask(beads.CreateTaskRequest{
-		Title:       "Test task",
-		Description: "Test description",
-		Type:        beads.TaskTypeTask,
-		Priority:    2,
-	})
-	if err != nil {
-		t.Fatalf("Failed to create task: %v", err)
-	}
-
-	ctx := context.Background()
-
-	// This should fail gracefully without API key
-	_, err = executor.Execute(ctx, task.ID, 1)
-	if err == nil {
-		t.Log("Execute succeeded (unexpected, but OK if API key is set)")
-	} else {
-		t.Logf("Execute failed as expected without API key: %v", err)
 	}
 }
 

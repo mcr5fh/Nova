@@ -44,46 +44,19 @@ function PlanTask(
   "#
 }
 
-// Worker: Executes a leaf task
-function ExecuteTask(
-  task_title: string,
-  task_description: string,
-  context: string,
-  attempt_num: int
-) -> WorkerResult {
-  client GPT4Mini
-  prompt #"
-    {{ _.role("system") }}
-    You are a focused software engineering worker executing a single, well-defined task.
-    Work within the scope provided and report what you accomplished.
-
-    Guidelines:
-    - Focus on the specific task at hand
-    - Make minimal, targeted changes
-    - Run tests to verify your work
-    - Report any blockers or ambiguities
-    - Be honest about your confidence level
-
-    {{ _.role("user") }}
-    Task: {{ task_title }}
-
-    Requirements:
-    {{ task_description }}
-
-    Context:
-    {{ context }}
-
-    This is attempt {{ attempt_num }}.
-
-    Execute this task and report:
-    1. Whether you succeeded
-    2. What files you modified
-    3. A brief summary of what you did
-    4. Your confidence level (0.0-1.0)
-    5. Any unresolved questions or blockers
-
-    {{ ctx.output_format }}
-  "#
+test TestName {
+  functions [PlanTask]
+  args {
+    task_title #"
+      hello world
+    "#
+    task_description #"
+      hello world
+    "#
+    context #"
+      hello world
+    "#
+  }
 }
 
 // Validator: Checks if task output meets requirements
@@ -93,7 +66,7 @@ function ValidateTask(
   worker_summary: string,
   test_output: string
 ) -> ValidationResult {
-  client GPT4
+  client GPT5
   prompt #"
     {{ _.role("system") }}
     You are a code reviewer validating task completion.
@@ -127,7 +100,7 @@ function RouteEscalation(
   failure_history: string,
   last_error: string
 ) -> EscalationDecision {
-  client GPT4
+  client GPT5
   prompt #"
     {{ _.role("system") }}
     You are an escalation router deciding how to handle blocked tasks.
@@ -154,42 +127,6 @@ function RouteEscalation(
     2. Explain why
     3. If FIX: provide specific guidance for the fixer
     4. If HUMAN: formulate a clear question
-
-    {{ ctx.output_format }}
-  "#
-}
-
-// Fixer: Attempts to unblock a failed task with additional guidance
-function FixTask(
-  task_title: string,
-  task_description: string,
-  previous_attempt_summary: string,
-  fixer_guidance: string
-) -> WorkerResult {
-  client GPT4
-  prompt #"
-    {{ _.role("system") }}
-    You are an expert fixer helping to unblock a failed task.
-    Use the guidance provided to address the issue and complete the task.
-
-    {{ _.role("user") }}
-    Task: {{ task_title }}
-
-    Requirements:
-    {{ task_description }}
-
-    Previous Attempt:
-    {{ previous_attempt_summary }}
-
-    Guidance:
-    {{ fixer_guidance }}
-
-    Apply the guidance and complete the task. Report:
-    1. Whether you succeeded
-    2. What files you modified
-    3. What you did to address the issue
-    4. Your confidence level
-    5. Any remaining questions
 
     {{ ctx.output_format }}
   "#

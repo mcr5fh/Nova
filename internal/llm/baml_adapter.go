@@ -65,55 +65,6 @@ func (p *BAMLPlanner) Plan(ctx context.Context, taskID string) (*engine.PlannerO
 	return result, nil
 }
 
-// BAMLExecutor implements engine.Executor using BAML
-type BAMLExecutor struct {
-	beadsClient *beads.Client
-}
-
-// NewBAMLExecutor creates a new BAML-based executor
-func NewBAMLExecutor(beadsClient *beads.Client) *BAMLExecutor {
-	return &BAMLExecutor{
-		beadsClient: beadsClient,
-	}
-}
-
-// Execute implements engine.Executor
-func (e *BAMLExecutor) Execute(ctx context.Context, taskID string, attempt int) (*engine.WorkerResult, error) {
-	// Get the task
-	task, err := e.beadsClient.GetTask(taskID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get task: %w", err)
-	}
-
-	// Build context string
-	contextStr := fmt.Sprintf("Task Type: %s\nPriority: %d\nSize: %s", task.Type, task.Priority, task.Size)
-	if task.Notes != "" {
-		contextStr += fmt.Sprintf("\nNotes: %s", task.Notes)
-	}
-
-	// Call BAML ExecuteTask function
-	bamlResult, err := baml_client.ExecuteTask(ctx, task.Title, task.Description, contextStr, int64(attempt))
-	if err != nil {
-		return nil, fmt.Errorf("BAML ExecuteTask failed: %w", err)
-	}
-
-	// Convert BAML result to engine types
-	result := &engine.WorkerResult{
-		TaskID:      taskID,
-		Success:     bamlResult.Success,
-		OutputFiles: bamlResult.Output_files,
-		Summary:     bamlResult.Summary,
-		Confidence:  bamlResult.Confidence,
-		Questions:   bamlResult.Questions,
-	}
-
-	if bamlResult.Error_message != nil {
-		result.Error = *bamlResult.Error_message
-	}
-
-	return result, nil
-}
-
 // BAMLValidator implements engine.Validator using BAML
 type BAMLValidator struct {
 	beadsClient *beads.Client
