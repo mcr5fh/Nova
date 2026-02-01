@@ -263,6 +263,63 @@ class TestNovaCLI:
         finally:
             os.chdir(original_cwd)
 
+    @patch('program_nova.cli.subprocess.Popen')
+    def test_run_passes_correct_arguments_to_scripts(self, mock_popen, tmp_path):
+        """Test that nova run passes correct argument format to orchestrator and dashboard.
+
+        orchestrator.py expects: CASCADE_FILE --state-file STATE
+        server.py expects: --host HOST --port PORT --state-file STATE --cascade-file CASCADE
+        """
+        original_cwd = Path.cwd()
+        try:
+            import os
+            os.chdir(tmp_path)
+
+            # Create CASCADE.md
+            cascade_file = tmp_path / "CASCADE.md"
+            cascade_file.write_text(cli.CASCADE_TEMPLATE)
+
+            # Mock the Popen processes
+            mock_orch = Mock()
+            mock_orch.poll.return_value = None
+            mock_dash = Mock()
+            mock_dash.poll.return_value = None
+
+            mock_popen.side_effect = [mock_orch, mock_dash]
+
+            # Simulate KeyboardInterrupt to exit the monitoring loop
+            with patch('program_nova.cli.time.sleep', side_effect=KeyboardInterrupt):
+                with patch('sys.argv', ['nova', 'run']):
+                    cli.main()
+
+            # Verify orchestrator command arguments
+            orch_call = mock_popen.call_args_list[0]
+            orch_args = orch_call[0][0]
+            # Expected: [python, orchestrator.py, ./CASCADE.md, --state-file, ./cascade_state.json]
+            assert orch_args[2] == "./CASCADE.md", \
+                "orchestrator.py should receive CASCADE.md as positional argument"
+            assert "--state-file" in orch_args
+            state_file_idx = orch_args.index("--state-file")
+            assert orch_args[state_file_idx + 1] == "./cascade_state.json"
+            # Make sure --cascade-file is NOT in orchestrator args
+            assert "--cascade-file" not in orch_args, \
+                "orchestrator.py should NOT receive --cascade-file flag"
+
+            # Verify dashboard command arguments
+            dash_call = mock_popen.call_args_list[1]
+            dash_args = dash_call[0][0]
+            # Expected: [python, server.py, --host, 0.0.0.0, --port, 8000, --state-file, ./cascade_state.json, --cascade-file, ./CASCADE.md]
+            assert "--host" in dash_args
+            assert "--port" in dash_args
+            assert "--state-file" in dash_args
+            assert "--cascade-file" in dash_args, \
+                "server.py should receive --cascade-file flag"
+            cascade_idx = dash_args.index("--cascade-file")
+            assert dash_args[cascade_idx + 1] == "./CASCADE.md"
+
+        finally:
+            os.chdir(original_cwd)
+
     @patch('program_nova.cli.shutil.which')
     def test_start_detects_systemd_unavailable(self, mock_which, tmp_path, capsys):
         """Test nova start detects when systemd is not available and suggests nova run."""

@@ -263,7 +263,7 @@ def run() -> int:
     orchestrator_cmd = [
         python_exe,
         str(orchestrator_script),
-        "--cascade-file", "./CASCADE.md",
+        "./CASCADE.md",  # positional argument
         "--state-file", "./cascade_state.json",
     ]
 
