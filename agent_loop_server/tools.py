@@ -5,7 +5,7 @@ Simplified to single AgentTool that proxies to claude CLI.
 
 import json
 import subprocess
-from typing import Dict, Callable
+from typing import Dict, Callable, List, Optional
 
 
 class ToolExecutor:
@@ -64,17 +64,22 @@ class ToolExecutor:
             Formatted string describing all tools
         """
         return """
-- AgentTool(message: str) -> str
+- AgentTool(message: str, history?: list[dict]) -> str
   Proxy to claude CLI to execute arbitrary tasks.
-  Sends message to 'claude -p <message>' and returns output.
-  Example: {"message": "List all Python files in current directory"}
+  Sends message and optional history to 'claude -p <prompt>' and returns output.
+  Example: {"message": "List all Python files", "history": [{"role":"user","content":"Hi"}]}
 """.strip()
 
-    def _agent_tool(self, message: str) -> str:
+    def _agent_tool(
+        self,
+        message: str,
+        history: Optional[List[Dict[str, str]]] = None
+    ) -> str:
         """Execute claude CLI with provided message.
 
         Args:
             message: Message/prompt to send to claude CLI
+            history: Prior conversation history for context
 
         Returns:
             Claude CLI output or error message
@@ -82,11 +87,34 @@ class ToolExecutor:
         if not message:
             return "Error: message parameter is required"
 
+        prompt = message
+        if history:
+            trimmed_history = history
+            last_entry = history[-1] if history else None
+            if (
+                last_entry
+                and last_entry.get("role") == "user"
+                and last_entry.get("content") == message
+            ):
+                trimmed_history = history[:-1]
+
+            history_lines = []
+            for entry in trimmed_history:
+                role = entry.get("role", "unknown").capitalize()
+                content = entry.get("content", "")
+                history_lines.append(f"{role}: {content}")
+            prompt = (
+                "Conversation history:\n"
+                + "\n".join(history_lines)
+                + "\n\nCurrent user message:\n"
+                + message
+            )
+
         try:
             print(f"Executing claude CLI with message: {message}")
             # Execute claude CLI with -p flag for prompt
             result = subprocess.run(
-                ["claude", "--dangerously-skip-permissions", "--model", "haiku", "-p", message],
+                ["claude", "--dangerously-skip-permissions", "--model", "haiku", "-p", prompt],
                 cwd=self.working_dir,
                 capture_output=True,
                 text=True,

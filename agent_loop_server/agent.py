@@ -6,6 +6,7 @@ FULLY ASYNC - no thread pool, no queue, just clean async/await.
 """
 
 import os
+import json
 from typing import Optional, Dict, Any, Callable, Awaitable
 from pathlib import Path
 
@@ -95,11 +96,15 @@ class AgentLoopRunner:
         raw_user_message = user_message
 
         if self.direct_to_claude:
+            tool_payload = json.dumps({
+                "message": raw_user_message,
+                "history": self.conversation_history
+            })
             await self._emit_event(ToolCallEvent(
                 tool_name="AgentTool",
-                tool_args=raw_user_message
+                tool_args=tool_payload
             ))
-            result = self.tool_executor.execute("AgentTool", raw_user_message)
+            result = self.tool_executor.execute("AgentTool", tool_payload)
             success = not result.startswith("Error:")
             await self._emit_event(ToolResultEvent(
                 tool_name="AgentTool",
@@ -150,8 +155,11 @@ class AgentLoopRunner:
                     tool_name = response.tool_call.tool.value
                     tool_args = response.tool_call.args
                     if tool_name == "AgentTool":
-                        # Bypass BAML tool args and send raw user input directly.
-                        tool_args = raw_user_message
+                        # Bypass BAML tool args and send raw user input + history.
+                        tool_args = json.dumps({
+                            "message": raw_user_message,
+                            "history": self.conversation_history
+                        })
 
                     # Emit tool call event
                     await self._emit_event(ToolCallEvent(
