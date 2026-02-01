@@ -13,6 +13,7 @@ import json
 import logging
 import subprocess
 import threading
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Optional
 
@@ -58,10 +59,23 @@ def create_app(
     Returns:
         Configured FastAPI app instance
     """
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        """Manage application lifecycle - handles shutdown only."""
+        yield
+
+        # Shutdown: Stop all orchestrators gracefully
+        logger.info(f"Shutting down {len(app.state.orchestrators)} orchestrators")
+        for epic_id, orchestrator in app.state.orchestrators.items():
+            logger.info(f"Stopping orchestrator for {epic_id}")
+            orchestrator.stop()
+        logger.info("All orchestrators stopped")
+
     app = FastAPI(
         title="Program Nova Dashboard API",
         description="Real-time observability for hierarchical task execution",
         version="1.0.0",
+        lifespan=lifespan,
     )
 
     # Enable CORS for frontend
@@ -73,13 +87,12 @@ def create_app(
         allow_headers=["*"],
     )
 
-    # Store config in app state
+    # Initialize app state
     app.state.state_file = state_file
     app.state.cascade_file = cascade_file
     app.state.milestones_file = milestones_file
-
-    # Initialize milestone evaluator
     app.state.milestone_evaluator = MilestoneEvaluator(milestones_file)
+    app.state.orchestrators = {}
 
     # Mount static files
     if STATIC_DIR.exists():
@@ -253,6 +266,9 @@ def create_app(
         the HTTP response. The orchestrator will run indefinitely, spawning
         workers for ready tasks until all tasks are complete.
 
+        The orchestrator is tracked in app.state for graceful shutdown,
+        and the thread is non-daemon so the server waits for completion.
+
         Args:
             request: Request containing epic_id
 
@@ -265,6 +281,9 @@ def create_app(
             logger.info(f"Starting BeadOrchestrator for epic_id={request.epic_id}")
             orchestrator = BeadOrchestrator(request.epic_id)
 
+            # Track orchestrator for graceful shutdown
+            app.state.orchestrators[request.epic_id] = orchestrator
+
             # Start orchestrator in background thread
             # This allows the HTTP response to return immediately
             def run_orchestrator():
@@ -275,11 +294,14 @@ def create_app(
                     logger.info(f"BeadOrchestrator completed for epic_id={request.epic_id}")
                 except Exception as e:
                     logger.error(f"BeadOrchestrator error for epic_id={request.epic_id}: {str(e)}", exc_info=True)
+                finally:
+                    # Remove from tracked orchestrators when done
+                    app.state.orchestrators.pop(request.epic_id, None)
 
             thread = threading.Thread(
                 target=run_orchestrator,
                 name=f"BeadOrchestrator-{request.epic_id}",
-                daemon=True  # Daemon thread won't prevent server shutdown
+                daemon=False  # Non-daemon thread allows graceful shutdown
             )
             thread.start()
 

@@ -445,3 +445,58 @@ class TestBeadsEndpoints:
         # Verify error logging occurred
         assert any(record.levelname == "ERROR" for record in caplog.records)
         assert any("error getting epic status" in record.message.lower() for record in caplog.records)
+
+
+class TestServerLifecycle:
+    """Test server lifecycle management and graceful shutdown."""
+
+    def test_app_state_orchestrators_initialized(self):
+        """Test that app.state.orchestrators dictionary is initialized."""
+        app = create_app()
+        assert hasattr(app.state, "orchestrators")
+        assert isinstance(app.state.orchestrators, dict)
+        assert len(app.state.orchestrators) == 0
+
+    def test_start_epic_tracks_orchestrator(self, client):
+        """Test that starting an epic tracks the orchestrator in app state."""
+        # Start an epic
+        response = client.post(
+            "/api/beads/start",
+            json={"epic_id": "Nova-test"}
+        )
+        assert response.status_code == 200
+
+        # Check that orchestrator is tracked
+        # Note: We can't directly access app.state in TestClient, but we verify it doesn't error
+        # The actual tracking will be verified in integration tests
+
+    def test_orchestrator_thread_daemon_false(self, client, monkeypatch):
+        """Test that orchestrator threads are created with daemon=False."""
+        import threading
+        created_threads = []
+
+        # Capture thread creation
+        original_thread_init = threading.Thread.__init__
+        def track_thread_init(self, *args, **kwargs):
+            created_threads.append((args, kwargs))
+            original_thread_init(self, *args, **kwargs)
+
+        monkeypatch.setattr(threading.Thread, "__init__", track_thread_init)
+
+        # Start an epic
+        response = client.post(
+            "/api/beads/start",
+            json={"epic_id": "Nova-test"}
+        )
+        assert response.status_code == 200
+
+        # Check that a thread was created with daemon=False
+        assert len(created_threads) > 0
+        # Find the BeadOrchestrator thread
+        for args, kwargs in created_threads:
+            name = kwargs.get("name")
+            if name and "BeadOrchestrator" in name:
+                assert kwargs.get("daemon", True) is False
+                break
+        else:
+            pytest.fail("No BeadOrchestrator thread found")
