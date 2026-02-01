@@ -23,13 +23,17 @@ class StreamState(BaseModel, typing.Generic[StreamStateValueT]):
     value: StreamStateValueT
     state: typing_extensions.Literal["Pending", "Incomplete", "Complete"]
 # #########################################################################
-# Generated classes (3)
+# Generated classes (4)
 # #########################################################################
 
 class AgentResponse(BaseModel):
     type: typing.Optional[types.AgentResponseType] = None
     tool_call: typing.Optional["ToolCall"] = None
     message: typing.Optional[str] = None
+
+class AgentToolCall(BaseModel):
+    type: typing.Optional[typing_extensions.Literal['AgentToolCall']] = None
+    args: typing.Optional[str] = None
 
 class Message(BaseModel):
     role: typing.Optional[types.MessageRole] = None

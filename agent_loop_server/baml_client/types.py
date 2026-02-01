@@ -41,7 +41,7 @@ def all_succeeded(checks: typing.Dict[CheckName, Check]) -> bool:
 # #########################################################################
 
 class AgentResponseType(str, Enum):
-    Reply = "Reply"
+    Done = "Done"
     ToolCall = "ToolCall"
 
 class MessageRole(str, Enum):
@@ -52,13 +52,17 @@ class ToolName(str, Enum):
     AgentTool = "AgentTool"
 
 # #########################################################################
-# Generated classes (3)
+# Generated classes (4)
 # #########################################################################
 
 class AgentResponse(BaseModel):
     type: AgentResponseType
     tool_call: typing.Optional["ToolCall"] = None
     message: typing.Optional[str] = None
+
+class AgentToolCall(BaseModel):
+    type: typing_extensions.Literal['AgentToolCall']
+    args: str
 
 class Message(BaseModel):
     role: MessageRole

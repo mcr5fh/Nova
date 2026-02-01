@@ -37,8 +37,12 @@ class ToolExecutor:
         # Parse arguments
         try:
             args = json.loads(args_json)
-        except json.JSONDecodeError as e:
-            return f"Error: Invalid JSON in args: {str(e)}"
+        except json.JSONDecodeError:
+            # Fallback: treat raw string as the message argument
+            if isinstance(args_json, str) and args_json.strip():
+                args = {"message": args_json}
+            else:
+                return "Error: Invalid JSON in args: empty or unparsable"
 
         # Get tool handler
         handler = self._tools.get(tool_name)
@@ -79,15 +83,17 @@ class ToolExecutor:
             return "Error: message parameter is required"
 
         try:
+            print(f"Executing claude CLI with message: {message}")
             # Execute claude CLI with -p flag for prompt
             result = subprocess.run(
-                ["claude", "--dangerously-skip-permissions", "-p", message],
+                ["claude", "--dangerously-skip-permissions", "--model", "haiku", "-p", message],
                 cwd=self.working_dir,
                 capture_output=True,
                 text=True,
-                timeout=60
+                timeout=300
             )
 
+            print(f"Claude CLI result: {result.stdout}")
             # Check for errors
             if result.returncode != 0:
                 error_output = result.stderr.strip() or "Unknown error"

@@ -1,0 +1,14 @@
+{
+  "slug": "add-a-hello-world-page-to-this-dashboard",
+  "startedAt": "2026-02-01T00:00:00Z",
+  "currentPhase": "discovery",
+  "projectDir": "specs/projects/add-a-hello-world-page-to-this-dashboard/",
+  "artifacts": {
+    "problem": null,
+    "solution": null,
+    "critique": null,
+    "fullSpec": null
+  },
+  "phaseHistory": [],
+  "conversationSummary": ""
+}

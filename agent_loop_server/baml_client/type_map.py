@@ -19,6 +19,9 @@ type_map = {
     "types.AgentResponse": types.AgentResponse,
     "stream_types.AgentResponse": stream_types.AgentResponse,
 
+    "types.AgentToolCall": types.AgentToolCall,
+    "stream_types.AgentToolCall": stream_types.AgentToolCall,
+
     "types.Message": types.Message,
     "stream_types.Message": stream_types.Message,
 

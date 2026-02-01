@@ -20,7 +20,7 @@ from .globals import DO_NOT_USE_DIRECTLY_UNLESS_YOU_KNOW_WHAT_YOURE_DOING_RUNTIM
 class TypeBuilder(type_builder.TypeBuilder):
     def __init__(self):
         super().__init__(classes=set(
-          ["AgentResponse","Message","ToolCall",]
+          ["AgentResponse","AgentToolCall","Message","ToolCall",]
         ), enums=set(
           ["AgentResponseType","MessageRole","ToolName",]
         ), runtime=DO_NOT_USE_DIRECTLY_UNLESS_YOU_KNOW_WHAT_YOURE_DOING_RUNTIME)
@@ -43,12 +43,16 @@ class TypeBuilder(type_builder.TypeBuilder):
 
 
     # #########################################################################
-    # Generated classes 3
+    # Generated classes 4
     # #########################################################################
 
     @property
     def AgentResponse(self) -> "AgentResponseViewer":
         return AgentResponseViewer(self)
+
+    @property
+    def AgentToolCall(self) -> "AgentToolCallViewer":
+        return AgentToolCallViewer(self)
 
     @property
     def Message(self) -> "MessageViewer":
@@ -68,7 +72,7 @@ class AgentResponseTypeAst:
     def __init__(self, tb: type_builder.TypeBuilder):
         _tb = tb._tb # type: ignore (we know how to use this private attribute)
         self._bldr = _tb.enum("AgentResponseType")
-        self._values: typing.Set[str] = set([  "Reply",  "ToolCall",  ])
+        self._values: typing.Set[str] = set([  "Done",  "ToolCall",  ])
         self._vals = AgentResponseTypeValues(self._bldr, self._values)
 
     def type(self) -> baml_py.FieldType:
@@ -96,8 +100,8 @@ class AgentResponseTypeValues:
     
     
     @property
-    def Reply(self) -> type_builder.EnumValueViewer:
-        return type_builder.EnumValueViewer(self.__bldr.value("Reply"))
+    def Done(self) -> type_builder.EnumValueViewer:
+        return type_builder.EnumValueViewer(self.__bldr.value("Done"))
     
     @property
     def ToolCall(self) -> type_builder.EnumValueViewer:
@@ -188,7 +192,7 @@ class ToolNameValues:
 
 
 # #########################################################################
-# Generated classes 3
+# Generated classes 4
 # #########################################################################
 
 class AgentResponseAst:
@@ -234,6 +238,49 @@ class AgentResponseProperties:
     @property
     def message(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("message"))
+    
+    
+
+
+class AgentToolCallAst:
+    def __init__(self, tb: type_builder.TypeBuilder):
+        _tb = tb._tb # type: ignore (we know how to use this private attribute)
+        self._bldr = _tb.class_("AgentToolCall")
+        self._properties: typing.Set[str] = set([  "type",  "args",  ])
+        self._props = AgentToolCallProperties(self._bldr, self._properties)
+
+    def type(self) -> baml_py.FieldType:
+        return self._bldr.field()
+
+    @property
+    def props(self) -> "AgentToolCallProperties":
+        return self._props
+
+
+class AgentToolCallViewer(AgentToolCallAst):
+    def __init__(self, tb: type_builder.TypeBuilder):
+        super().__init__(tb)
+
+    
+    def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
+        return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
+    
+
+
+class AgentToolCallProperties:
+    def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
+        self.__bldr = bldr
+        self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
+
+    
+    
+    @property
+    def type(self) -> type_builder.ClassPropertyViewer:
+        return type_builder.ClassPropertyViewer(self.__bldr.property("type"))
+    
+    @property
+    def args(self) -> type_builder.ClassPropertyViewer:
+        return type_builder.ClassPropertyViewer(self.__bldr.property("args"))
     
     
 

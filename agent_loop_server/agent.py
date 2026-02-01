@@ -29,7 +29,8 @@ class AgentLoopRunner:
     def __init__(
         self,
         working_dir: str = ".",
-        on_event: Optional[Callable[[Any], Awaitable[None]]] = None
+        on_event: Optional[Callable[[Any], Awaitable[None]]] = None,
+        direct_to_claude: Optional[bool] = None
     ):
         """Initialize agent loop.
 
@@ -41,6 +42,11 @@ class AgentLoopRunner:
         self.conversation_history: list[Dict[str, str]] = []
         self.tool_executor = ToolExecutor(working_dir=str(self.working_dir))
         self.on_event = on_event
+        if direct_to_claude is None:
+            direct_to_claude = os.getenv("AGENT_DIRECT_TO_CLAUDE", "").lower() in {
+                "1", "true", "yes", "on"
+            }
+        self.direct_to_claude = True
 
     async def _emit_event(self, event):
         """Emit event via async callback.
@@ -86,6 +92,23 @@ class AgentLoopRunner:
         """
         # Add user message to history
         self._add_user_message(user_message)
+        raw_user_message = user_message
+
+        if self.direct_to_claude:
+            await self._emit_event(ToolCallEvent(
+                tool_name="AgentTool",
+                tool_args=raw_user_message
+            ))
+            result = self.tool_executor.execute("AgentTool", raw_user_message)
+            success = not result.startswith("Error:")
+            await self._emit_event(ToolResultEvent(
+                tool_name="AgentTool",
+                result=result,
+                success=success
+            ))
+            self._add_assistant_message(result)
+            await self._emit_event(AgentMessageEvent(message=result))
+            return result
 
         # Agent loop
         for iteration in range(max_iterations):
@@ -106,7 +129,7 @@ class AgentLoopRunner:
                 )
 
                 # Check agent action
-                if response.type == AgentResponseType.Reply:
+                if response.type == AgentResponseType.Done:
                     # Agent is done, return final message
                     final_message = response.message or "Task complete"
                     self._add_assistant_message(final_message)
@@ -126,6 +149,9 @@ class AgentLoopRunner:
 
                     tool_name = response.tool_call.tool.value
                     tool_args = response.tool_call.args
+                    if tool_name == "AgentTool":
+                        # Bypass BAML tool args and send raw user input directly.
+                        tool_args = raw_user_message
 
                     # Emit tool call event
                     await self._emit_event(ToolCallEvent(
@@ -137,13 +163,21 @@ class AgentLoopRunner:
                     try:
                         result = self.tool_executor.execute(tool_name, tool_args)
                         success = not result.startswith("Error:")
-
-                        # Emit tool result event
                         await self._emit_event(ToolResultEvent(
-                            tool_name=tool_name,
-                            result=result,
-                            success=success
-                        ))
+                                tool_name=tool_name,
+                                result=result,
+                                success=success
+                            ))
+                        if tool_name == "AgentTool":
+                            # Send Claude output straight to user; don't re-run BAML.
+                            self._add_assistant_message(result)
+                            await self._emit_event(AgentMessageEvent(
+                                message="User request: " + result
+                            ))
+                            return result
+                        else:
+                            # Emit tool result event
+                            print(f"Tool result for {tool_name}: {result}")
 
                         # Add tool result to history
                         self._add_tool_result(tool_name, result)

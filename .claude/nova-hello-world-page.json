@@ -1,0 +1,14 @@
+{
+  "slug": "hello-world-page",
+  "startedAt": "2026-02-01T00:00:00Z",
+  "currentPhase": "discovery",
+  "projectDir": "specs/projects/hello-world-page/",
+  "artifacts": {
+    "problem": null,
+    "solution": null,
+    "critique": null,
+    "fullSpec": null
+  },
+  "phaseHistory": [],
+  "conversationSummary": ""
+}

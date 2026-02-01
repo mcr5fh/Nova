@@ -9,9 +9,7 @@ enum ToolName {
 }
 
 enum AgentResponseType {
-  Reply @description(#"
-    DEPRECRATED: never use this, always use ToolCall
-  "#)
+  Done
   ToolCall
 }
 
@@ -25,6 +23,11 @@ class Message {
 class ToolCall {
   tool ToolName
   args string  // JSON string of arguments
+}
+
+class AgentToolCall{
+  type "AgentToolCall"
+  args string
 }
 
 // Agent response with discriminated union pattern
@@ -54,24 +57,19 @@ function AgentLoop(
     RULES:
     1. Execute ONE tool at a time (no parallel execution)
     2. After using a tool, wait for the result before deciding next action
-    3. When task is complete, use type="Reply" with your message
+    3. When task is complete, use type="Done" with your message
     4. Use AgentTool to delegate complex tasks to claude CLI
 
 
     What do you want to do next? Think step by step.
 
-    Respond in this exact JSON format:
-    {
-      "type": "Reply" | "ToolCall",
-      "tool_call": {
-        "tool": "ToolName",
-        "args": "{\"param\": \"value\"}"
-      },
-      "message": "your response to user (if type=Reply)"
-    }
 
-    Examples:
-    - To execute a task: {"type": "ToolCall", "tool_call": {"tool": "AgentTool", "args": "{\"message\": \"List all Python files\"}"}}
-    - To reply: {"type": "Reply", "message": "I've completed the task!"}
+    {{ ctx.output_format(prefix="Answer with the following format (execute ONE tool at a time):\n") }}
+
+    {% for message in messages %}
+    {{ message.role }}
+    {{ message.content }}
+    {% endfor %}
   "#
+
 }
