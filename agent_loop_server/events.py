@@ -71,6 +71,26 @@ class AgentMessageEvent:
         return asdict(self)
 
 
+@dataclass
+class DiagramUpdateEvent:
+    """Event when diagram is updated."""
+    type: Literal["diagram_update"] = "diagram_update"
+    diagram: str = ""  # Mermaid diagram string
+
+    def to_dict(self):
+        return asdict(self)
+
+
+@dataclass
+class DiagramErrorEvent:
+    """Event when diagram rendering fails."""
+    type: Literal["diagram_error"] = "diagram_error"
+    error: str = ""
+
+    def to_dict(self):
+        return asdict(self)
+
+
 # Type alias for all event types
 StreamEvent = (
     ToolCallEvent
@@ -79,4 +99,6 @@ StreamEvent = (
     | ErrorEvent
     | UserMessageEvent
     | AgentMessageEvent
+    | DiagramUpdateEvent
+    | DiagramErrorEvent
 )
