@@ -36,7 +36,10 @@ logger = logging.getLogger(__name__)
 # Default paths (can be overridden in create_app)
 # LOGS_DIR is now set relative to cwd where the app is run
 LOGS_DIR = Path.cwd() / "logs"
-STATIC_DIR = Path(__file__).parent / "static"
+# Serve from Next.js static export directory (after migration)
+# Falls back to legacy static/ if nextjs/out/ doesn't exist
+NEXTJS_OUT_DIR = Path(__file__).parent / "nextjs" / "out"
+STATIC_DIR = NEXTJS_OUT_DIR if NEXTJS_OUT_DIR.exists() else Path(__file__).parent / "static"
 
 
 class StartEpicRequest(BaseModel):
@@ -94,14 +97,25 @@ def create_app(
     app.state.milestone_evaluator = MilestoneEvaluator(milestones_file)
     app.state.orchestrators = {}
 
+    # Determine which static directory to use (Next.js nextjs/out/ or legacy static/)
+    nextjs_out_dir = Path(__file__).parent / "nextjs" / "out"
+    static_dir = nextjs_out_dir if nextjs_out_dir.exists() else Path(__file__).parent / "static"
+
     # Mount static files
-    if STATIC_DIR.exists():
-        app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+    if static_dir.exists():
+        if static_dir == nextjs_out_dir:
+            # Next.js export: mount _next directory for assets
+            next_assets = static_dir / "_next"
+            if next_assets.exists():
+                app.mount("/_next", StaticFiles(directory=str(next_assets)), name="next_assets")
+        else:
+            # Legacy: mount static directory
+            app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
     @app.get("/")
     async def root():
         """Serve the dashboard HTML."""
-        index_path = STATIC_DIR / "index.html"
+        index_path = static_dir / "index.html"
         if index_path.exists():
             return FileResponse(index_path)
         return {"status": "ok", "service": "Program Nova Dashboard"}

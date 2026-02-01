@@ -1,0 +1,65 @@
+@import "tailwindcss";
+
+:root {
+  /* Status Colors */
+  --status-completed: #10b981;
+  --status-in-progress: #f59e0b;
+  --status-failed: #ef4444;
+  --status-pending: #6b7280;
+
+  /* UI Colors */
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-tertiary: #334155;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --border-color: #334155;
+  --accent: #3b82f6;
+}
+
+@theme inline {
+  /* Status Colors */
+  --color-status-completed: var(--status-completed);
+  --color-status-in-progress: var(--status-in-progress);
+  --color-status-failed: var(--status-failed);
+  --color-status-pending: var(--status-pending);
+
+  /* Background Colors */
+  --color-bg-primary: var(--bg-primary);
+  --color-bg-secondary: var(--bg-secondary);
+  --color-bg-tertiary: var(--bg-tertiary);
+
+  /* Text Colors */
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+
+  /* Other */
+  --color-border-color: var(--border-color);
+  --color-accent: var(--accent);
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+  line-height: 1.6;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 0.5rem;
+  height: 0.5rem;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bg-tertiary);
+  border-radius: 0.5rem;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-color);
+}
