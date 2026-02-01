@@ -136,7 +136,7 @@ export default function ChatInput({
         <VoiceControls
           onToggle={handleVoiceToggle}
           isActive={voiceState !== 'disconnected' && voiceState !== 'connecting'}
-          disabled={disabled}
+          disabled={false}  // Voice has its own connection - don't inherit text chat disabled state
           voiceState={
             voiceState === 'listening'
               ? 'listening'
