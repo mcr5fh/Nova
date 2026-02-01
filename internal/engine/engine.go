@@ -125,9 +125,11 @@ func (o *Orchestrator) ProcessTask(ctx context.Context, taskID string, depth int
 
 // splitAndRecurse creates subtasks and processes them recursively
 func (o *Orchestrator) splitAndRecurse(ctx context.Context, parentID string, subtaskDefs []SubtaskDefinition, depth int) error {
-	// Create child tasks
+	// Phase 1: Create all subtasks and build a map from local ID to bead ID
+	localIDToBeadID := make(map[string]string)
 	childIDs := []string{}
-	for _, subtaskDef := range subtaskDefs {
+
+	for i, subtaskDef := range subtaskDefs {
 		child, err := o.beadsClient.CreateTask(beads.CreateTaskRequest{
 			Title:       subtaskDef.Title,
 			Description: subtaskDef.Description,
@@ -141,10 +143,30 @@ func (o *Orchestrator) splitAndRecurse(ctx context.Context, parentID string, sub
 
 		childIDs = append(childIDs, child.ID)
 
-		// Add dependencies
-		for _, depID := range subtaskDef.DependsOn {
-			if err := o.beadsClient.AddDependency(child.ID, depID); err != nil {
-				return fmt.Errorf("failed to add dependency: %w", err)
+		// Map local identifiers to the actual bead ID
+		// Support multiple local ID formats:
+		// - "subtask-0", "subtask-1", etc. (subtask-N format)
+		// - "0", "1", "2", etc. (numeric index)
+		// - The title itself
+		localIDToBeadID[fmt.Sprintf("subtask-%d", i)] = child.ID
+		localIDToBeadID[fmt.Sprintf("%d", i)] = child.ID
+		localIDToBeadID[subtaskDef.Title] = child.ID
+	}
+
+	// Phase 2: Add dependencies using mapped bead IDs
+	for i, subtaskDef := range subtaskDefs {
+		childBeadID := childIDs[i]
+
+		for _, localDepID := range subtaskDef.DependsOn {
+			// Map local ID to actual bead ID
+			beadDepID, ok := localIDToBeadID[localDepID]
+			if !ok {
+				return fmt.Errorf("failed to resolve dependency: local ID '%s' not found in subtask definitions", localDepID)
+			}
+
+			// Add the dependency using actual bead IDs
+			if err := o.beadsClient.AddDependency(childBeadID, beadDepID); err != nil {
+				return fmt.Errorf("failed to add dependency from %s to %s: %w", childBeadID, beadDepID, err)
 			}
 		}
 	}

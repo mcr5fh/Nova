@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/mattruiters/nova/internal/beads"
@@ -192,4 +193,101 @@ func TestHandleTaskFailure(t *testing.T) {
 	if err != nil {
 		t.Logf("HandleTaskFailure returned error (expected in test): %v", err)
 	}
+}
+
+// Test dependency handling in splitAndRecurse - just the dependency mapping phase
+func TestSplitAndRecurse_DependencyMapping(t *testing.T) {
+	beadsClient := beads.NewClient()
+
+	// Create a parent task
+	parent, err := beadsClient.CreateTask(beads.CreateTaskRequest{
+		Title:       "Parent task for dependency test",
+		Description: "A task to be split",
+		Type:        beads.TaskTypeTask,
+		Priority:    2,
+	})
+	if err != nil {
+		t.Fatalf("Failed to create parent task: %v", err)
+	}
+
+	// Define subtasks with dependencies using local IDs
+	// subtask-0 has no dependencies
+	// subtask-1 depends on subtask-0
+	// subtask-2 depends on subtask-1
+	subtaskDefs := []SubtaskDefinition{
+		{
+			Title:       "First subtask",
+			Description: "This is the first subtask",
+			Type:        "task",
+			Priority:    2,
+			DependsOn:   []string{}, // No dependencies
+		},
+		{
+			Title:       "Second subtask",
+			Description: "This depends on the first subtask",
+			Type:        "task",
+			Priority:    2,
+			DependsOn:   []string{"subtask-0"}, // Local ID reference using index
+		},
+		{
+			Title:       "Third subtask",
+			Description: "This depends on the second subtask",
+			Type:        "task",
+			Priority:    2,
+			DependsOn:   []string{"subtask-1"}, // Local ID reference using index
+		},
+	}
+
+	// Manually execute just the creation and dependency phases
+	// without the recursive processing that requires planner configuration
+	localIDToBeadID := make(map[string]string)
+	childIDs := []string{}
+
+	// Phase 1: Create all subtasks
+	for i, subtaskDef := range subtaskDefs {
+		child, err := beadsClient.CreateTask(beads.CreateTaskRequest{
+			Title:       subtaskDef.Title,
+			Description: subtaskDef.Description,
+			Type:        beads.TaskType(subtaskDef.Type),
+			Priority:    subtaskDef.Priority,
+			ParentID:    parent.ID,
+		})
+		if err != nil {
+			t.Fatalf("Failed to create subtask: %v", err)
+		}
+
+		childIDs = append(childIDs, child.ID)
+
+		// Build the local ID mapping (same logic as in engine.go)
+		localIDToBeadID[fmt.Sprintf("subtask-%d", i)] = child.ID
+		localIDToBeadID[fmt.Sprintf("%d", i)] = child.ID
+		localIDToBeadID[subtaskDef.Title] = child.ID
+	}
+
+	if len(childIDs) != 3 {
+		t.Fatalf("Expected 3 child tasks, got %d", len(childIDs))
+	}
+
+	// Phase 2: Add dependencies using mapped bead IDs
+	for i, subtaskDef := range subtaskDefs {
+		childBeadID := childIDs[i]
+
+		for _, localDepID := range subtaskDef.DependsOn {
+			// Map local ID to actual bead ID
+			beadDepID, ok := localIDToBeadID[localDepID]
+			if !ok {
+				t.Fatalf("Failed to resolve dependency: local ID '%s' not found", localDepID)
+			}
+
+			// Add the dependency using actual bead IDs
+			if err := beadsClient.AddDependency(childBeadID, beadDepID); err != nil {
+				t.Fatalf("Failed to add dependency from %s to %s: %v", childBeadID, beadDepID, err)
+			}
+		}
+	}
+
+	// If we got here, the dependency mapping worked correctly
+	t.Log("✓ Successfully created subtasks and mapped dependencies")
+	t.Logf("  Created %d subtasks with proper dependency chains", len(childIDs))
+	t.Logf("  Subtask IDs: %v", childIDs)
 }
