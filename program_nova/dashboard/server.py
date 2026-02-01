@@ -191,12 +191,136 @@ def create_app(
     return app
 
 
+def setup_logging(daemon_mode: bool = False):
+    """
+    Setup logging configuration.
+
+    Args:
+        daemon_mode: If True, configure logging for daemon mode (log to file)
+                    If False, log to console
+    """
+    import logging
+    import logging.handlers
+    from pathlib import Path
+
+    # Create logs directory if it doesn't exist
+    logs_dir = Path("logs")
+    logs_dir.mkdir(exist_ok=True)
+
+    # Configure root logger
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+
+    # Clear any existing handlers
+    logger.handlers.clear()
+
+    if daemon_mode:
+        # Daemon mode: log to file with rotation
+        log_file = logs_dir / "dashboard.log"
+        handler = logging.handlers.RotatingFileHandler(
+            log_file,
+            maxBytes=10 * 1024 * 1024,  # 10 MB
+            backupCount=5,
+        )
+        formatter = logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        )
+    else:
+        # Interactive mode: log to console
+        handler = logging.StreamHandler()
+        formatter = logging.Formatter(
+            "%(levelname)s: %(message)s"
+        )
+
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+
+    return logger
+
+
 def main():
-    """Run the dashboard server (development mode)."""
+    """Run the dashboard server.
+
+    Usage:
+        python -m program_nova.dashboard.server [--daemon] [--host HOST] [--port PORT]
+
+    Args:
+        --daemon: Run in daemon mode (log to file instead of console)
+        --host: Host to bind to (default: 0.0.0.0)
+        --port: Port to bind to (default: 8000)
+        --state-file: Path to state file (default: cascade_state.json)
+        --cascade-file: Path to cascade file (default: CASCADE.md)
+        --milestones-file: Path to milestones file (default: program_nova/milestones.yaml)
+    """
+    import argparse
     import uvicorn
 
-    app = create_app()
-    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(
+        description="Program Nova Dashboard - Real-time Task Observability Web UI"
+    )
+    parser.add_argument(
+        "--daemon",
+        action="store_true",
+        help="Run in daemon mode (log to file)",
+    )
+    parser.add_argument(
+        "--host",
+        default="0.0.0.0",
+        help="Host to bind to (default: 0.0.0.0)",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=8000,
+        help="Port to bind to (default: 8000)",
+    )
+    parser.add_argument(
+        "--state-file",
+        default="cascade_state.json",
+        help="Path to state file (default: cascade_state.json)",
+    )
+    parser.add_argument(
+        "--cascade-file",
+        default="CASCADE.md",
+        help="Path to cascade file (default: CASCADE.md)",
+    )
+    parser.add_argument(
+        "--milestones-file",
+        default="program_nova/milestones.yaml",
+        help="Path to milestones file (default: program_nova/milestones.yaml)",
+    )
+
+    args = parser.parse_args()
+
+    # Setup logging
+    logger = setup_logging(daemon_mode=args.daemon)
+
+    logger.info(f"Starting Program Nova Dashboard")
+    logger.info(f"Host: {args.host}:{args.port}")
+    logger.info(f"State file: {args.state_file}")
+    logger.info(f"Cascade file: {args.cascade_file}")
+    logger.info(f"Milestones file: {args.milestones_file}")
+    logger.info(f"Daemon mode: {args.daemon}")
+
+    # Create app with configured paths
+    app = create_app(
+        state_file=args.state_file,
+        cascade_file=args.cascade_file,
+        milestones_file=args.milestones_file,
+    )
+
+    # Configure uvicorn log level
+    log_level = "info" if not args.daemon else "warning"
+
+    # Run server
+    uvicorn.run(
+        app,
+        host=args.host,
+        port=args.port,
+        log_level=log_level,
+        access_log=not args.daemon,  # Disable access log in daemon mode
+    )
 
 
 if __name__ == "__main__":

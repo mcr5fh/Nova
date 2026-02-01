@@ -131,7 +131,7 @@ state = sm.read_state()
 Run the test suite:
 
 ```bash
-python3 -m pytest program_nova/engine/test_state.py -v
+uv run pytest program_nova/engine/test_state.py -v
 ```
 
 The test suite includes:

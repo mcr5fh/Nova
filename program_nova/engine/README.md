@@ -167,13 +167,13 @@ Log files are line-buffered for immediate visibility of progress.
 Run the test suite:
 
 ```bash
-python3 -m pytest test_worker.py -v
+uv run pytest test_worker.py -v
 ```
 
 Run example usage:
 
 ```bash
-python3 example_worker_usage.py
+uv run python example_worker_usage.py
 ```
 
 ## Integration with Orchestrator

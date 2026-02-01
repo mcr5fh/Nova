@@ -365,36 +365,123 @@ class Orchestrator:
         return summary
 
 
+def setup_logging(daemon_mode: bool = False):
+    """
+    Setup logging configuration.
+
+    Args:
+        daemon_mode: If True, configure logging for daemon mode (log to file)
+                    If False, log to console
+    """
+    import logging
+    import logging.handlers
+    from pathlib import Path
+
+    # Create logs directory if it doesn't exist
+    logs_dir = Path("logs")
+    logs_dir.mkdir(exist_ok=True)
+
+    # Configure root logger
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+
+    # Clear any existing handlers
+    logger.handlers.clear()
+
+    if daemon_mode:
+        # Daemon mode: log to file with rotation
+        log_file = logs_dir / "orchestrator.log"
+        handler = logging.handlers.RotatingFileHandler(
+            log_file,
+            maxBytes=10 * 1024 * 1024,  # 10 MB
+            backupCount=5,
+        )
+        formatter = logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        )
+    else:
+        # Interactive mode: log to console
+        handler = logging.StreamHandler()
+        formatter = logging.Formatter(
+            "%(levelname)s: %(message)s"
+        )
+
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+
+    return logger
+
+
 def main():
     """
     Main entry point for running the orchestrator.
 
     Usage:
-        python orchestrator.py
+        python -m program_nova.engine.orchestrator [--daemon] [CASCADE_FILE]
+
+    Args:
+        --daemon: Run in daemon mode (log to file instead of console)
+        CASCADE_FILE: Path to cascade file (default: CASCADE.md)
 
     Expects:
-        - CASCADE.md in current directory
+        - CASCADE.md in current directory (or specified file)
         - Will create cascade_state.json in current directory
     """
     import sys
+    import argparse
 
-    # Get cascade file from command line or use default
-    cascade_file = sys.argv[1] if len(sys.argv) > 1 else "CASCADE.md"
-    state_file = "cascade_state.json"
-
-    # Create orchestrator
-    orchestrator = Orchestrator(
-        cascade_file=cascade_file,
-        state_file=state_file,
-        max_workers=3,
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(
+        description="Program Nova Orchestrator - Cascade Task Execution Engine"
+    )
+    parser.add_argument(
+        "cascade_file",
+        nargs="?",
+        default="CASCADE.md",
+        help="Path to CASCADE.md file (default: CASCADE.md)",
+    )
+    parser.add_argument(
+        "--daemon",
+        action="store_true",
+        help="Run in daemon mode (log to file)",
+    )
+    parser.add_argument(
+        "--max-workers",
+        type=int,
+        default=3,
+        help="Maximum number of concurrent workers (default: 3)",
+    )
+    parser.add_argument(
+        "--state-file",
+        default="cascade_state.json",
+        help="Path to state file (default: cascade_state.json)",
     )
 
-    print(f"Starting Program Nova orchestrator")
-    print(f"Cascade: {cascade_file}")
-    print(f"State: {state_file}")
-    print(f"Max workers: {orchestrator.max_workers}")
-    print(f"Total tasks: {len(orchestrator.tasks)}")
-    print()
+    args = parser.parse_args()
+
+    # Setup logging
+    logger = setup_logging(daemon_mode=args.daemon)
+
+    # Create orchestrator
+    try:
+        orchestrator = Orchestrator(
+            cascade_file=args.cascade_file,
+            state_file=args.state_file,
+            max_workers=args.max_workers,
+        )
+    except FileNotFoundError as e:
+        logger.error(f"File not found: {e}")
+        sys.exit(1)
+    except Exception as e:
+        logger.error(f"Failed to initialize orchestrator: {e}")
+        sys.exit(1)
+
+    logger.info(f"Starting Program Nova orchestrator")
+    logger.info(f"Cascade: {args.cascade_file}")
+    logger.info(f"State: {args.state_file}")
+    logger.info(f"Max workers: {orchestrator.max_workers}")
+    logger.info(f"Total tasks: {len(orchestrator.tasks)}")
+    logger.info(f"Daemon mode: {args.daemon}")
 
     try:
         # Run the orchestrator
@@ -402,17 +489,20 @@ def main():
 
         # Print final summary
         summary = orchestrator.get_status_summary()
-        print("\nExecution complete!")
-        print(f"Completed: {summary['completed']}/{summary['total_tasks']}")
-        print(f"Failed: {summary['failed']}")
-        print(f"Pending/Blocked: {summary['pending']}")
+        logger.info("Execution complete!")
+        logger.info(f"Completed: {summary['completed']}/{summary['total_tasks']}")
+        logger.info(f"Failed: {summary['failed']}")
+        logger.info(f"Pending/Blocked: {summary['pending']}")
 
     except KeyboardInterrupt:
-        print("\n\nInterrupted by user. Cleaning up...")
+        logger.info("Interrupted by user. Cleaning up...")
         # Terminate any active workers
         for worker in orchestrator.active_workers.values():
             worker.terminate()
-        print("Cleanup complete.")
+        logger.info("Cleanup complete.")
+        sys.exit(1)
+    except Exception as e:
+        logger.error(f"Orchestrator error: {e}", exc_info=True)
         sys.exit(1)
 
 

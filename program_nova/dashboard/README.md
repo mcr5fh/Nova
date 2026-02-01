@@ -17,7 +17,7 @@ Web-based observability dashboard for Program Nova execution engine.
 ### Start the server
 
 ```bash
-python3 -m program_nova.dashboard.server
+uv run python -m program_nova.dashboard.server
 ```
 
 The dashboard will be available at: http://localhost:8000
@@ -98,11 +98,11 @@ Use the back button or breadcrumbs to navigate up the hierarchy.
 
 ```bash
 # All dashboard tests
-python3 -m pytest program_nova/dashboard/ -v
+uv run pytest program_nova/dashboard/ -v
 
 # Specific test files
-python3 -m pytest program_nova/dashboard/test_static.py -v
-python3 -m pytest program_nova/dashboard/test_integration.py -v
+uv run pytest program_nova/dashboard/test_static.py -v
+uv run pytest program_nova/dashboard/test_integration.py -v
 ```
 
 ### File structure
