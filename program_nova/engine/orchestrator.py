@@ -131,7 +131,14 @@ class Orchestrator:
         worker = Worker(task_id=task_id, task_description=task_description)
 
         # Build command for worker to spawn Claude Code agent
-        command = ["claude", "--model", "sonnet", task_description]
+        # Add permission bypass flag so workers don't prompt for file creation
+        command = [
+            "claude",
+            "--model",
+            "sonnet",
+            "--dangerously-skip-permissions",
+            task_description,
+        ]
 
         # Mark task as in-progress in state
         started_at = datetime.now(timezone.utc).isoformat()

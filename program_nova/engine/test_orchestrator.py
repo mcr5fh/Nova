@@ -187,6 +187,27 @@ class TestWorkerManagement:
         assert task_description in called_command
 
     @patch('program_nova.engine.orchestrator.Worker')
+    def test_start_worker_includes_permission_flags(self, mock_worker_class, orchestrator):
+        """Test that start_worker includes auto-approve permission flags."""
+        mock_worker = Mock()
+        mock_worker.task_id = "F1"
+        mock_worker.pid = 12345
+        mock_worker.status = WorkerStatus.RUNNING
+        mock_worker_class.return_value = mock_worker
+
+        orchestrator.start_worker("F1")
+
+        # Verify worker.start was called with permission flags
+        mock_worker.start.assert_called_once()
+        called_command = mock_worker.start.call_args[0][0]
+
+        # Verify the command includes permission bypass flags
+        # Should include either --dangerously-skip-permissions or --permission-mode bypassPermissions
+        assert "--dangerously-skip-permissions" in called_command or (
+            "--permission-mode" in called_command and "bypassPermissions" in called_command
+        ), f"Command missing permission flags: {called_command}"
+
+    @patch('program_nova.engine.orchestrator.Worker')
     def test_respects_max_workers(self, mock_worker_class, orchestrator):
         """Test that orchestrator respects max concurrent workers limit."""
         # Set max_workers to 2
