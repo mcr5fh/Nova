@@ -205,6 +205,58 @@ def create_app(
         log_file = LOGS_DIR / f"{task_id}.log"
 
         if not log_file.exists():
+            # Check if this is a bead task (format: Nova-xxxxx or similar)
+            if "-" in task_id and any(c.isalpha() for c in task_id):
+                # Bead mode: fetch comments from bead
+                try:
+                    result = subprocess.run(
+                        ["bd", "comments", task_id, "--json"],
+                        capture_output=True,
+                        text=True,
+                        check=True
+                    )
+                    comments = json.loads(result.stdout)
+
+                    # Format comments as log-like output
+                    log_lines = []
+                    log_lines.append(f"=== Comments for {task_id} ===\n")
+
+                    if not comments:
+                        log_lines.append("No comments found.\n")
+                    else:
+                        for comment in comments:
+                            timestamp = comment.get("created_at", "")
+                            author = comment.get("author", "unknown")
+                            text = comment.get("text", "")
+
+                            log_lines.append(f"\n[{timestamp}] {author}:\n")
+                            log_lines.append(f"{text}\n")
+                            log_lines.append("-" * 80 + "\n")
+
+                    log_content = "".join(log_lines)
+
+                    return JSONResponse(
+                        content={
+                            "task_id": task_id,
+                            "logs": log_content,
+                        }
+                    )
+                except subprocess.CalledProcessError as e:
+                    # If bd command fails, return error message
+                    return JSONResponse(
+                        content={
+                            "task_id": task_id,
+                            "logs": f"Error fetching comments: {e.stderr}\n\nTo view execution details manually, use: bd show {task_id}",
+                        }
+                    )
+                except json.JSONDecodeError as e:
+                    return JSONResponse(
+                        content={
+                            "task_id": task_id,
+                            "logs": f"Error parsing comments: {str(e)}\n\nTo view execution details manually, use: bd show {task_id}",
+                        }
+                    )
+
             raise HTTPException(
                 status_code=404,
                 detail=f"Log file not found for task {task_id}"
