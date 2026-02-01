@@ -30,6 +30,12 @@ class LlmResponseParser:
         __result__ = self.__options.merge_options(baml_options).parse_response(function_name="AgentLoop", llm_response=llm_response, mode="request")
         return typing.cast(types.AgentResponse, __result__)
 
+    def GenerateMermaidDiagrams(
+        self, llm_response: str, baml_options: BamlCallOptions = {},
+    ) -> types.DiagramSet:
+        __result__ = self.__options.merge_options(baml_options).parse_response(function_name="GenerateMermaidDiagrams", llm_response=llm_response, mode="request")
+        return typing.cast(types.DiagramSet, __result__)
+
     
 
 class LlmStreamParser:
@@ -43,5 +49,11 @@ class LlmStreamParser:
     ) -> stream_types.AgentResponse:
         __result__ = self.__options.merge_options(baml_options).parse_response(function_name="AgentLoop", llm_response=llm_response, mode="stream")
         return typing.cast(stream_types.AgentResponse, __result__)
+
+    def GenerateMermaidDiagrams(
+        self, llm_response: str, baml_options: BamlCallOptions = {},
+    ) -> stream_types.DiagramSet:
+        __result__ = self.__options.merge_options(baml_options).parse_response(function_name="GenerateMermaidDiagrams", llm_response=llm_response, mode="stream")
+        return typing.cast(stream_types.DiagramSet, __result__)
 
     

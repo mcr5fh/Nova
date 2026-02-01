@@ -20,7 +20,7 @@ from .globals import DO_NOT_USE_DIRECTLY_UNLESS_YOU_KNOW_WHAT_YOURE_DOING_RUNTIM
 class TypeBuilder(type_builder.TypeBuilder):
     def __init__(self):
         super().__init__(classes=set(
-          ["AgentResponse","AgentToolCall","Message","ToolCall",]
+          ["AgentResponse","AgentToolCall","DiagramSet","Message","ToolCall",]
         ), enums=set(
           ["AgentResponseType","MessageRole","ToolName",]
         ), runtime=DO_NOT_USE_DIRECTLY_UNLESS_YOU_KNOW_WHAT_YOURE_DOING_RUNTIME)
@@ -43,7 +43,7 @@ class TypeBuilder(type_builder.TypeBuilder):
 
 
     # #########################################################################
-    # Generated classes 4
+    # Generated classes 5
     # #########################################################################
 
     @property
@@ -53,6 +53,10 @@ class TypeBuilder(type_builder.TypeBuilder):
     @property
     def AgentToolCall(self) -> "AgentToolCallViewer":
         return AgentToolCallViewer(self)
+
+    @property
+    def DiagramSet(self) -> "DiagramSetViewer":
+        return DiagramSetViewer(self)
 
     @property
     def Message(self) -> "MessageViewer":
@@ -192,7 +196,7 @@ class ToolNameValues:
 
 
 # #########################################################################
-# Generated classes 4
+# Generated classes 5
 # #########################################################################
 
 class AgentResponseAst:
@@ -281,6 +285,53 @@ class AgentToolCallProperties:
     @property
     def args(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("args"))
+    
+    
+
+
+class DiagramSetAst:
+    def __init__(self, tb: type_builder.TypeBuilder):
+        _tb = tb._tb # type: ignore (we know how to use this private attribute)
+        self._bldr = _tb.class_("DiagramSet")
+        self._properties: typing.Set[str] = set([  "flow",  "erd",  "system_arch",  ])
+        self._props = DiagramSetProperties(self._bldr, self._properties)
+
+    def type(self) -> baml_py.FieldType:
+        return self._bldr.field()
+
+    @property
+    def props(self) -> "DiagramSetProperties":
+        return self._props
+
+
+class DiagramSetViewer(DiagramSetAst):
+    def __init__(self, tb: type_builder.TypeBuilder):
+        super().__init__(tb)
+
+    
+    def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
+        return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
+    
+
+
+class DiagramSetProperties:
+    def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
+        self.__bldr = bldr
+        self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
+
+    
+    
+    @property
+    def flow(self) -> type_builder.ClassPropertyViewer:
+        return type_builder.ClassPropertyViewer(self.__bldr.property("flow"))
+    
+    @property
+    def erd(self) -> type_builder.ClassPropertyViewer:
+        return type_builder.ClassPropertyViewer(self.__bldr.property("erd"))
+    
+    @property
+    def system_arch(self) -> type_builder.ClassPropertyViewer:
+        return type_builder.ClassPropertyViewer(self.__bldr.property("system_arch"))
     
     
 

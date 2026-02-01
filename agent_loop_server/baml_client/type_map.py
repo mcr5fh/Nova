@@ -22,6 +22,9 @@ type_map = {
     "types.AgentToolCall": types.AgentToolCall,
     "stream_types.AgentToolCall": stream_types.AgentToolCall,
 
+    "types.DiagramSet": types.DiagramSet,
+    "stream_types.DiagramSet": stream_types.DiagramSet,
+
     "types.Message": types.Message,
     "stream_types.Message": stream_types.Message,
 

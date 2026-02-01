@@ -52,7 +52,7 @@ class ToolName(str, Enum):
     AgentTool = "AgentTool"
 
 # #########################################################################
-# Generated classes (4)
+# Generated classes (5)
 # #########################################################################
 
 class AgentResponse(BaseModel):
@@ -63,6 +63,11 @@ class AgentResponse(BaseModel):
 class AgentToolCall(BaseModel):
     type: typing_extensions.Literal['AgentToolCall']
     args: str
+
+class DiagramSet(BaseModel):
+    flow: str
+    erd: str
+    system_arch: str
 
 class Message(BaseModel):
     role: MessageRole

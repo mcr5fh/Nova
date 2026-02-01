@@ -8,3 +8,12 @@ client<llm> GPT4o {
     api_key env.OPENAI_API_KEY
   }
 }
+
+// Anthropic Haiku client for cost-efficient operations
+client<llm> Haiku {
+  provider anthropic
+  options {
+    model "claude-3-5-haiku-20241022"
+    api_key env.ANTHROPIC_API_KEY
+  }
+}

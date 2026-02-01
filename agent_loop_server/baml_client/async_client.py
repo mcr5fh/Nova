@@ -97,6 +97,21 @@ class BamlAsyncClient:
                 "messages": messages,"working_dir": working_dir,
             })
             return typing.cast(types.AgentResponse, __result__.cast_to(types, types, stream_types, False, __runtime__))
+    async def GenerateMermaidDiagrams(self, messages: typing.List["types.Message"],context: str,
+        baml_options: BamlCallOptions = {},
+    ) -> types.DiagramSet:
+        # Check if on_tick is provided
+        if 'on_tick' in baml_options:
+            # Use streaming internally when on_tick is provided
+            __stream__ = self.stream.GenerateMermaidDiagrams(messages=messages,context=context,
+                baml_options=baml_options)
+            return await __stream__.get_final_response()
+        else:
+            # Original non-streaming code
+            __result__ = await self.__options.merge_options(baml_options).call_function_async(function_name="GenerateMermaidDiagrams", args={
+                "messages": messages,"context": context,
+            })
+            return typing.cast(types.DiagramSet, __result__.cast_to(types, types, stream_types, False, __runtime__))
     
 
 
@@ -118,6 +133,18 @@ class BamlStreamClient:
           lambda x: typing.cast(types.AgentResponse, x.cast_to(types, types, stream_types, False, __runtime__)),
           __ctx__,
         )
+    def GenerateMermaidDiagrams(self, messages: typing.List["types.Message"],context: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlStream[stream_types.DiagramSet, types.DiagramSet]:
+        __ctx__, __result__ = self.__options.merge_options(baml_options).create_async_stream(function_name="GenerateMermaidDiagrams", args={
+            "messages": messages,"context": context,
+        })
+        return baml_py.BamlStream[stream_types.DiagramSet, types.DiagramSet](
+          __result__,
+          lambda x: typing.cast(stream_types.DiagramSet, x.cast_to(types, types, stream_types, True, __runtime__)),
+          lambda x: typing.cast(types.DiagramSet, x.cast_to(types, types, stream_types, False, __runtime__)),
+          __ctx__,
+        )
     
 
 class BamlHttpRequestClient:
@@ -133,6 +160,13 @@ class BamlHttpRequestClient:
             "messages": messages,"working_dir": working_dir,
         }, mode="request")
         return __result__
+    async def GenerateMermaidDiagrams(self, messages: typing.List["types.Message"],context: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        __result__ = await self.__options.merge_options(baml_options).create_http_request_async(function_name="GenerateMermaidDiagrams", args={
+            "messages": messages,"context": context,
+        }, mode="request")
+        return __result__
     
 
 class BamlHttpStreamRequestClient:
@@ -146,6 +180,13 @@ class BamlHttpStreamRequestClient:
     ) -> baml_py.baml_py.HTTPRequest:
         __result__ = await self.__options.merge_options(baml_options).create_http_request_async(function_name="AgentLoop", args={
             "messages": messages,"working_dir": working_dir,
+        }, mode="stream")
+        return __result__
+    async def GenerateMermaidDiagrams(self, messages: typing.List["types.Message"],context: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        __result__ = await self.__options.merge_options(baml_options).create_http_request_async(function_name="GenerateMermaidDiagrams", args={
+            "messages": messages,"context": context,
         }, mode="stream")
         return __result__
     
