@@ -190,3 +190,59 @@ def test_milestone_trigger_on_completion(initialized_system, cascade_file, miles
     # Verify Foundation rollup is now complete
     foundation_rollup = data["rollups"]["l2_rollups"]["Application"]["Foundation"]
     assert foundation_rollup["status"] == "completed"
+
+
+def test_api_status_includes_all_tasks_completed_flag(state_file, cascade_file, milestones_file):
+    """Test that /api/status includes a flag indicating if all tasks are completed."""
+    sm = StateManager(state_file)
+    sm.initialize("Test Project", cascade_file)
+
+    # Complete all tasks
+    for task_id in ["F1", "F2", "F3", "P1", "P2", "D1"]:
+        sm.update_task(task_id, status=TaskStatus.COMPLETED, worker_id=f"w{task_id}", pid=1)
+        sm.complete_task(task_id, "2024-01-01T10:00:00Z", 100)
+
+    app = create_app(
+        state_file=state_file,
+        cascade_file=cascade_file,
+        milestones_file=milestones_file,
+    )
+    client = TestClient(app)
+
+    response = client.get("/api/status")
+    assert response.status_code == 200
+
+    data = response.json()
+
+    # Should include all_tasks_completed flag
+    assert "all_tasks_completed" in data
+    assert data["all_tasks_completed"] is True
+
+
+def test_api_status_all_tasks_completed_false_when_tasks_pending(state_file, cascade_file, milestones_file):
+    """Test that all_tasks_completed is False when tasks are still pending or in progress."""
+    sm = StateManager(state_file)
+    sm.initialize("Test Project", cascade_file)
+
+    # Only complete some tasks
+    sm.update_task("F1", status=TaskStatus.COMPLETED, worker_id="w1", pid=1)
+    sm.complete_task("F1", "2024-01-01T10:00:00Z", 100)
+
+    # F2 is in progress
+    sm.update_task("F2", status=TaskStatus.IN_PROGRESS, worker_id="w2", pid=2, started_at="2024-01-01T10:00:00Z")
+
+    app = create_app(
+        state_file=state_file,
+        cascade_file=cascade_file,
+        milestones_file=milestones_file,
+    )
+    client = TestClient(app)
+
+    response = client.get("/api/status")
+    assert response.status_code == 200
+
+    data = response.json()
+
+    # Should include all_tasks_completed flag as False
+    assert "all_tasks_completed" in data
+    assert data["all_tasks_completed"] is False

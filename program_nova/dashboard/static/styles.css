@@ -549,6 +549,11 @@ body {
     animation: none;
 }
 
+.status-indicator.completed .status-dot {
+    background-color: var(--status-completed);
+    animation: none;
+}
+
 .status-indicator.error .status-dot {
     background-color: var(--status-failed);
     animation: none;
@@ -612,4 +617,115 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
     background: var(--border-color);
+}
+
+/* Tree View Styles */
+.tree-view {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    margin-top: var(--spacing-lg);
+}
+
+.tree-node {
+    margin-bottom: var(--spacing-xs);
+}
+
+.tree-node-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: background-color 0.2s;
+    user-select: none;
+}
+
+.tree-node-header:hover {
+    background-color: var(--bg-tertiary);
+}
+
+.tree-node-toggle {
+    width: 1rem;
+    height: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    transition: transform 0.2s;
+}
+
+.tree-node-toggle.expanded {
+    transform: rotate(90deg);
+}
+
+.tree-node-status {
+    width: 1rem;
+    height: 1rem;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.tree-node-status.pending {
+    background-color: var(--status-failed);
+}
+
+.tree-node-status.in_progress {
+    background-color: var(--status-in-progress);
+}
+
+.tree-node-status.completed {
+    background-color: var(--status-completed);
+}
+
+.tree-node-label {
+    flex: 1;
+    font-weight: 500;
+}
+
+.tree-node-meta {
+    display: flex;
+    gap: var(--spacing-lg);
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.tree-node-meta-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.tree-node-children {
+    margin-left: var(--spacing-xl);
+    margin-top: var(--spacing-xs);
+    border-left: 2px solid var(--border-color);
+    padding-left: var(--spacing-md);
+}
+
+.tree-node-children.collapsed {
+    display: none;
+}
+
+.tree-node.level-0 .tree-node-header {
+    font-size: 1.125rem;
+    font-weight: 600;
+    padding: var(--spacing-md);
+}
+
+.tree-node.level-1 .tree-node-header {
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+.tree-node.level-2 .tree-node-header {
+    font-size: 0.875rem;
+}
+
+.tree-node.level-2 .tree-node-header:hover {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--accent);
 }

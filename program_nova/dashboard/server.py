@@ -103,6 +103,12 @@ def create_app(
             # Evaluate milestones
             triggered_milestones = app.state.milestone_evaluator.evaluate(state["tasks"])
 
+            # Check if all tasks are completed
+            all_tasks_completed = all(
+                task.get("status") == "completed"
+                for task in state["tasks"].values()
+            )
+
             return JSONResponse(
                 content={
                     "project": state["project"],
@@ -110,6 +116,7 @@ def create_app(
                     "rollups": rollups,
                     "hierarchy": cascade_data["hierarchy"],
                     "milestones": triggered_milestones,
+                    "all_tasks_completed": all_tasks_completed,
                 }
             )
         except FileNotFoundError as e:

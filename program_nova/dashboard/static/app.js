@@ -140,13 +140,24 @@ async function fetchStatus() {
         // Update header stats
         updateHeaderStats(data);
 
-        // Update status indicator
-        updateStatusIndicator('connected');
+        // Check if all tasks are complete - stop polling if so
+        if (data.all_tasks_completed) {
+            if (appState.pollInterval) {
+                clearInterval(appState.pollInterval);
+                appState.pollInterval = null;
+                console.log('All tasks complete - polling stopped');
+                updateStatusIndicator('completed');
+            }
+        } else {
+            // Update status indicator
+            updateStatusIndicator('connected');
+        }
     } catch (error) {
         console.error('Error fetching status:', error);
         updateStatusIndicator('error');
     }
 }
+
 
 async function fetchTaskLogs(taskId) {
     try {
@@ -207,6 +218,9 @@ function renderL0View() {
 
     // Render milestones
     renderMilestones(milestones);
+
+    // Render tree view
+    renderTreeView();
 
     // Render L1 branches
     const branchesGrid = document.getElementById('branches-grid');
@@ -483,6 +497,10 @@ function updateStatusIndicator(status) {
             indicator.classList.add('connected');
             text.textContent = 'Live';
             break;
+        case 'completed':
+            indicator.classList.add('completed');
+            text.textContent = 'Completed';
+            break;
         case 'error':
             indicator.classList.add('error');
             text.textContent = 'Connection Error';
@@ -585,4 +603,186 @@ function formatTimestamp(timestamp) {
     if (!timestamp) return 'N/A';
     const date = new Date(timestamp);
     return date.toLocaleString();
+}
+
+// Tree View Functions
+function renderTreeView() {
+    const { hierarchy, rollups, tasks } = appState.data;
+    const container = document.getElementById('tree-container');
+    container.innerHTML = '';
+
+    // Create tree structure for each L1 branch
+    for (const [l1Name, l2Groups] of Object.entries(hierarchy)) {
+        const l1Node = createTreeNode({
+            label: l1Name,
+            level: 0,
+            status: computeL1Status(l1Name, l2Groups, tasks),
+            meta: {
+                duration: rollups.l1_rollups[l1Name].duration_seconds,
+                cost: rollups.l1_rollups[l1Name].cost_usd
+            },
+            onClick: () => showView('l1', l1Name)
+        });
+
+        // Add L2 children
+        const l2Container = document.createElement('div');
+        l2Container.className = 'tree-node-children';
+
+        for (const [l2Name, taskIds] of Object.entries(l2Groups)) {
+            const l2Node = createTreeNode({
+                label: l2Name,
+                level: 1,
+                status: computeL2Status(taskIds, tasks),
+                meta: {
+                    duration: rollups.l2_rollups[l1Name][l2Name].duration_seconds,
+                    cost: rollups.l2_rollups[l1Name][l2Name].cost_usd
+                },
+                onClick: () => showView('l2', l1Name, l2Name)
+            });
+
+            // Add task children
+            const taskContainer = document.createElement('div');
+            taskContainer.className = 'tree-node-children';
+
+            for (const taskId of taskIds) {
+                const task = tasks[taskId] || {};
+                const taskNode = createTreeNode({
+                    label: `${taskId}: ${task.name || taskId}`,
+                    level: 2,
+                    status: task.status || 'pending',
+                    meta: {
+                        duration: task.status === 'in_progress'
+                            ? computeLiveDuration(task.started_at)
+                            : (task.duration_seconds || 0),
+                        cost: computeCost(task.token_usage || {})
+                    },
+                    onClick: () => showView('l3', l1Name, l2Name, taskId),
+                    isLeaf: true
+                });
+
+                taskContainer.appendChild(taskNode);
+            }
+
+            l2Node.appendChild(taskContainer);
+            l2Container.appendChild(l2Node);
+        }
+
+        l1Node.appendChild(l2Container);
+        container.appendChild(l1Node);
+    }
+}
+
+function createTreeNode({ label, level, status, meta, onClick, isLeaf = false }) {
+    const node = document.createElement('div');
+    node.className = `tree-node level-${level}`;
+
+    const header = document.createElement('div');
+    header.className = 'tree-node-header';
+
+    // Toggle arrow (only for non-leaf nodes)
+    if (!isLeaf) {
+        const toggle = document.createElement('span');
+        toggle.className = 'tree-node-toggle expanded';
+        toggle.textContent = '▶';
+        header.appendChild(toggle);
+
+        toggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const children = node.querySelector('.tree-node-children');
+            if (children) {
+                children.classList.toggle('collapsed');
+                toggle.classList.toggle('expanded');
+            }
+        });
+    } else {
+        // Spacer for leaf nodes
+        const spacer = document.createElement('span');
+        spacer.style.width = '1rem';
+        header.appendChild(spacer);
+    }
+
+    // Status indicator
+    const statusIndicator = document.createElement('div');
+    statusIndicator.className = `tree-node-status ${status}`;
+    header.appendChild(statusIndicator);
+
+    // Label
+    const labelElement = document.createElement('span');
+    labelElement.className = 'tree-node-label';
+    labelElement.textContent = label;
+    header.appendChild(labelElement);
+
+    // Metadata
+    const metaContainer = document.createElement('div');
+    metaContainer.className = 'tree-node-meta';
+
+    if (meta.duration !== undefined) {
+        const durationItem = document.createElement('span');
+        durationItem.className = 'tree-node-meta-item';
+        durationItem.innerHTML = `<span>⏱</span><span>${formatDuration(meta.duration)}</span>`;
+        metaContainer.appendChild(durationItem);
+    }
+
+    if (meta.cost !== undefined) {
+        const costItem = document.createElement('span');
+        costItem.className = 'tree-node-meta-item';
+        costItem.innerHTML = `<span>💰</span><span>${formatCost(meta.cost)}</span>`;
+        metaContainer.appendChild(costItem);
+    }
+
+    header.appendChild(metaContainer);
+
+    // Click handler (but not for toggle)
+    if (onClick) {
+        header.addEventListener('click', (e) => {
+            if (!e.target.classList.contains('tree-node-toggle')) {
+                onClick();
+            }
+        });
+    }
+
+    node.appendChild(header);
+    return node;
+}
+
+function computeL1Status(l1Name, l2Groups, tasks) {
+    const taskIds = getAllTaskIdsForL1(l2Groups);
+    return computeRollupStatus(taskIds, tasks);
+}
+
+function computeL2Status(taskIds, tasks) {
+    return computeRollupStatus(taskIds, tasks);
+}
+
+function computeRollupStatus(taskIds, tasks) {
+    if (taskIds.length === 0) return 'pending';
+
+    let hasInProgress = false;
+    let hasCompleted = false;
+    let hasPending = false;
+
+    for (const taskId of taskIds) {
+        const task = tasks[taskId];
+        const status = task ? task.status : 'pending';
+
+        if (status === 'in_progress') {
+            hasInProgress = true;
+        } else if (status === 'completed') {
+            hasCompleted = true;
+        } else {
+            hasPending = true;
+        }
+    }
+
+    // Rollup logic:
+    // - If any task is in progress, parent is yellow (in_progress)
+    // - If all tasks are completed, parent is green (completed)
+    // - Otherwise, parent is red (pending)
+    if (hasInProgress) {
+        return 'in_progress';
+    } else if (hasCompleted && !hasPending) {
+        return 'completed';
+    } else {
+        return 'pending';
+    }
 }
