@@ -1,0 +1,11 @@
+{
+  "name": "nova-agent-loop",
+  "version": "0.1.0",
+  "description": "Agent Loop Server using BAML framework",
+  "scripts": {
+    "baml": "baml-cli"
+  },
+  "devDependencies": {
+    "@boundaryml/baml": "^0.50.0"
+  }
+}
