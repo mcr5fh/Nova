@@ -30,6 +30,19 @@ export function ModeSelector({ className = '' }: ModeSelectorProps) {
         <input
           type="radio"
           name="dashboard-mode"
+          value="planning"
+          checked={displayMode === 'planning'}
+          onChange={() => handleModeChange('planning')}
+          className="accent-accent w-4 h-4"
+        />
+        <span className={`${displayMode === 'planning' ? 'text-text-primary font-medium' : 'text-text-secondary'}`}>
+          Planning
+        </span>
+      </label>
+      <label className="flex items-center gap-1.5 cursor-pointer">
+        <input
+          type="radio"
+          name="dashboard-mode"
           value="cascade"
           checked={displayMode === 'cascade'}
           onChange={() => handleModeChange('cascade')}
