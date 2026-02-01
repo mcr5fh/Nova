@@ -125,11 +125,24 @@ func (o *Orchestrator) ProcessTask(ctx context.Context, taskID string, depth int
 
 // splitAndRecurse creates subtasks and processes them recursively
 func (o *Orchestrator) splitAndRecurse(ctx context.Context, parentID string, subtaskDefs []SubtaskDefinition, depth int) error {
-	// Phase 1: Create all subtasks and build a map from local ID to bead ID
+	// Phase 1: Create all subtasks and build a map from explicit ID to bead ID
 	localIDToBeadID := make(map[string]string)
 	childIDs := []string{}
 
-	for i, subtaskDef := range subtaskDefs {
+	// First, validate that all subtasks have IDs and they're unique
+	seenIDs := make(map[string]bool)
+	for _, subtaskDef := range subtaskDefs {
+		if subtaskDef.ID == "" {
+			return fmt.Errorf("subtask '%s' is missing required ID field", subtaskDef.Title)
+		}
+		if seenIDs[subtaskDef.ID] {
+			return fmt.Errorf("duplicate subtask ID '%s'", subtaskDef.ID)
+		}
+		seenIDs[subtaskDef.ID] = true
+	}
+
+	// Create all subtasks and map their explicit IDs to bead IDs
+	for _, subtaskDef := range subtaskDefs {
 		child, err := o.beadsClient.CreateTask(beads.CreateTaskRequest{
 			Title:       subtaskDef.Title,
 			Description: subtaskDef.Description,
@@ -142,26 +155,18 @@ func (o *Orchestrator) splitAndRecurse(ctx context.Context, parentID string, sub
 		}
 
 		childIDs = append(childIDs, child.ID)
-
-		// Map local identifiers to the actual bead ID
-		// Support multiple local ID formats:
-		// - "subtask-0", "subtask-1", etc. (subtask-N format)
-		// - "0", "1", "2", etc. (numeric index)
-		// - The title itself
-		localIDToBeadID[fmt.Sprintf("subtask-%d", i)] = child.ID
-		localIDToBeadID[fmt.Sprintf("%d", i)] = child.ID
-		localIDToBeadID[subtaskDef.Title] = child.ID
+		localIDToBeadID[subtaskDef.ID] = child.ID
 	}
 
-	// Phase 2: Add dependencies using mapped bead IDs
-	for i, subtaskDef := range subtaskDefs {
-		childBeadID := childIDs[i]
+	// Phase 2: Add dependencies using explicit IDs
+	for _, subtaskDef := range subtaskDefs {
+		childBeadID := localIDToBeadID[subtaskDef.ID]
 
-		for _, localDepID := range subtaskDef.DependsOn {
-			// Map local ID to actual bead ID
-			beadDepID, ok := localIDToBeadID[localDepID]
+		for _, depID := range subtaskDef.DependsOn {
+			// Validate that the dependency ID exists
+			beadDepID, ok := localIDToBeadID[depID]
 			if !ok {
-				return fmt.Errorf("failed to resolve dependency: local ID '%s' not found in subtask definitions", localDepID)
+				return fmt.Errorf("dependency ID '%s' (referenced by '%s') not found in subtask definitions", depID, subtaskDef.ID)
 			}
 
 			// Add the dependency using actual bead IDs

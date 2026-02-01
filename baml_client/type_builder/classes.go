@@ -119,6 +119,10 @@ func (t *SubtaskDefinitionClassView) ListProperties() ([]ClassPropertyView, erro
 	return builders, nil
 }
 
+func (t *SubtaskDefinitionClassView) PropertyId() (ClassPropertyView, error) {
+	return t.inner.Property("id")
+}
+
 func (t *SubtaskDefinitionClassView) PropertyTitle() (ClassPropertyView, error) {
 	return t.inner.Property("title")
 }

@@ -73,6 +73,7 @@ type PlannerOutput struct {
 
 // SubtaskDefinition defines a decomposed subtask
 type SubtaskDefinition struct {
+	ID          string   `json:"id"` // Explicit ID chosen by LLM (e.g., 'db-schema', 'api-endpoint')
 	Title       string   `json:"title"`
 	Description string   `json:"description"`
 	Type        string   `json:"type"`     // task, bug, feature

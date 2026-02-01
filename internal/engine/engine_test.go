@@ -195,7 +195,7 @@ func TestHandleTaskFailure(t *testing.T) {
 	}
 }
 
-// Test dependency handling in splitAndRecurse - just the dependency mapping phase
+// Test dependency handling in splitAndRecurse - updated for explicit ID format
 func TestSplitAndRecurse_DependencyMapping(t *testing.T) {
 	beadsClient := beads.NewClient()
 
@@ -210,12 +210,11 @@ func TestSplitAndRecurse_DependencyMapping(t *testing.T) {
 		t.Fatalf("Failed to create parent task: %v", err)
 	}
 
-	// Define subtasks with dependencies using local IDs
-	// subtask-0 has no dependencies
-	// subtask-1 depends on subtask-0
-	// subtask-2 depends on subtask-1
+	// Define subtasks with explicit IDs and dependencies
+	// Uses simple IDs: first, second, third
 	subtaskDefs := []SubtaskDefinition{
 		{
+			ID:          "first",
 			Title:       "First subtask",
 			Description: "This is the first subtask",
 			Type:        "task",
@@ -223,18 +222,20 @@ func TestSplitAndRecurse_DependencyMapping(t *testing.T) {
 			DependsOn:   []string{}, // No dependencies
 		},
 		{
+			ID:          "second",
 			Title:       "Second subtask",
 			Description: "This depends on the first subtask",
 			Type:        "task",
 			Priority:    2,
-			DependsOn:   []string{"subtask-0"}, // Local ID reference using index
+			DependsOn:   []string{"first"}, // Explicit ID reference
 		},
 		{
+			ID:          "third",
 			Title:       "Third subtask",
 			Description: "This depends on the second subtask",
 			Type:        "task",
 			Priority:    2,
-			DependsOn:   []string{"subtask-1"}, // Local ID reference using index
+			DependsOn:   []string{"second"}, // Explicit ID reference
 		},
 	}
 
@@ -244,7 +245,7 @@ func TestSplitAndRecurse_DependencyMapping(t *testing.T) {
 	childIDs := []string{}
 
 	// Phase 1: Create all subtasks
-	for i, subtaskDef := range subtaskDefs {
+	for _, subtaskDef := range subtaskDefs {
 		child, err := beadsClient.CreateTask(beads.CreateTaskRequest{
 			Title:       subtaskDef.Title,
 			Description: subtaskDef.Description,
@@ -258,25 +259,23 @@ func TestSplitAndRecurse_DependencyMapping(t *testing.T) {
 
 		childIDs = append(childIDs, child.ID)
 
-		// Build the local ID mapping (same logic as in engine.go)
-		localIDToBeadID[fmt.Sprintf("subtask-%d", i)] = child.ID
-		localIDToBeadID[fmt.Sprintf("%d", i)] = child.ID
-		localIDToBeadID[subtaskDef.Title] = child.ID
+		// Map explicit ID to bead ID (simplified!)
+		localIDToBeadID[subtaskDef.ID] = child.ID
 	}
 
 	if len(childIDs) != 3 {
 		t.Fatalf("Expected 3 child tasks, got %d", len(childIDs))
 	}
 
-	// Phase 2: Add dependencies using mapped bead IDs
-	for i, subtaskDef := range subtaskDefs {
-		childBeadID := childIDs[i]
+	// Phase 2: Add dependencies using explicit IDs
+	for _, subtaskDef := range subtaskDefs {
+		childBeadID := localIDToBeadID[subtaskDef.ID]
 
-		for _, localDepID := range subtaskDef.DependsOn {
-			// Map local ID to actual bead ID
-			beadDepID, ok := localIDToBeadID[localDepID]
+		for _, depID := range subtaskDef.DependsOn {
+			// Map dependency ID to actual bead ID
+			beadDepID, ok := localIDToBeadID[depID]
 			if !ok {
-				t.Fatalf("Failed to resolve dependency: local ID '%s' not found", localDepID)
+				t.Fatalf("Failed to resolve dependency: ID '%s' not found", depID)
 			}
 
 			// Add the dependency using actual bead IDs
@@ -568,4 +567,122 @@ func (m *mockEscalator) RouteEscalation(ctx context.Context, taskID string, fail
 		Action: EscalationActionFix,
 		Reason: "Route to fixer",
 	}, nil
+}
+
+// TestSplitAndRecurse_ExplicitIDMapping tests the new behavior with explicit IDs
+// This is the test for Nova-as2: Add explicit ID field to SubtaskDefinition
+func TestSplitAndRecurse_ExplicitIDMapping(t *testing.T) {
+	beadsClient := beads.NewClient()
+
+	// Create a parent task
+	parent, err := beadsClient.CreateTask(beads.CreateTaskRequest{
+		Title:       "Parent task for explicit ID test",
+		Description: "A task to be split",
+		Type:        beads.TaskTypeTask,
+		Priority:    2,
+	})
+	if err != nil {
+		t.Fatalf("Failed to create parent task: %v", err)
+	}
+
+	// Define subtasks with explicit IDs and dependencies using those IDs
+	// The LLM chooses meaningful IDs like 'db-schema', 'api-endpoint', etc.
+	subtaskDefs := []SubtaskDefinition{
+		{
+			ID:          "db-schema",
+			Title:       "Create database schema",
+			Description: "Design and implement database tables",
+			Type:        "task",
+			Priority:    2,
+			DependsOn:   []string{}, // No dependencies
+		},
+		{
+			ID:          "api-endpoint",
+			Title:       "Implement API endpoint",
+			Description: "Create REST API for accessing data",
+			Type:        "task",
+			Priority:    2,
+			DependsOn:   []string{"db-schema"}, // Depends on db-schema
+		},
+		{
+			ID:          "tests",
+			Title:       "Write integration tests",
+			Description: "Test the full stack",
+			Type:        "task",
+			Priority:    2,
+			DependsOn:   []string{"api-endpoint"}, // Depends on api-endpoint
+		},
+	}
+
+	// Manually execute just the creation and dependency phases
+	localIDToBeadID := make(map[string]string)
+	childIDs := []string{}
+
+	// Phase 1: Create all subtasks and map explicit IDs
+	for _, subtaskDef := range subtaskDefs {
+		child, err := beadsClient.CreateTask(beads.CreateTaskRequest{
+			Title:       subtaskDef.Title,
+			Description: subtaskDef.Description,
+			Type:        beads.TaskType(subtaskDef.Type),
+			Priority:    subtaskDef.Priority,
+			ParentID:    parent.ID,
+		})
+		if err != nil {
+			t.Fatalf("Failed to create subtask: %v", err)
+		}
+
+		childIDs = append(childIDs, child.ID)
+
+		// Map the explicit ID to the bead ID (simplified - just one mapping needed!)
+		if subtaskDef.ID != "" {
+			localIDToBeadID[subtaskDef.ID] = child.ID
+		}
+	}
+
+	if len(childIDs) != 3 {
+		t.Fatalf("Expected 3 child tasks, got %d", len(childIDs))
+	}
+
+	// Phase 2: Add dependencies using explicit IDs
+	for _, subtaskDef := range subtaskDefs {
+		// Find this subtask's bead ID
+		childBeadID, ok := localIDToBeadID[subtaskDef.ID]
+		if !ok {
+			t.Fatalf("Subtask ID '%s' not found in mapping", subtaskDef.ID)
+		}
+
+		for _, depID := range subtaskDef.DependsOn {
+			// Map dependency ID to actual bead ID
+			beadDepID, ok := localIDToBeadID[depID]
+			if !ok {
+				t.Fatalf("Dependency ID '%s' not found in subtask definitions", depID)
+			}
+
+			// Add the dependency using actual bead IDs
+			if err := beadsClient.AddDependency(childBeadID, beadDepID); err != nil {
+				t.Fatalf("Failed to add dependency from %s to %s: %v", childBeadID, beadDepID, err)
+			}
+		}
+	}
+
+	// Verify the dependency chain was created correctly
+	t.Log("✓ Successfully created subtasks with explicit IDs and dependencies")
+	t.Logf("  Created %d subtasks with semantic IDs: db-schema, api-endpoint, tests", len(childIDs))
+	t.Logf("  Dependency chain: db-schema -> api-endpoint -> tests")
+
+	// Additional verification: check that dependencies are set correctly
+	for i, subtaskDef := range subtaskDefs {
+		task, err := beadsClient.GetTask(childIDs[i])
+		if err != nil {
+			t.Fatalf("Failed to get task: %v", err)
+		}
+
+		expectedDepCount := len(subtaskDef.DependsOn)
+		actualDepCount := len(task.DependsOn)
+
+		if actualDepCount != expectedDepCount {
+			t.Errorf("Task '%s' expected %d dependencies, got %d",
+				subtaskDef.ID, expectedDepCount, actualDepCount)
+		}
+	}
 }

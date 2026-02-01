@@ -141,6 +141,7 @@ func (c PlannerDecision) BamlTypeName() string {
 }
 
 type SubtaskDefinition struct {
+	Id          string                      `json:"id"`
 	Title       string                      `json:"title"`
 	Description string                      `json:"description"`
 	Type        Union3KbugOrKfeatureOrKtask `json:"type"`
@@ -161,6 +162,9 @@ func (c *SubtaskDefinition) Decode(holder *cffi.CFFIValueClass, typeMap baml.Typ
 		key := field.Key
 		valueHolder := field.Value
 		switch key {
+
+		case "id":
+			c.Id = baml.Decode(valueHolder).Interface().(string)
 
 		case "title":
 			c.Title = baml.Decode(valueHolder).Interface().(string)
@@ -188,6 +192,8 @@ func (c *SubtaskDefinition) Decode(holder *cffi.CFFIValueClass, typeMap baml.Typ
 
 func (c SubtaskDefinition) Encode() (*cffi.HostValue, error) {
 	fields := map[string]any{}
+
+	fields["id"] = c.Id
 
 	fields["title"] = c.Title
 

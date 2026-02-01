@@ -11,11 +11,12 @@ enum TaskSize {
 
 // Task decomposition for planner
 class SubtaskDefinition {
+  id string @description("Unique identifier for this subtask (e.g., 'db-schema', 'api-endpoint'). Use kebab-case.")
   title string @description("Clear, actionable title")
   description string @description("Concrete requirements and acceptance criteria")
   type "task" | "bug" | "feature" @description("Type of work")
   priority int @description("Priority: 0=critical, 2=medium, 4=backlog")
-  depends_on string[] @description("IDs of tasks this depends on (empty if no dependencies)")
+  depends_on string[] @description("IDs of tasks this depends on (use the 'id' field, empty if no dependencies)")
 }
 
 // Planner output for sizing and decomposition
