@@ -1,0 +1,34 @@
+# Project Name
+
+## L1: Application
+
+### L2: Foundation
+| Task ID | Task Name | What Changes | Depends On |
+|---------|-----------|--------------|------------|
+| F1 | Core Types | Define base types and interfaces | - |
+| F2 | Error Handling | Implement error types | F1 |
+| F3 | Config Schema | Define configuration structure | F1 |
+| F4 | Validation Utils | Build validation helpers | F1, F2 |
+
+### L2: Provider Layer
+| Task ID | Task Name | What Changes | Depends On |
+|---------|-----------|--------------|------------|
+| P1 | Provider Interface | Define provider abstraction | F1 |
+| P2 | Bedrock Client | Implement AWS Bedrock integration | P1, F3 |
+| P3 | OpenAI Client | Implement OpenAI integration | P1, F3 |
+
+## L1: Infrastructure
+
+### L2: Deployment
+| Task ID | Task Name | What Changes | Depends On |
+|---------|-----------|--------------|------------|
+| D1 | Docker Setup | Create Dockerfile and compose | - |
+| D2 | CI Pipeline | Setup GitHub Actions | D1 |
+
+## L1: DevOps & Testing
+
+### L2: Testing
+| Task ID | Task Name | What Changes | Depends On |
+|---------|-----------|--------------|------------|
+| T1 | Unit Tests | Write core unit tests | F1, F2, F3 |
+| T2 | Integration Tests | Test provider integrations | P2, P3 |

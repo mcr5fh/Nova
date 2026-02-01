@@ -1,0 +1,27 @@
+[Unit]
+Description=Nova Dashboard - Real-time Task Observability Web UI
+After=network.target nova-orchestrator.service
+Documentation=https://github.com/yourusername/nova
+
+[Service]
+Type=simple
+User=%i
+# Update WorkingDirectory to point to your project directory
+# All paths (CASCADE.md, cascade_state.json, logs/) will be relative to this directory
+WorkingDirectory=%h/nova
+Environment="PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin"
+ExecStart=/usr/bin/python3 -m program_nova.dashboard.server --daemon
+Restart=on-failure
+RestartSec=10
+StandardOutput=append:/var/log/nova/dashboard.log
+StandardError=append:/var/log/nova/dashboard.error.log
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=%h/nova
+
+[Install]
+WantedBy=multi-user.target

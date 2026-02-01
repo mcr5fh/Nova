@@ -55,4 +55,26 @@ line_count_report.txt
 # Session debugging
 .claude/session-events.log
 .debug/
-bin/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Program nova
+cascade_state.json
+example_state.json
+
+# Tracking
+.beads/
+.thevillage/
+
+logs/

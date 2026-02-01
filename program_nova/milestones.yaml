@@ -1,0 +1,37 @@
+# Milestone definitions for Program Nova
+# Triggered when specific conditions are met during task execution
+
+milestones:
+  - id: foundation_complete
+    name: Foundation Complete
+    trigger:
+      type: all_tasks_completed
+      tasks: ["F1", "F2", "F3", "F4"]
+    message: "Foundation layer is complete! All core types, error handling, config, and validation utilities are ready."
+
+  - id: quarter_complete
+    name: 25% Complete
+    trigger:
+      type: percentage_complete
+      threshold: 25
+    message: "Quarter milestone reached! 25% of tasks completed."
+
+  - id: half_complete
+    name: 50% Complete
+    trigger:
+      type: percentage_complete
+      threshold: 50
+    message: "Halfway there! 50% of tasks completed."
+
+  - id: three_quarters_complete
+    name: 75% Complete
+    trigger:
+      type: percentage_complete
+      threshold: 75
+    message: "Almost done! 75% of tasks completed."
+
+  - id: first_failure
+    name: First Failure
+    trigger:
+      type: any_task_failed
+    message: "A task has failed. Please review the error logs and take corrective action."

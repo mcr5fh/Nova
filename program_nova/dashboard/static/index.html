@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Program Nova Dashboard</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>Program Nova Dashboard</h1>
+            <div class="mode-selector">
+                <label><input type="radio" name="mode" value="cascade" checked> Cascade</label>
+                <label><input type="radio" name="mode" value="bead"> Bead</label>
+            </div>
+            <div id="epic-selector" style="display: none;">
+                <select id="epic-select">
+                    <option value="">Select an epic...</option>
+                </select>
+                <button id="start-btn">Start</button>
+            </div>
+            <div class="project-stats">
+                <div class="stat">
+                    <span class="stat-label">Progress:</span>
+                    <span id="project-progress" class="stat-value">-</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Duration:</span>
+                    <span id="project-duration" class="stat-value">-</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Cost:</span>
+                    <span id="project-cost" class="stat-value">-</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navigation Breadcrumbs -->
+        <nav class="breadcrumbs" id="breadcrumbs">
+            <span class="breadcrumb-item active" data-view="l0">Project</span>
+        </nav>
+
+        <!-- Back Button -->
+        <button id="back-button" class="back-button" style="display: none;">
+            ← Back
+        </button>
+
+        <!-- Main Content Area -->
+        <main class="content">
+            <!-- L0: Project Overview -->
+            <div id="view-l0" class="view view-active">
+                <h2>Project Overview</h2>
+
+                <!-- Progress Bar -->
+                <div class="progress-bar-container">
+                    <div class="progress-bar" id="progress-bar">
+                        <div class="progress-bar-fill" id="progress-bar-fill" style="width: 0%"></div>
+                    </div>
+                    <span class="progress-text" id="progress-text">0 / 0 tasks (0%)</span>
+                </div>
+
+                <!-- Tree View -->
+                <div class="tree-view" id="tree-view">
+                    <div class="view-tabs">
+                        <button class="view-tab active" data-view="hierarchy">Hierarchy</button>
+                        <button class="view-tab" data-view="dependencies">Dependencies</button>
+                    </div>
+                    <div id="hierarchy-view" class="tab-content active">
+                        <div id="tree-container">
+                            <!-- Will be populated by JavaScript -->
+                        </div>
+                    </div>
+                    <div id="dependencies-view" class="tab-content">
+                        <div id="dependency-graph-container">
+                            <!-- Will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- L1 Branches -->
+                <div class="branches-grid" id="branches-grid">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+            </div>
+
+            <!-- L1: Branch Detail -->
+            <div id="view-l1" class="view">
+                <h2 id="l1-title">Branch Detail</h2>
+                <div class="branch-stats" id="l1-stats">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+                <div class="groups-grid" id="groups-grid">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+            </div>
+
+            <!-- L2: Group Detail -->
+            <div id="view-l2" class="view">
+                <h2 id="l2-title">Group Detail</h2>
+                <div class="group-stats" id="l2-stats">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+                <div class="tasks-table-container">
+                    <table class="tasks-table" id="tasks-table">
+                        <thead>
+                            <tr>
+                                <th>Task ID</th>
+                                <th>Name</th>
+                                <th>Status</th>
+                                <th>Duration</th>
+                                <th>Tokens</th>
+                                <th>Cost</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tasks-table-body">
+                            <!-- Will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- L3: Task Detail -->
+            <div id="view-l3" class="view">
+                <h2 id="l3-title">Task Detail</h2>
+                <div class="task-detail" id="task-detail">
+                    <div class="task-info">
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-label">Task ID:</span>
+                                <span class="info-value" id="task-id">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Status:</span>
+                                <span class="info-value" id="task-status">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Duration:</span>
+                                <span class="info-value" id="task-duration">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Worker ID:</span>
+                                <span class="info-value" id="task-worker">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Started At:</span>
+                                <span class="info-value" id="task-started">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Completed At:</span>
+                                <span class="info-value" id="task-completed">-</span>
+                            </div>
+                        </div>
+
+                        <h3>Token Usage</h3>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-label">Input Tokens:</span>
+                                <span class="info-value" id="task-input-tokens">0</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Output Tokens:</span>
+                                <span class="info-value" id="task-output-tokens">0</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Cache Read:</span>
+                                <span class="info-value" id="task-cache-read">0</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Cache Creation:</span>
+                                <span class="info-value" id="task-cache-creation">0</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Total Cost:</span>
+                                <span class="info-value" id="task-cost">$0.00</span>
+                            </div>
+                        </div>
+
+                        <div class="info-item" id="task-commit-container" style="display: none;">
+                            <h3>Commit</h3>
+                            <div class="info-item">
+                                <span class="info-label">Commit SHA:</span>
+                                <span class="info-value" id="task-commit">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Files Changed:</span>
+                                <span class="info-value" id="task-files">-</span>
+                            </div>
+                        </div>
+
+                        <div class="info-item" id="task-error-container" style="display: none;">
+                            <h3>Error</h3>
+                            <pre id="task-error" class="error-text"></pre>
+                        </div>
+                    </div>
+
+                    <div class="logs-section">
+                        <h3>Agent Logs</h3>
+                        <div class="logs-controls">
+                            <button id="refresh-logs" class="btn btn-secondary">Refresh Logs</button>
+                            <label>
+                                <input type="checkbox" id="auto-scroll" checked>
+                                Auto-scroll
+                            </label>
+                        </div>
+                        <pre id="task-logs" class="logs-content">Loading logs...</pre>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Status Indicator -->
+        <div class="status-indicator" id="status-indicator">
+            <span class="status-dot"></span>
+            <span class="status-text">Connecting...</span>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
