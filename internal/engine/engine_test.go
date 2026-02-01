@@ -291,3 +291,281 @@ func TestSplitAndRecurse_DependencyMapping(t *testing.T) {
 	t.Logf("  Created %d subtasks with proper dependency chains", len(childIDs))
 	t.Logf("  Subtask IDs: %v", childIDs)
 }
+
+// TestExecuteAndValidate_Success tests the success case where task succeeds on first attempt
+func TestExecuteAndValidate_Success(t *testing.T) {
+	beadsClient := beads.NewClient()
+
+	// Create a custom orchestrator with a mock executor that succeeds
+	orch := &Orchestrator{
+		beadsClient: beadsClient,
+		config: OrchestratorConfig{
+			MaxDepth:    5,
+			MaxAttempts: 3,
+		},
+		executor:  &mockExecutorSuccess{},
+		validator: &mockValidatorPass{},
+	}
+
+	task, err := beadsClient.CreateTask(beads.CreateTaskRequest{
+		Title:       "Test task",
+		Description: "Success test",
+		Type:        beads.TaskTypeTask,
+		Priority:    2,
+	})
+	if err != nil {
+		t.Fatalf("Failed to create task: %v", err)
+	}
+
+	ctx := context.Background()
+	err = orch.executeAndValidate(ctx, task.ID)
+
+	if err != nil {
+		t.Errorf("Expected no error on success, got: %v", err)
+	}
+}
+
+// TestExecuteAndValidate_FailureWithError tests failure case where lastError is not nil
+func TestExecuteAndValidate_FailureWithError(t *testing.T) {
+	beadsClient := beads.NewClient()
+
+	// Create orchestrator with mock executor that fails with error
+	orch := &Orchestrator{
+		beadsClient: beadsClient,
+		config: OrchestratorConfig{
+			MaxDepth:    5,
+			MaxAttempts: 3,
+		},
+		executor:  &mockExecutorFailWithError{},
+		escalator: &mockEscalator{},
+	}
+
+	task, err := beadsClient.CreateTask(beads.CreateTaskRequest{
+		Title:       "Test task",
+		Description: "Failure test",
+		Type:        beads.TaskTypeTask,
+		Priority:    2,
+	})
+	if err != nil {
+		t.Fatalf("Failed to create task: %v", err)
+	}
+
+	ctx := context.Background()
+	err = orch.executeAndValidate(ctx, task.ID)
+
+	// Should escalate with error
+	if err == nil {
+		t.Error("Expected error on failure, got nil")
+	}
+}
+
+// TestExecuteAndValidate_NilErrorButFailedResult tests the bug case
+// This is the edge case where ExecuteLeafTask returns (result, nil) with result.Success=false
+// This should NOT panic when accessing lastError.Error()
+func TestExecuteAndValidate_NilErrorButFailedResult(t *testing.T) {
+	beadsClient := beads.NewClient()
+
+	// Create orchestrator with mock executor that returns failed result but nil error
+	orch := &Orchestrator{
+		beadsClient: beadsClient,
+		config: OrchestratorConfig{
+			MaxDepth:    5,
+			MaxAttempts: 3,
+		},
+		executor:  &mockExecutorFailWithNilError{},
+		escalator: &mockEscalator{},
+	}
+
+	task, err := beadsClient.CreateTask(beads.CreateTaskRequest{
+		Title:       "Test task",
+		Description: "Nil error test",
+		Type:        beads.TaskTypeTask,
+		Priority:    2,
+	})
+	if err != nil {
+		t.Fatalf("Failed to create task: %v", err)
+	}
+
+	ctx := context.Background()
+
+	// This should NOT panic - it's the bug we're fixing
+	defer func() {
+		if r := recover(); r != nil {
+			t.Fatalf("executeAndValidate panicked: %v", r)
+		}
+	}()
+
+	err = orch.executeAndValidate(ctx, task.ID)
+
+	// Should handle gracefully without panicking
+	if err == nil {
+		t.Error("Expected error on failed result, got nil")
+	}
+}
+
+// TestExecuteAndValidate_RetryLogic tests that retries happen correctly
+func TestExecuteAndValidate_RetryLogic(t *testing.T) {
+	beadsClient := beads.NewClient()
+
+	// Create orchestrator with mock that succeeds on 2nd attempt
+	mockExec := &mockExecutorSucceedOnAttempt{successAttempt: 2}
+	orch := &Orchestrator{
+		beadsClient: beadsClient,
+		config: OrchestratorConfig{
+			MaxDepth:    5,
+			MaxAttempts: 3,
+		},
+		executor:  mockExec,
+		validator: &mockValidatorPass{},
+	}
+
+	task, err := beadsClient.CreateTask(beads.CreateTaskRequest{
+		Title:       "Test task",
+		Description: "Retry test",
+		Type:        beads.TaskTypeTask,
+		Priority:    2,
+	})
+	if err != nil {
+		t.Fatalf("Failed to create task: %v", err)
+	}
+
+	ctx := context.Background()
+	err = orch.executeAndValidate(ctx, task.ID)
+
+	if err != nil {
+		t.Errorf("Expected success after retry, got: %v", err)
+	}
+
+	if mockExec.attemptCount != 2 {
+		t.Errorf("Expected 2 attempts, got %d", mockExec.attemptCount)
+	}
+}
+
+// TestExecuteAndValidate_MaxAttemptsExceeded tests that max attempts is enforced
+func TestExecuteAndValidate_MaxAttemptsExceeded(t *testing.T) {
+	beadsClient := beads.NewClient()
+
+	// Create orchestrator with mock that always fails
+	mockExec := &mockExecutorAlwaysFails{}
+	orch := &Orchestrator{
+		beadsClient: beadsClient,
+		config: OrchestratorConfig{
+			MaxDepth:    5,
+			MaxAttempts: 3,
+		},
+		executor:  mockExec,
+		escalator: &mockEscalator{},
+	}
+
+	task, err := beadsClient.CreateTask(beads.CreateTaskRequest{
+		Title:       "Test task",
+		Description: "Max attempts test",
+		Type:        beads.TaskTypeTask,
+		Priority:    2,
+	})
+	if err != nil {
+		t.Fatalf("Failed to create task: %v", err)
+	}
+
+	ctx := context.Background()
+	err = orch.executeAndValidate(ctx, task.ID)
+
+	// Should fail after max attempts
+	if err == nil {
+		t.Error("Expected error after max attempts, got nil")
+	}
+
+	if mockExec.attemptCount != 3 {
+		t.Errorf("Expected 3 attempts, got %d", mockExec.attemptCount)
+	}
+}
+
+// Mock executors for testing
+
+type mockExecutorSuccess struct{}
+
+func (m *mockExecutorSuccess) Execute(ctx context.Context, taskID string, attempt int) (*WorkerResult, error) {
+	return &WorkerResult{
+		TaskID:  taskID,
+		Success: true,
+		Summary: "Success",
+	}, nil
+}
+
+type mockExecutorFailWithError struct{}
+
+func (m *mockExecutorFailWithError) Execute(ctx context.Context, taskID string, attempt int) (*WorkerResult, error) {
+	return &WorkerResult{
+		TaskID:  taskID,
+		Success: false,
+		Summary: "Failed",
+	}, fmt.Errorf("execution failed")
+}
+
+type mockExecutorFailWithNilError struct{}
+
+func (m *mockExecutorFailWithNilError) Execute(ctx context.Context, taskID string, attempt int) (*WorkerResult, error) {
+	// This is the bug case: returns failed result but nil error
+	return &WorkerResult{
+		TaskID:  taskID,
+		Success: false,
+		Summary: "Failed but no error",
+	}, nil
+}
+
+type mockExecutorSucceedOnAttempt struct {
+	attemptCount   int
+	successAttempt int
+}
+
+func (m *mockExecutorSucceedOnAttempt) Execute(ctx context.Context, taskID string, attempt int) (*WorkerResult, error) {
+	m.attemptCount++
+	if m.attemptCount < m.successAttempt {
+		return &WorkerResult{
+			TaskID:  taskID,
+			Success: false,
+			Summary: "Not yet",
+		}, fmt.Errorf("attempt %d failed", m.attemptCount)
+	}
+	return &WorkerResult{
+		TaskID:  taskID,
+		Success: true,
+		Summary: "Success",
+	}, nil
+}
+
+type mockExecutorAlwaysFails struct {
+	attemptCount int
+}
+
+func (m *mockExecutorAlwaysFails) Execute(ctx context.Context, taskID string, attempt int) (*WorkerResult, error) {
+	m.attemptCount++
+	return &WorkerResult{
+		TaskID:  taskID,
+		Success: false,
+		Summary: "Always fails",
+	}, fmt.Errorf("attempt %d failed", m.attemptCount)
+}
+
+// Mock validators for testing
+
+type mockValidatorPass struct{}
+
+func (m *mockValidatorPass) Validate(ctx context.Context, taskID string, result *WorkerResult) (*ValidationResult, error) {
+	return &ValidationResult{
+		Passed:  true,
+		Message: "Validation passed",
+	}, nil
+}
+
+// Mock escalators for testing
+
+type mockEscalator struct{}
+
+func (m *mockEscalator) RouteEscalation(ctx context.Context, taskID string, failureHistory string) (*EscalationDecision, error) {
+	return &EscalationDecision{
+		TaskID: taskID,
+		Action: EscalationActionFix,
+		Reason: "Route to fixer",
+	}, nil
+}

@@ -208,7 +208,7 @@ func (o *Orchestrator) executeAndValidate(ctx context.Context, taskID string) er
 
 	for attempt := 1; attempt <= o.config.MaxAttempts; attempt++ {
 		result, lastError = o.ExecuteLeafTask(ctx, taskID)
-		if lastError == nil && result.Success {
+		if lastError == nil && result != nil && result.Success {
 			break
 		}
 
@@ -218,12 +218,28 @@ func (o *Orchestrator) executeAndValidate(ctx context.Context, taskID string) er
 			return fmt.Errorf("failed to get task: %w", err)
 		}
 		task.Attempts = attempt
-		task.LastError = lastError.Error()
+		// Only set LastError if lastError is not nil
+		if lastError != nil {
+			task.LastError = lastError.Error()
+		} else {
+			// Failed result but no error - use result error message or generic message
+			if result != nil && result.Error != "" {
+				task.LastError = result.Error
+			} else {
+				task.LastError = "task failed without error details"
+			}
+		}
 	}
 
 	// If all attempts failed, escalate
-	if lastError != nil || !result.Success {
-		return o.HandleTaskFailure(ctx, taskID, lastError.Error())
+	if lastError != nil || result == nil || !result.Success {
+		errorMsg := "task failed"
+		if lastError != nil {
+			errorMsg = lastError.Error()
+		} else if result != nil && result.Error != "" {
+			errorMsg = result.Error
+		}
+		return o.HandleTaskFailure(ctx, taskID, errorMsg)
 	}
 
 	// Validate the result

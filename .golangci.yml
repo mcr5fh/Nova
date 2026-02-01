@@ -17,6 +17,10 @@ linters:
     - ineffassign   # Detect ineffectual assignments
     - staticcheck   # Go static analysis
     - unused        # Check for unused code
+    - nilnil        # Checks for simultaneous return of nil error and nil value
+
+  # NOTE: nilaway is not yet integrated into golangci-lint
+  # Run separately: go install go.uber.org/nilaway/cmd/nilaway@latest && nilaway ./...
 
   disable:
     - typecheck     # Can conflict with generated code and Go version mismatches

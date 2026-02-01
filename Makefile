@@ -61,6 +61,12 @@ golangci-lint:
 	@echo "Running golangci-lint..."
 	GODEBUG=gotypesalias=1 golangci-lint run --config=.golangci.yml --timeout=5m
 
+# Run nilaway (nil pointer dereference checker)
+nilaway:
+	@echo "Running nilaway..."
+	@which nilaway > /dev/null 2>&1 || (echo "Installing nilaway..." && $(GO) install go.uber.org/nilaway/cmd/nilaway@latest)
+	nilaway ./...
+
 # Build and run
 run: build
 	$(BIN_DIR)/$(BINARY_NAME)
@@ -68,12 +74,14 @@ run: build
 # Show help
 help:
 	@echo "Available targets:"
-	@echo "  make build    - Build the binary to $(BIN_DIR)/$(BINARY_NAME)"
-	@echo "  make install  - Install binary to $(INSTALL_DIR)"
-	@echo "  make test     - Run all tests with race detector"
-	@echo "  make coverage - Run tests and generate coverage report"
-	@echo "  make clean    - Remove build artifacts"
-	@echo "  make fmt      - Format Go code"
-	@echo "  make lint     - Run go vet"
-	@echo "  make run      - Build and run the binary"
-	@echo "  make all      - Same as make build (default)"
+	@echo "  make build         - Build the binary to $(BIN_DIR)/$(BINARY_NAME)"
+	@echo "  make install       - Install binary to $(INSTALL_DIR)"
+	@echo "  make test          - Run all tests with race detector"
+	@echo "  make coverage      - Run tests and generate coverage report"
+	@echo "  make clean         - Remove build artifacts"
+	@echo "  make fmt           - Format Go code"
+	@echo "  make lint          - Run go vet"
+	@echo "  make golangci-lint - Run golangci-lint"
+	@echo "  make nilaway       - Run nilaway (nil pointer checker)"
+	@echo "  make run           - Build and run the binary"
+	@echo "  make all           - Same as make build (default)"
