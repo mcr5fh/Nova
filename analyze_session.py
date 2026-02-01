@@ -211,7 +211,8 @@ def analyze_single_session(
 def analyze_all_sessions(
     anthropic_wrapper: AnthropicWrapper,
     db_path: str = None,
-    limit: int = None
+    limit: int = None,
+    reanalyze: bool = False
 ) -> Dict[str, int]:
     """
     Analyze all sessions in the database.
@@ -220,9 +221,10 @@ def analyze_all_sessions(
         anthropic_wrapper: Configured AnthropicWrapper instance
         db_path: Optional database path
         limit: Optional limit on number of sessions to analyze
+        reanalyze: If False (default), skip sessions that already have an analysis
 
     Returns:
-        Dictionary with 'success' and 'failed' counts
+        Dictionary with 'success', 'failed', and 'skipped' counts
     """
     print("Analyzing all sessions...")
 
@@ -230,11 +232,26 @@ def analyze_all_sessions(
 
     if not sessions:
         print("No sessions found in database")
-        return {"success": 0, "failed": 0}
+        return {"success": 0, "failed": 0, "skipped": 0}
 
-    print(f"Found {len(sessions)} sessions to analyze")
+    results = {"success": 0, "failed": 0, "skipped": 0}
 
-    results = {"success": 0, "failed": 0}
+    # Filter out already-analyzed sessions unless reanalyze is set
+    if not reanalyze:
+        unanalyzed = []
+        for session in sessions:
+            existing = db.get_analyses(session['session_id'], analysis_type='planning_failure', db_path=db_path)
+            if existing:
+                results["skipped"] += 1
+            else:
+                unanalyzed.append(session)
+        sessions = unanalyzed
+
+    if not sessions:
+        print(f"No new sessions to analyze ({results['skipped']} already analyzed)")
+        return results
+
+    print(f"Found {len(sessions)} sessions to analyze ({results['skipped']} already analyzed, skipped)")
 
     for session in sessions:
         session_id = session['session_id']
@@ -249,6 +266,7 @@ def analyze_all_sessions(
     print(f"Analysis complete:")
     print(f"  Successful: {results['success']}")
     print(f"  Failed: {results['failed']}")
+    print(f"  Skipped (already analyzed): {results['skipped']}")
     print(f"{'='*60}")
 
     return results
@@ -295,11 +313,20 @@ Environment Variables:
         help="Limit the number of sessions to analyze (use with --all)"
     )
 
+    parser.add_argument(
+        "--reanalyze",
+        action="store_true",
+        help="Re-analyze sessions even if they already have an analysis (use with --all)"
+    )
+
     args = parser.parse_args()
 
     # Validate that --limit is only used with --all
     if args.limit and not args.all:
         parser.error("--limit can only be used with --all")
+
+    if args.reanalyze and not args.all:
+        parser.error("--reanalyze can only be used with --all")
 
     # Check for ANTHROPIC_API_KEY environment variable
     if not os.getenv("ANTHROPIC_API_KEY"):
@@ -319,7 +346,7 @@ Environment Variables:
 
     # Execute the requested analysis
     if args.all:
-        analyze_all_sessions(wrapper, limit=args.limit)
+        analyze_all_sessions(wrapper, limit=args.limit, reanalyze=args.reanalyze)
     else:
         success = analyze_single_session(args.session, wrapper)
         sys.exit(0 if success else 1)
