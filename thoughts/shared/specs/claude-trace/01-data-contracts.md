@@ -80,7 +80,7 @@ type TaskStatus =
   | "in_progress"
   | "blocked"
   | "closed";
-```
+```text
 
 ### 2. Metrics
 
@@ -106,7 +106,7 @@ interface Metrics {
   files_written?: number;
   files_edited?: number;
 }
-```
+```text
 
 ### 3. AggregatedTaskTrace (Server Response)
 
@@ -154,7 +154,7 @@ interface AggregatedTaskTrace {
   // Spans
   spans: TraceEvent[];        // All events for this task
 }
-```
+```text
 
 ---
 
@@ -169,6 +169,7 @@ The trace aggregator server exposes the following endpoints:
 Query trace events with filtering.
 
 **Query Parameters:**
+
 - `session_id` (optional): Filter by session
 - `task_id` (optional): Filter by task
 - `from` (optional): Start timestamp (ISO 8601 or Unix ms)
@@ -178,6 +179,7 @@ Query trace events with filtering.
 - `offset` (default: 0): Pagination offset
 
 **Response:**
+
 ```typescript
 interface TracesResponse {
   traces: TraceEvent[];
@@ -185,37 +187,40 @@ interface TracesResponse {
   limit: number;
   offset: number;
 }
-```
+```text
 
 #### GET /api/tasks/:task_id
 
 Get aggregated task trace with metrics.
 
 **Response:**
+
 ```typescript
 interface TaskResponse {
   task: AggregatedTaskTrace;
 }
-```
+```text
 
 #### GET /api/tasks/:task_id/tree
 
 Get task hierarchy (parent + children + grandchildren).
 
 **Response:**
+
 ```typescript
 interface TaskTreeResponse {
   root: AggregatedTaskTrace;
   children: AggregatedTaskTrace[];
   ancestors: AggregatedTaskTrace[];  // Path to root
 }
-```
+```text
 
 #### GET /api/sessions/:session_id/summary
 
 Get session-level aggregated metrics.
 
 **Response:**
+
 ```typescript
 interface SessionSummary {
   session_id: string;
@@ -235,7 +240,7 @@ interface SessionSummary {
     by_status: Record<TaskStatus, number>;
   };
 }
-```
+```text
 
 ### Server-Sent Events (SSE)
 
@@ -244,19 +249,22 @@ interface SessionSummary {
 Real-time trace event stream.
 
 **Query Parameters:**
+
 - `session_id` (optional): Stream events for specific session only
 - `task_id` (optional): Stream events for specific task only
 
 **Event Format:**
-```
+
+```text
 event: trace
 data: {"trace_id":"...","span_id":"...","event_type":"post_tool_use",...}
 
 event: heartbeat
 data: {"timestamp":"2026-01-31T10:15:30Z"}
-```
+```text
 
 **SSE Event Types:**
+
 - `trace`: New trace event
 - `task_updated`: Task status changed
 - `heartbeat`: Keep-alive ping (every 30 seconds)
@@ -275,7 +283,7 @@ Each line is a complete `TraceEvent` JSON object:
 {"trace_id":"t1","span_id":"s1","parent_id":null,"timestamp":"2026-01-31T10:00:00Z","event_type":"user_prompt","session_id":"abc123","metrics":{"input_tokens":150}}
 {"trace_id":"t1","span_id":"s2","parent_id":"s1","timestamp":"2026-01-31T10:00:05Z","event_type":"pre_tool_use","tool_name":"Read","session_id":"abc123","metrics":{}}
 {"trace_id":"t1","span_id":"s2","parent_id":"s1","timestamp":"2026-01-31T10:00:06Z","event_type":"post_tool_use","tool_name":"Read","duration_ms":1000,"session_id":"abc123","metrics":{}}
-```
+```text
 
 ### SQLite Schema
 
@@ -339,7 +347,7 @@ CREATE TABLE tool_usage (
     PRIMARY KEY (task_id, tool_name),
     FOREIGN KEY (task_id) REFERENCES task_hierarchy(task_id)
 );
-```
+```text
 
 ---
 
@@ -367,7 +375,7 @@ interface HookInput {
   // UserPromptSubmit specific
   prompt?: string;
 }
-```
+```text
 
 ### Output (stdout JSON)
 
@@ -380,9 +388,10 @@ interface HookOutput {
   suppressOutput?: boolean;        // Hide from user context
   systemMessage?: string;          // Warning/info to user
 }
-```
+```text
 
 Exit codes:
+
 - **0**: Success (parse JSON from stdout)
 - **2**: Blocking error (stderr sent to Claude)
 - **Other**: Non-blocking error (logged, execution continues)
@@ -413,7 +422,7 @@ interface DashboardState {
   tasks: Record<string, AggregatedTaskTrace>;
   traces: TraceEvent[];
 }
-```
+```text
 
 ### Visualization Data Formats
 
@@ -431,7 +440,7 @@ interface MermaidNode {
   };
   children: MermaidNode[];
 }
-```
+```text
 
 #### Timeline Data (Gantt-style)
 
@@ -445,7 +454,7 @@ interface TimelineSpan {
   status: "success" | "error";
   y_position: number;     // For vertical stacking
 }
-```
+```text
 
 ---
 
@@ -454,9 +463,11 @@ interface TimelineSpan {
 ### Required Fields
 
 **TraceEvent:**
+
 - `trace_id`, `span_id`, `session_id`, `timestamp`, `event_type`, `hook_type`, `metrics`
 
 **AggregatedTaskTrace:**
+
 - `task_id`, `status`, `start_time`, `depth`
 
 ### Constraints
@@ -485,9 +496,10 @@ interface VersionedResponse<T> {
   version: string;        // e.g., "1.0"
   data: T;
 }
-```
+```text
 
 **Backward Compatibility Rules:**
+
 1. Never remove required fields
 2. New optional fields are safe to add
 3. New event types must be handled gracefully by old clients
@@ -508,7 +520,7 @@ interface ErrorResponse {
   };
   request_id: string;     // For debugging
 }
-```
+```text
 
 ### Common Error Codes
 
@@ -542,6 +554,7 @@ interface ErrorResponse {
 ### Data Redaction
 
 The following fields should be redacted in tool_input/tool_output:
+
 - Passwords, tokens, API keys
 - File contents (store file path only)
 - Environment variables
@@ -560,6 +573,7 @@ The following fields should be redacted in tool_input/tool_output:
 ## Next Steps
 
 See companion specifications:
+
 - [05-unified-architecture.md](./05-unified-architecture.md) - **START HERE** - System overview and integration
 - [02-hook-specification.md](./02-hook-specification.md) - Go hook implementation (nova-trace)
 - [03-trace-server-specification.md](./03-trace-server-specification.md) - Aggregator server

@@ -7,6 +7,7 @@
 ## Overview
 
 A React + TypeScript dashboard for visualizing Claude Code traces in real-time with:
+
 - **Live updates** via Server-Sent Events
 - **Interactive task hierarchy** using Mermaid.js
 - **Cost & token analytics** with Recharts
@@ -14,6 +15,7 @@ A React + TypeScript dashboard for visualizing Claude Code traces in real-time w
 - **Session management** and filtering
 
 ### MVP Scope (Minimal)
+
 - **Pages:** Dashboard `/`, Session detail `/sessions/:id`, Task detail `/tasks/:id`
 - **Core UI:** Header + left sidebar + main grid (Option A layout)
 - **Interactive graph:** React Flow task graph with hover/click + expand/collapse
@@ -27,25 +29,30 @@ A React + TypeScript dashboard for visualizing Claude Code traces in real-time w
 ## Tech Stack (2026 Best Practices)
 
 ### Core
+
 - **React 19** - Server Components, useOptimistic, use() hook
 - **TypeScript 5.7+** - Strict mode, type-safe APIs
 - **Vite 6** - Fast dev server, HMR
 
 ### Data Management
+
 - **TanStack Query v5** - Server state, caching, real-time sync
 - **Zustand** - Client state (UI filters, selected items)
 
 ### Visualization
+
 - **Mermaid.js 11.12+** - Task hierarchy diagrams
 - **Recharts** - Cost/token analytics charts
 - **TanStack Table v8** - Trace event tables
 - **React Flow** - Interactive task graph (pan/zoom, hover/click, expand/collapse)
 
 ### Styling
+
 - **Tailwind CSS 4** - Utility-first styling
 - **Shadcn/ui** - Component primitives
 
 ### Design System (Crisp Tech)
+
 - **Primary UI font:** Sora (clean, technical)
 - **Mono/data font:** IBM Plex Mono (IDs, payloads, timestamps)
 - **Type scale (px):** 12 (meta), 13 (table), 14 (body), 16 (section), 20 (card title), 28 (page title)
@@ -56,6 +63,7 @@ A React + TypeScript dashboard for visualizing Claude Code traces in real-time w
 - **Status colors:** green / amber / red / gray (shared across charts + nodes)
 
 ### CSS Variables (Design Tokens)
+
 ```css
 :root {
   --bg-0: #f6f7f8;
@@ -75,9 +83,10 @@ A React + TypeScript dashboard for visualizing Claude Code traces in real-time w
 
   --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.06), 0 8px 24px rgba(15, 23, 42, 0.08);
 }
-```
+```text
 
 ### Tailwind Config Snippet
+
 ```ts
 // tailwind.config.ts
 export default {
@@ -116,9 +125,10 @@ export default {
     },
   },
 };
-```
+```text
 
 ### Real-Time
+
 - **EventSource API** - Native SSE support
 - **Custom useSSE hook** - Manage connections
 
@@ -126,7 +136,7 @@ export default {
 
 ## Project Structure
 
-```
+```text
 claude-trace-dashboard/
 ├── src/
 │   ├── api/
@@ -171,7 +181,7 @@ claude-trace-dashboard/
 ├── tailwind.config.js
 ├── tsconfig.json
 └── package.json
-```
+```text
 
 ---
 
@@ -183,26 +193,30 @@ To enable fast UI iteration without a backend, seed the app with local JSON that
 See [Data Contracts](./01-data-contracts.md) for canonical field definitions.
 
 ### Approach
+
 - Store JSON in `src/data/` (e.g., `sessions.json`, `tasks.json`, `traces.json`)
 - Provide a lightweight mock API layer that returns the same shape as real endpoints
 - Gate with a flag (e.g., `VITE_USE_MOCK_DATA=true`)
 
 ### Example Structure
-```
+
+```text
 src/
   data/
     sessions.json
     tasks.json
     traces.json
-```
+```text
 
 ### Mock API Contract
+
 - `getTraces` returns `{ traces: TraceEvent[]; total: number }`
 - `getTask` returns `{ task: AggregatedTaskTrace }`
 - `getTaskTree` returns `{ root, children }`
 - `getSessionSummary` returns `SessionSummary`
 
 ### Notes
+
 - Keep timestamps realistic and ordered to exercise timeline + charts
 - Include multiple sessions and task states (completed/in_progress/blocked)
 - Use the same ID formats as production (session_id, task_id, span_id)
@@ -260,7 +274,7 @@ export const api = {
     return res.json();
   },
 };
-```
+```text
 
 ### 2. SSE Hook
 
@@ -347,7 +361,7 @@ export function useSSE({ sessionId, taskId, enabled = true }: UseSSEOptions = {}
 
   return { isConnected, error, events };
 }
-```
+```text
 
 ### 3. React Query Hooks
 
@@ -407,7 +421,7 @@ export function useInfiniteTraces(params: Omit<Parameters<typeof api.getTraces>[
     initialPageParam: 0,
   });
 }
-```
+```text
 
 ### 4. Zustand Store (UI State)
 
@@ -461,7 +475,7 @@ export const useUIStore = create<UIState>((set) => ({
       filters: { timeRange: { from: '', to: '' }, toolNames: [], taskStatus: [] },
     }),
 }));
-```
+```text
 
 ### 5. Task Tree Visualization (Mermaid)
 
@@ -582,7 +596,7 @@ function formatDuration(ms: number): string {
   if (minutes > 0) return `${minutes}m ${seconds % 60}s`;
   return `${seconds}s`;
 }
-```
+```text
 
 ---
 
@@ -591,11 +605,13 @@ function formatDuration(ms: number): string {
 Mermaid is retained for quick static diagrams, but the primary interactive graph should use React Flow for usability and control.
 
 ### Why React Flow
+
 - Smooth pan/zoom, selection, and minimap out of the box
 - Full control over node rendering and hover/click behavior
 - Better performance via progressive disclosure (render only active subtrees)
 
 ### Expected Capabilities
+
 - **Labels:** task name + status + key metrics
 - **Hover:** tooltip with duration, cost, tokens, status
 - **Click:** open right panel or route to `/tasks/:id`
@@ -603,6 +619,7 @@ Mermaid is retained for quick static diagrams, but the primary interactive graph
 - **Expand/Collapse:** load children on demand
 
 ### Performance Guardrails
+
 - Cap visible nodes (e.g., 200–500)
 - Lazy-load and render children only when expanded
 - Focus mode to show only selected subtree
@@ -610,9 +627,11 @@ Mermaid is retained for quick static diagrams, but the primary interactive graph
 - Disable physics; static layout only
 
 ### Layout
+
 Use ELK or Dagre to generate a clean hierarchical layout. Recompute layout on expand/collapse.
 
 ### Data Flow
+
 - Convert task tree to React Flow nodes/edges
 - Store expanded node IDs in UI state
 - On expand: fetch children (if needed), update graph data, re-layout
@@ -674,7 +693,7 @@ export function CostChart({ sessionId }: CostChartProps) {
     </div>
   );
 }
-```
+```text
 
 ### 7. Main Dashboard
 
@@ -767,7 +786,7 @@ export function Dashboard() {
     </div>
   );
 }
-```
+```text
 
 ---
 
@@ -808,7 +827,7 @@ export function Dashboard() {
     "eslint": "^9.0.0"
   }
 }
-```
+```text
 
 ### vite.config.ts
 
@@ -834,7 +853,7 @@ export default defineConfig({
     },
   },
 });
-```
+```text
 
 ### tsconfig.json
 
@@ -870,7 +889,7 @@ export default defineConfig({
   "include": ["src"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
-```
+```text
 
 ---
 
@@ -889,7 +908,7 @@ npm run build
 
 # Preview production build
 npm run preview
-```
+```text
 
 ---
 
@@ -898,6 +917,7 @@ npm run preview
 ### 1. Real-Time Updates
 
 SSE keeps the dashboard in sync automatically:
+
 - New traces appear instantly
 - Task metrics update live
 - Cost accumulates in real-time
@@ -906,6 +926,7 @@ SSE keeps the dashboard in sync automatically:
 ### 2. Interactive Task Tree
 
 Click nodes to drill down:
+
 ```typescript
 <TaskTree
   taskId={rootTaskId}
@@ -914,16 +935,17 @@ Click nodes to drill down:
     navigate(`/tasks/${taskId}`);
   }}
 />
-```
+```text
 
 ### 3. Responsive Design
 
 Tailwind CSS breakpoints:
+
 ```tsx
 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
   {/* Adapts to screen size */}
 </div>
-```
+```text
 
 ---
 
@@ -938,7 +960,7 @@ useQuery({
   queryFn: () => api.getTraces({ session_id: sessionId }),
   staleTime: Infinity, // SSE keeps it fresh
 });
-```
+```text
 
 ### 2. Component Memoization
 
@@ -948,11 +970,12 @@ import { memo } from 'react';
 export const TraceItem = memo(({ trace }: { trace: TraceEvent }) => {
   return <div>{trace.tool_name}</div>;
 });
-```
+```text
 
 ### 3. Virtual Scrolling
 
 For large trace tables:
+
 ```typescript
 import { useVirtualizer } from '@tanstack/react-virtual';
 
@@ -975,7 +998,7 @@ function VirtualTraceTable({ traces }: { traces: TraceEvent[] }) {
     </div>
   );
 }
-```
+```text
 
 ---
 
@@ -994,7 +1017,7 @@ describe('TaskTree', () => {
     expect(await screen.findByText(/Task Tree/)).toBeInTheDocument();
   });
 });
-```
+```text
 
 ### E2E Tests (Playwright)
 
@@ -1013,7 +1036,7 @@ test('dashboard shows live updates', async ({ page }) => {
   // Verify new trace appears
   await expect(page.locator('text=New trace')).toBeVisible();
 });
-```
+```text
 
 ---
 
@@ -1027,7 +1050,7 @@ npm run build
 
 # Serve with any static host
 npx serve dist
-```
+```text
 
 ### Docker
 
@@ -1043,19 +1066,21 @@ FROM nginx:alpine
 COPY --from=builder /app/dist /usr/share/nginx/html
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
-```
+```text
 
 ---
 
 ## Future Enhancements
 
 ### Phase 2
+
 - Dark mode support
 - Export traces to CSV/JSON
 - Advanced filtering UI
 - Keyboard shortcuts
 
 ### Phase 3
+
 - Collaborative dashboards (multiple users)
 - Custom metric definitions
 - Alerts/notifications

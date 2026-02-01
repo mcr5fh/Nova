@@ -466,7 +466,6 @@ class Provider(ABC):  # Explicit contract
     def get_data(self) -> Data: ...
 ```
 
-
 ## When to Ask for Clarification
 
 Ask when:

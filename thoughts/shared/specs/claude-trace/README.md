@@ -40,7 +40,7 @@ This directory contains the complete specification for the Nova trace system, wh
 
 ## 🏗️ System Architecture
 
-```
+```text
 ┌─────────────────────────────────────────────────────────┐
 │                    Nova System                          │
 │                  Single Binary: nova-go                 │
@@ -54,9 +54,10 @@ This directory contains the complete specification for the Nova trace system, wh
 │              Shared Infrastructure                      │
 │  • Trace Events    • Beads Integration   • Metrics     │
 └─────────────────────────────────────────────────────────┘
-```
+```text
 
 **nova-go** (Single Unified CLI):
+
 - `trace` - Hook handler (called by Claude Code)
   - Captures tool usage during Claude CLI execution
   - Writes trace events to JSONL files
@@ -75,6 +76,7 @@ This directory contains the complete specification for the Nova trace system, wh
   - SQLite-backed aggregation
 
 **Shared Components**:
+
 - `internal/trace/` - Unified event model and storage
 - `internal/beads/` - Task integration (reader + CLI)
 - `internal/metrics/` - Token counting and cost tracking
@@ -92,6 +94,7 @@ This directory contains the complete specification for the Nova trace system, wh
 ## 🎯 Current MVP Scope
 
 **What's Included:**
+
 - ✅ nova-trace hook binary (observability)
 - ✅ nova-go orchestrator (recursive execution)
 - ✅ Unified trace event model
@@ -100,6 +103,7 @@ This directory contains the complete specification for the Nova trace system, wh
 - ✅ Basic cost/token tracking
 
 **What's Future:**
+
 - ⏳ SQLite indexing for fast queries
 - ⏳ Aggregation server with REST API
 - ⏳ Real-time SSE streaming
@@ -129,7 +133,7 @@ nova-go serve --port 8080
 
 # 6. Watch traces in real-time
 tail -f runs/<run-id>/trace.jsonl | jq
-```
+```text
 
 ## 🔧 Development
 
@@ -145,7 +149,7 @@ make test
 
 # Pre-commit checks (format + check + test)
 make pre-commit
-```
+```text
 
 ## 📚 Related Documentation
 
@@ -156,6 +160,7 @@ make pre-commit
 ## 🤝 Contributing
 
 When updating these specs:
+
 1. Maintain the unified architecture as the source of truth
 2. Keep data contracts in sync across all components
 3. Update all reference sections when adding new specs

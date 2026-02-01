@@ -14,7 +14,7 @@ Nova is a single Go CLI that provides both **observability** and **orchestration
 
 ## System Architecture
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │                         User                                 │
 └────────────────┬────────────────────────────────────────────┘
@@ -45,7 +45,7 @@ Nova is a single Go CLI that provides both **observability** and **orchestration
          │          │               ▼
          └──────────┴───────► Unified Trace Events
                               (JSONL storage)
-```
+```text
 
 ### Data Flow
 
@@ -63,7 +63,7 @@ Nova is a single Go CLI that provides both **observability** and **orchestration
 
 ## Project Structure
 
-```
+```text
 nova/
 ├── cmd/
 │   └── nova-go/                 # Single unified CLI
@@ -152,7 +152,7 @@ nova/
 ├── .pre-commit-config.yaml
 ├── .gitignore
 └── README.md
-```
+```text
 
 ### Linter Configuration
 
@@ -224,7 +224,7 @@ issues:
 
   max-issues-per-linter: 0
   max-same-issues: 0
-```
+```text
 
 ### Directory Responsibilities
 
@@ -243,6 +243,7 @@ issues:
 ### Key Dependencies
 
 **go.mod:**
+
 ```go
 module github.com/yourusername/nova
 
@@ -253,9 +254,10 @@ require (
     github.com/spf13/cobra v1.8.0           // Multi-command CLI
     // BAML generated client dependencies (added by baml-cli generate)
 )
-```
+```text
 
 **External Tools:**
+
 - `baml-cli` - BAML code generation
 - `bd` (Beads CLI) - Task management
 - `claude` (Claude Code CLI) - Task execution
@@ -334,7 +336,7 @@ type Metrics struct {
     // Task metrics (from nova-go)
     SubtasksCreated int `json:"subtasks_created,omitempty"`
 }
-```
+```text
 
 ### Event Types & Names
 
@@ -387,7 +389,7 @@ nova-go emits when planning a task:
     "decomposition_depth": 2
   }
 }
-```
+```text
 
 ### 2. LLM Call Event (nova-go)
 
@@ -418,7 +420,7 @@ nova-go emits for BAML calls:
     "confidence": "high"
   }
 }
-```
+```text
 
 ### 3. Execution Started Event (nova-go)
 
@@ -445,7 +447,7 @@ nova-go emits when starting Claude CLI execution:
     "linked_session": "claude-session-xyz"
   }
 }
-```
+```text
 
 ### 4. Tool Usage Event (nova-trace)
 
@@ -481,7 +483,7 @@ nova-trace hooks capture during Claude CLI execution:
     "component_type": "form"
   }
 }
-```
+```text
 
 ### 5. Verification Event (nova-go)
 
@@ -513,7 +515,7 @@ nova-go emits after BAML verification:
     "missing_items": []
   }
 }
-```
+```text
 
 ### 6. Task Success Event (nova-go)
 
@@ -537,7 +539,7 @@ nova-go emits when marking task complete:
     "total_duration_ms": 91000
   }
 }
-```
+```text
 
 ---
 
@@ -573,7 +575,7 @@ func init() {
     rootCmd.AddCommand(implementCmd)  // Orchestrator
     rootCmd.AddCommand(serveCmd)      // HTTP server
 }
-```
+```text
 
 **File:** `cmd/nova-go/implement.go`
 
@@ -623,7 +625,7 @@ func runImplement(cmd *cobra.Command, args []string) error {
 
     return eng.Run(ctx, string(spec))
 }
-```
+```text
 
 **File:** `cmd/nova-go/serve.go`
 
@@ -704,7 +706,7 @@ func runServe(cmd *cobra.Command, args []string) error {
         return srv.Shutdown(ctx)
     }
 }
-```
+```text
 
 ### 2. nova-go Engine Layer
 
@@ -789,7 +791,7 @@ func (e *Engine) ExecuteTask(ctx context.Context, taskID string) error {
 
     return err
 }
-```
+```text
 
 ### 3. nova-go trace (Hook Handler)
 
@@ -840,7 +842,7 @@ func runTrace(cmd *cobra.Command, args []string) error {
 
     return nil // Always succeed for observability hooks
 }
-```
+```text
 
 ### 4. Shared Trace Writer
 
@@ -902,7 +904,7 @@ func (w *Writer) Write(ctx context.Context, event *TraceEvent) error {
 func (w *Writer) LogEvent(event *TraceEvent) error {
     return w.Write(context.Background(), event)
 }
-```
+```text
 
 ### 5. Shared Beads Integration
 
@@ -965,7 +967,7 @@ func (r *Reader) GetCurrentTask(ctx context.Context, projectDir string) (*Task, 
 
     return currentTask, nil
 }
-```
+```text
 
 **File:** `internal/beads/cli.go`
 
@@ -1050,7 +1052,7 @@ func (c *Client) GetReadyTasks(ctx context.Context, parentID *string) ([]string,
     }
     return ids, nil
 }
-```
+```text
 
 ---
 
@@ -1087,12 +1089,13 @@ func (c *Client) GetReadyTasks(ctx context.Context, parentID *string) ([]string,
     ]
   }
 }
-```
+```text
 
 **Note:** Assumes `nova-go` is in your PATH. Alternatively, use absolute path:
+
 ```json
 "command": "/usr/local/bin/nova-go trace"
-```
+```text
 
 ### Environment Variables
 
@@ -1115,76 +1118,76 @@ func (c *Client) GetReadyTasks(ctx context.Context, parentID *string) ([]string,
 
 # Generate BAML client and build binary
 build: baml-generate
-	@echo "→ Building nova-go..."
-	go build -o bin/nova-go ./cmd/nova-go
-	@echo "✓ Build complete"
+ @echo "→ Building nova-go..."
+ go build -o bin/nova-go ./cmd/nova-go
+ @echo "✓ Build complete"
 
 # BAML code generation
 baml-generate:
-	@echo "→ Generating BAML client..."
-	baml-cli generate
-	go fmt ./baml_client/...
-	@echo "✓ BAML client generated"
+ @echo "→ Generating BAML client..."
+ baml-cli generate
+ go fmt ./baml_client/...
+ @echo "✓ BAML client generated"
 
 # Type checking and static analysis
 check: baml-generate
-	@echo "→ Running type checker..."
-	go build -o /dev/null ./cmd/nova-go
-	@echo "→ Running static analysis..."
-	go vet ./...
-	@echo "→ Running linter..."
-	golangci-lint run ./...
-	@echo "✓ All checks passed"
+ @echo "→ Running type checker..."
+ go build -o /dev/null ./cmd/nova-go
+ @echo "→ Running static analysis..."
+ go vet ./...
+ @echo "→ Running linter..."
+ golangci-lint run ./...
+ @echo "✓ All checks passed"
 
 # Testing
 test:
-	@echo "→ Running tests..."
-	go test -v -race ./...
+ @echo "→ Running tests..."
+ go test -v -race ./...
 
 test-coverage:
-	@echo "→ Running tests with coverage..."
-	go test -v -race -coverprofile=coverage.out ./...
-	go tool cover -html=coverage.out -o coverage.html
-	@echo "✓ Coverage report: coverage.html"
+ @echo "→ Running tests with coverage..."
+ go test -v -race -coverprofile=coverage.out ./...
+ go tool cover -html=coverage.out -o coverage.html
+ @echo "✓ Coverage report: coverage.html"
 
 # Linting
 lint:
-	@echo "→ Running linter..."
-	golangci-lint run ./...
+ @echo "→ Running linter..."
+ golangci-lint run ./...
 
 # Format code
 fmt:
-	@echo "→ Formatting code..."
-	go fmt ./...
-	@echo "✓ Code formatted"
+ @echo "→ Formatting code..."
+ go fmt ./...
+ @echo "✓ Code formatted"
 
 # Check formatting without modifying
 fmt-check:
-	@echo "→ Checking formatting..."
-	@test -z "$$(gofmt -l .)" || (echo "Files need formatting:" && gofmt -l . && exit 1)
-	@echo "✓ All files properly formatted"
+ @echo "→ Checking formatting..."
+ @test -z "$$(gofmt -l .)" || (echo "Files need formatting:" && gofmt -l . && exit 1)
+ @echo "✓ All files properly formatted"
 
 # Clean build artifacts
 clean:
-	@echo "→ Cleaning build artifacts..."
-	rm -rf bin/
-	rm -rf baml_client/
-	rm -rf runs/
-	rm -f coverage.out coverage.html
-	@echo "✓ Clean complete"
+ @echo "→ Cleaning build artifacts..."
+ rm -rf bin/
+ rm -rf baml_client/
+ rm -rf runs/
+ rm -f coverage.out coverage.html
+ @echo "✓ Clean complete"
 
 # Install nova-go to system PATH
 install: build
-	@echo "→ Installing nova-go..."
-	cp bin/nova-go /usr/local/bin/
-	chmod +x /usr/local/bin/nova-go
-	@echo "✓ nova-go installed to /usr/local/bin/"
-	@echo "✓ Configure hooks in .claude/settings.json to use: nova-go trace"
+ @echo "→ Installing nova-go..."
+ cp bin/nova-go /usr/local/bin/
+ chmod +x /usr/local/bin/nova-go
+ @echo "✓ nova-go installed to /usr/local/bin/"
+ @echo "✓ Configure hooks in .claude/settings.json to use: nova-go trace"
 
 # Pre-commit checks (run before committing)
 pre-commit: fmt check test
-	@echo "✓ Pre-commit checks passed"
-```
+ @echo "✓ Pre-commit checks passed"
+```text
 
 ### Installation Steps
 
@@ -1217,7 +1220,7 @@ echo '{"session_id":"test","hook_event_name":"PostToolUse","tool_name":"Read","c
 
 # 8. Check traces
 cat ~/.claude/traces/traces-$(date +%Y-%m-%d).jsonl | jq
-```
+```text
 
 ### Development Workflow
 
@@ -1240,7 +1243,7 @@ make pre-commit
 # Clean and rebuild
 make clean
 make build
-```
+```text
 
 ### Make Targets Explained
 
@@ -1258,6 +1261,7 @@ make build
 | `make install` | Build + install to /usr/local/bin | After successful build |
 
 **Recommended Workflow:**
+
 ```bash
 # 1. Make changes
 vim cmd/nova-go/implement.go
@@ -1277,7 +1281,7 @@ make pre-commit
 # 6. Commit
 git add .
 git commit -m "Add new feature"
-```
+```text
 
 ---
 
@@ -1296,7 +1300,7 @@ echo '{"session_id":"test","hook_event_name":"PostToolUse","tool_name":"Read"}' 
 
 # Check trace output
 tail -f ~/.claude/traces/traces-$(date +%Y-%m-%d).jsonl | jq
-```
+```text
 
 **Note:** You don't normally call this manually - Claude Code calls it automatically when hooks trigger.
 
@@ -1318,7 +1322,7 @@ NOVA_DEBUG=1 nova-go implement --spec task-spec.md
 ls -la runs/<run-id>/
 cat runs/<run-id>/trace.jsonl | jq
 cat runs/<run-id>/run.json | jq
-```
+```text
 
 #### Serve Command
 
@@ -1336,9 +1340,10 @@ nova-go serve --port 8080 --cors
 
 # Custom database path
 nova-go serve --db ./custom-traces.db
-```
+```text
 
 Then access the API:
+
 ```bash
 # Query traces via REST API
 curl http://localhost:8080/api/traces
@@ -1347,7 +1352,7 @@ curl http://localhost:8080/api/sessions/session-123/summary
 
 # Stream real-time events via SSE
 curl -N http://localhost:8080/api/stream
-```
+```text
 
 #### Help
 
@@ -1358,7 +1363,7 @@ nova-go --help
 # Show command-specific help
 nova-go implement --help
 nova-go serve --help
-```
+```text
 
 ### Monitoring Traces
 
@@ -1382,7 +1387,7 @@ cat runs/<run-id>/trace.jsonl | \
 # Calculate total cost
 cat runs/<run-id>/trace.jsonl | \
   jq -s 'map(select(.metrics.cost_usd)) | map(.metrics.cost_usd) | add'
-```
+```text
 
 ### Querying Traces
 
@@ -1402,7 +1407,7 @@ cat runs/<run-id>/trace.jsonl | \
 
 # Count events by type
 cat runs/<run-id>/trace.jsonl | jq -s 'group_by(.event_type) | map({type: .[0].event_type, count: length})'
-```
+```text
 
 ---
 
@@ -1418,7 +1423,7 @@ make pre-commit
 make fmt        # Format code
 make check      # Type check + lint (fast, no tests)
 make test       # Run tests with race detector
-```
+```text
 
 ### Type Checking & Static Analysis
 
@@ -1434,7 +1439,7 @@ make lint  # or: golangci-lint run ./...
 
 # All checks at once
 make check
-```
+```text
 
 ### Unit Tests
 
@@ -1451,7 +1456,7 @@ go test ./internal/hook -v
 # With coverage
 make test-coverage
 # Opens coverage.html in browser
-```
+```text
 
 ### Integration Tests
 
@@ -1462,7 +1467,7 @@ go test ./internal/engine -tags=integration -v
 # Test scripts (create these as needed)
 ./scripts/test-hook.sh
 ./scripts/test-orchestrator.sh
-```
+```text
 
 ### Manual Testing
 
@@ -1495,7 +1500,7 @@ cat runs/$RUN_ID/run.json | jq
 nova-go serve --port 8080
 # In another terminal:
 curl http://localhost:8080/api/traces
-```
+```text
 
 ### Continuous Integration
 
@@ -1510,33 +1515,38 @@ make test           # Run tests with race detector
 
 # Or use pre-commit which does format + check + test
 make pre-commit
-```
+```text
 
 ---
 
 ## Benefits of Unified Architecture
 
 ### 1. **Single Source of Truth**
+
 - One trace format for all events
 - Consistent timestamps and identifiers
 - Unified querying and analysis
 
 ### 2. **End-to-End Observability**
+
 - Track from high-level orchestration → individual tool calls
 - Correlation via task_id and trace_id
 - Complete execution visibility
 
 ### 3. **Code Reuse**
+
 - ~40% shared infrastructure (trace, beads, metrics)
 - Consistent error handling
 - Unified testing approach
 
 ### 4. **Simplified Deployment**
+
 - Single repository
 - Shared dependencies
 - Coordinated versioning
 
 ### 5. **Rich Analytics**
+
 - Token usage tracking across planning + execution
 - Cost attribution per task
 - Performance profiling
@@ -1547,16 +1557,19 @@ make pre-commit
 ## Future Enhancements
 
 ### Phase 2
+
 - SQLite index for trace queries
 - Trace aggregation and rollups
 - Cost budgets and alerts
 
 ### Phase 3
+
 - Remote trace shipping (HTTP)
 - Real-time trace streaming
 - Trace visualization UI
 
 ### Phase 4
+
 - Distributed tracing across multiple runs
 - Trace sampling for high-volume scenarios
 - Advanced analytics and ML on trace data

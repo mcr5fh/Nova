@@ -7,6 +7,7 @@ Rewrite the Claude Trace Dashboard from scratch with a modern tech stack focused
 ## Current State Analysis
 
 **Existing codebase issues:**
+
 - Demo components stacked vertically without proper routing
 - TaskTree graph constrained to 600px in dark container that clashes with light theme
 - Dated visual design: single shadow value, basic borders, no dark mode
@@ -15,12 +16,14 @@ Rewrite the Claude Trace Dashboard from scratch with a modern tech stack focused
 - Mixed theme inconsistencies (light app, dark graph)
 
 **What we're keeping:**
+
 - React Flow + ELK.js for graph visualization (works well)
 - Core TaskNode data structure
 - API client structure (if it exists)
 - Vite + TypeScript + React 19 setup
 
 **What we're deleting:**
+
 - All demo wrappers (AnalyticsDemo, TaskTreeDemo, TraceTable demos)
 - Custom-built UI components (Header, Sidebar, Layout)
 - Current styling approach (minimal shadows, basic borders)
@@ -29,6 +32,7 @@ Rewrite the Claude Trace Dashboard from scratch with a modern tech stack focused
 ## Desired End State
 
 A modern, production-ready dashboard with:
+
 - **Primary UI**: Full-viewport TaskTree graph visualization
 - **Component library**: shadcn/ui for all UI components
 - **Design**: Dark-first with glassmorphism, modern shadows, spring animations
@@ -37,14 +41,16 @@ A modern, production-ready dashboard with:
 
 ### Success Criteria
 
-#### Automated Verification:
+#### Automated Verification
+
 - [ ] Type checking passes: `npm run type-check`
 - [ ] Linting passes: `npm run lint`
 - [ ] Build succeeds: `npm run build`
 - [ ] Dev server starts: `npm run dev`
 - [ ] All new components render without errors
 
-#### Manual Verification:
+#### Manual Verification
+
 - [ ] TaskTree graph fills viewport and is the primary UI element
 - [ ] Graph is interactive: zoom, pan, click nodes
 - [ ] Modern visual design (dark mode, glassmorphism, shadows)
@@ -63,6 +69,7 @@ A modern, production-ready dashboard with:
 ## Implementation Approach
 
 **Delete and rebuild strategy:**
+
 1. Delete entire `claude-trace-dashboard` directory
 2. Scaffold new Vite + React + TypeScript project
 3. Install shadcn/ui and configure
@@ -74,11 +81,13 @@ A modern, production-ready dashboard with:
 ## Phase 1: Project Scaffolding & Setup
 
 ### Overview
+
 Create a new React project from scratch with modern tooling and shadcn/ui.
 
-### Changes Required:
+### Changes Required
 
 #### 1. Delete and Create New Project
+
 **Location**: `claude-trace-dashboard/`
 **Changes**: Complete replacement
 
@@ -90,9 +99,10 @@ rm -rf claude-trace-dashboard
 npm create vite@latest claude-trace-dashboard -- --template react-ts
 cd claude-trace-dashboard
 npm install
-```
+```text
 
 #### 2. Install Core Dependencies
+
 **File**: `claude-trace-dashboard/package.json`
 **Changes**: Add required dependencies
 
@@ -110,9 +120,10 @@ npm install @radix-ui/react-slot
 
 # Icons (for shadcn components)
 npm install lucide-react
-```
+```text
 
 #### 3. Configure Vite
+
 **File**: `vite.config.ts`
 
 ```typescript
@@ -132,9 +143,10 @@ export default defineConfig({
     port: 3000,
   },
 });
-```
+```text
 
 #### 4. Configure TypeScript
+
 **File**: `tsconfig.json`
 
 ```json
@@ -145,7 +157,7 @@ export default defineConfig({
     { "path": "./tsconfig.node.json" }
   ]
 }
-```
+```text
 
 **File**: `tsconfig.app.json`
 
@@ -177,16 +189,18 @@ export default defineConfig({
   },
   "include": ["src"]
 }
-```
+```text
 
 #### 5. Initialize shadcn/ui
+
 **Command**: Initialize shadcn
 
 ```bash
 npx shadcn@latest init -y
-```
+```text
 
 When prompted:
+
 - Style: New York
 - Base color: Slate
 - CSS variables: Yes
@@ -194,11 +208,13 @@ When prompted:
 - Install dependencies: Yes
 
 This will create:
+
 - `components.json` (shadcn config)
 - `src/lib/utils.ts` (utility functions)
 - Update `src/index.css` with Tailwind v4 config
 
 #### 6. Configure Tailwind CSS v4
+
 **File**: `src/index.css`
 
 ```css
@@ -258,17 +274,19 @@ This will create:
 * {
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
-```
+```text
 
 ### Success Criteria
 
-#### Automated Verification:
+#### Automated Verification
+
 - [ ] Project builds: `npm run build`
 - [ ] Dev server starts: `npm run dev`
 - [ ] TypeScript compiles: `npm run type-check`
 - [ ] shadcn CLI works: `npx shadcn@latest add button`
 
-#### Manual Verification:
+#### Manual Verification
+
 - [ ] Can add shadcn components successfully
 - [ ] Tailwind v4 classes work in components
 - [ ] Dark theme is applied globally
@@ -279,11 +297,13 @@ This will create:
 ## Phase 2: Core Layout & Routing
 
 ### Overview
+
 Build the minimal layout shell and implement React Router for navigation.
 
-### Changes Required:
+### Changes Required
 
 #### 1. Install shadcn Components
+
 **Commands**: Add required shadcn components
 
 ```bash
@@ -293,9 +313,10 @@ npx shadcn@latest add card
 npx shadcn@latest add badge
 npx shadcn@latest add tooltip
 npx shadcn@latest add separator
-```
+```text
 
 This creates:
+
 - `src/components/ui/button.tsx`
 - `src/components/ui/card.tsx`
 - `src/components/ui/badge.tsx`
@@ -303,6 +324,7 @@ This creates:
 - `src/components/ui/separator.tsx`
 
 #### 2. Create Layout Component
+
 **File**: `src/components/layout/app-layout.tsx`
 
 ```typescript
@@ -323,9 +345,10 @@ export function AppLayout() {
     </div>
   );
 }
-```
+```text
 
 #### 3. Create Header Component
+
 **File**: `src/components/layout/header.tsx`
 
 ```typescript
@@ -345,9 +368,10 @@ export function Header() {
     </header>
   );
 }
-```
+```text
 
 #### 4. Create Sidebar Component
+
 **File**: `src/components/layout/sidebar.tsx`
 
 ```typescript
@@ -388,9 +412,10 @@ export function Sidebar() {
     </aside>
   );
 }
-```
+```text
 
 #### 5. Setup Routing
+
 **File**: `src/main.tsx`
 
 ```typescript
@@ -412,7 +437,7 @@ createRoot(document.getElementById('root')!).render(
     </QueryClientProvider>
   </StrictMode>
 );
-```
+```text
 
 **File**: `src/App.tsx`
 
@@ -436,9 +461,10 @@ function App() {
 }
 
 export default App;
-```
+```text
 
 #### 6. Create Placeholder Pages
+
 **File**: `src/pages/dashboard.tsx`
 
 ```typescript
@@ -450,7 +476,7 @@ export function DashboardPage() {
     </div>
   );
 }
-```
+```text
 
 **File**: `src/pages/tasks.tsx`
 
@@ -463,7 +489,7 @@ export function TasksPage() {
     </div>
   );
 }
-```
+```text
 
 **File**: `src/pages/settings.tsx`
 
@@ -476,16 +502,18 @@ export function SettingsPage() {
     </div>
   );
 }
-```
+```text
 
 ### Success Criteria
 
-#### Automated Verification:
+#### Automated Verification
+
 - [ ] App builds without errors: `npm run build`
 - [ ] No TypeScript errors: `npm run type-check`
 - [ ] All imports resolve correctly
 
-#### Manual Verification:
+#### Manual Verification
+
 - [ ] Navigation works (clicking sidebar items changes route)
 - [ ] Header displays correctly with logo
 - [ ] Sidebar highlights active route
@@ -497,11 +525,13 @@ export function SettingsPage() {
 ## Phase 3: TaskTree Graph Component
 
 ### Overview
+
 Rebuild the TaskTree graph visualization as a modern, full-viewport component.
 
-### Changes Required:
+### Changes Required
 
 #### 1. Create Type Definitions
+
 **File**: `src/types/task.ts`
 
 ```typescript
@@ -524,9 +554,10 @@ export interface TaskNode {
   dependsOn?: string[];
   blocks?: string[];
 }
-```
+```text
 
 #### 2. Create Task Node Component
+
 **File**: `src/components/task-graph/task-node.tsx`
 
 ```typescript
@@ -587,9 +618,10 @@ export const TaskNodeComponent = memo(({ data }: NodeProps<TaskNodeData>) => {
 });
 
 TaskNodeComponent.displayName = 'TaskNodeComponent';
-```
+```text
 
 #### 3. Create Task Utilities
+
 **File**: `src/lib/task-utils.ts`
 
 ```typescript
@@ -660,9 +692,10 @@ export function flattenTaskTree(tasks: TaskNode[]): TaskNode[] {
   tasks.forEach(traverse);
   return flat;
 }
-```
+```text
 
 #### 4. Create Task Graph Component
+
 **File**: `src/components/task-graph/task-graph.tsx`
 
 ```typescript
@@ -910,9 +943,10 @@ export function TaskGraph({ tasks, onTaskClick }: TaskGraphProps) {
     </div>
   );
 }
-```
+```text
 
 #### 5. Create Mock Data
+
 **File**: `src/lib/mock-tasks.ts`
 
 ```typescript
@@ -973,9 +1007,10 @@ export const mockTasks: TaskNode[] = [
     dependsOn: ['beads-002'],
   },
 ];
-```
+```text
 
 #### 6. Update Dashboard Page
+
 **File**: `src/pages/dashboard.tsx`
 
 ```typescript
@@ -994,16 +1029,18 @@ export function DashboardPage() {
     </div>
   );
 }
-```
+```text
 
 ### Success Criteria
 
-#### Automated Verification:
+#### Automated Verification
+
 - [ ] TypeScript compiles: `npm run type-check`
 - [ ] Build succeeds: `npm run build`
 - [ ] No console errors in dev mode
 
-#### Manual Verification:
+#### Manual Verification
+
 - [ ] Task graph renders and fills viewport
 - [ ] Nodes display correct task information (title, type, status, priority)
 - [ ] Can zoom and pan the graph
@@ -1019,11 +1056,13 @@ export function DashboardPage() {
 ## Phase 4: Modern Design Polish
 
 ### Overview
+
 Add modern design features: improved shadows, glassmorphism, animations, and polish.
 
-### Changes Required:
+### Changes Required
 
 #### 1. Enhance Global Styles
+
 **File**: `src/index.css` (additions)
 
 ```css
@@ -1090,9 +1129,10 @@ Add modern design features: improved shadows, glassmorphism, animations, and pol
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-border-hover);
 }
-```
+```text
 
 #### 2. Add Gradient Background
+
 **File**: `src/components/layout/app-layout.tsx` (update)
 
 ```typescript
@@ -1117,22 +1157,24 @@ export function AppLayout() {
     </div>
   );
 }
-```
+```text
 
 #### 3. Enhance Task Node with Animations
+
 **File**: `src/components/task-graph/task-node.tsx` (update className)
 
 ```typescript
 // Update the root div className to:
 <div className="glass rounded-lg border-2 border-border hover:border-accent transition-all duration-300 min-w-[240px] shadow-lg hover:shadow-xl spring hover:scale-105">
-```
+```text
 
 #### 4. Add Loading Skeleton
+
 **File**: `src/components/ui/skeleton.tsx` (create via shadcn)
 
 ```bash
 npx shadcn@latest add skeleton
-```
+```text
 
 **File**: `src/components/task-graph/task-graph.tsx` (update loading state)
 
@@ -1150,16 +1192,18 @@ if (isLoading) {
     </div>
   );
 }
-```
+```text
 
 ### Success Criteria
 
-#### Automated Verification:
+#### Automated Verification
+
 - [ ] Build succeeds: `npm run build`
 - [ ] No TypeScript errors
 - [ ] No console warnings
 
-#### Manual Verification:
+#### Manual Verification
+
 - [ ] Gradient background orbs visible and create depth
 - [ ] Glass effects visible on header, sidebar, task nodes
 - [ ] Task nodes scale on hover (spring animation)
@@ -1219,6 +1263,7 @@ if (isLoading) {
 ### Data Migration
 
 The existing API client structure can be preserved:
+
 - Keep `src/api/` directory structure
 - Keep `useTraces`, `useTask`, `useTaskTree` hooks
 - Update types to match new TaskNode interface
@@ -1226,6 +1271,7 @@ The existing API client structure can be preserved:
 ### Incremental Addition of Features
 
 After Phase 4 is complete, features can be added incrementally:
+
 1. **Analytics charts**: Add back CostChart, TokenChart, ToolUsage
 2. **Trace table**: Rebuild with shadcn Table component
 3. **Session views**: Create session detail page
@@ -1235,7 +1281,7 @@ After Phase 4 is complete, features can be added incrementally:
 ## References
 
 - Original research: `thoughts/shared/specs/claude-trace-dashboard/research-layout-structure.md`
-- shadcn/ui docs: https://ui.shadcn.com/docs
-- React Flow docs: https://reactflow.dev/
-- Tailwind v4 docs: https://tailwindcss.com/docs
-- Dark Glassmorphism article: https://medium.com/@developer_89726/dark-glassmorphism-the-aesthetic-that-will-define-ui-in-2026-93aa4153088f
+- shadcn/ui docs: <https://ui.shadcn.com/docs>
+- React Flow docs: <https://reactflow.dev/>
+- Tailwind v4 docs: <https://tailwindcss.com/docs>
+- Dark Glassmorphism article: <https://medium.com/@developer_89726/dark-glassmorphism-the-aesthetic-that-will-define-ui-in-2026-93aa4153088f>

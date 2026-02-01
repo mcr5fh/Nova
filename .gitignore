@@ -48,3 +48,6 @@ claude-trace-dashboard/.env*.local
 *.tsbuildinfo
 next-env.d.ts
 .claude/tsc-cache
+cmd/nova-go/nova-go
+.vite/
+line_count_report.txt

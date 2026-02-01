@@ -6,7 +6,7 @@ A Go-based tracing system for Claude Code that captures structured telemetry fro
 
 ## Architecture
 
-```
+```text
 ┌─────────────────┐
 │  Claude Code    │
 │   (Runtime)     │
@@ -65,7 +65,7 @@ A Go-based tracing system for Claude Code that captures structured telemetry fro
 │  - Cost/token analytics         │
 │  - Timeline view                │
 └─────────────────────────────────┘
-```
+```text
 
 ## Trace Data Model
 
@@ -123,7 +123,7 @@ type Metrics struct {
     FilesWritten    int     `json:"files_written,omitempty"`
     FilesEdited     int     `json:"files_edited,omitempty"`
 }
-```
+```text
 
 ### Aggregated View (for Dashboard)
 
@@ -155,7 +155,7 @@ type TaskTrace struct {
     ErrorCount      int       `json:"error_count"`
     RetryCount      int       `json:"retry_count"`
 }
-```
+```text
 
 ## Hook Integration
 
@@ -180,7 +180,7 @@ Based on the Claude hooks documentation, events arrive as JSON on stdin:
   "timestamp": "2024-01-31T10:30:00Z",
   "user_message": "..."
 }
-```
+```text
 
 ### Hook Configuration
 
@@ -221,7 +221,7 @@ Based on the Claude hooks documentation, events arrive as JSON on stdin:
     ]
   }
 }
-```
+```text
 
 ### Go Binary Interface
 
@@ -263,41 +263,46 @@ func main() {
     // Exit 0 for success (non-blocking)
     os.Exit(0)
 }
-```
+```text
 
 ## Storage Strategy
 
 ### Phase 1: JSONL Append-Only
 
 **Benefits:**
+
 - Simple, fast writes
 - No schema migrations
 - Easy to replay/audit
 - Human-readable
 
 **Structure:**
-```
+
+```text
 .claude/traces/
   ├── traces-2024-01-31.jsonl
   ├── traces-2024-02-01.jsonl
   └── current.jsonl -> traces-2024-02-01.jsonl
-```
+```text
 
 **Example:**
+
 ```jsonl
 {"trace_id":"t1","span_id":"s1","parent_id":null,"timestamp":"2024-01-31T10:00:00Z","event_type":"user_prompt","metrics":{"input_tokens":150}}
 {"trace_id":"t1","span_id":"s2","parent_id":"s1","timestamp":"2024-01-31T10:00:05Z","event_type":"pre_tool_use","tool_name":"Read"}
 {"trace_id":"t1","span_id":"s2","parent_id":"s1","timestamp":"2024-01-31T10:00:06Z","event_type":"post_tool_use","tool_name":"Read","duration_ms":1000}
-```
+```text
 
 ### Phase 2: SQLite Index
 
 **Benefits:**
+
 - Fast queries for dashboard
 - Aggregations
 - No external dependencies
 
 **Schema:**
+
 ```sql
 CREATE TABLE traces (
     span_id TEXT PRIMARY KEY,
@@ -333,11 +338,12 @@ CREATE TABLE task_hierarchy (
     INDEX idx_parent (parent_task_id),
     INDEX idx_status (status)
 );
-```
+```text
 
 ### Phase 3: Optional Time-Series DB
 
 For production scale, consider:
+
 - **ClickHouse**: OLAP queries, aggregations
 - **TimescaleDB**: PostgreSQL with time-series extensions
 - **Victoria Metrics**: Prometheus-compatible metrics
@@ -393,7 +399,7 @@ func getCurrentBeadsTask(projectDir string) (*BeadsTask, error) {
 
     return currentTask, nil
 }
-```
+```text
 
 ### Linking Traces to Beads Tasks
 
@@ -409,7 +415,7 @@ func enhanceTraceWithBeadsContext(trace *TraceEvent, projectDir string) {
         }
     }
 }
-```
+```text
 
 ## Aggregator Service API
 
@@ -444,7 +450,7 @@ func (api *AggregatorAPI) GetSessionSummary(w http.ResponseWriter, r *http.Reque
 func (api *AggregatorAPI) StreamTraces(w http.ResponseWriter, r *http.Request) {
     // Real-time trace updates
 }
-```
+```text
 
 ### Example API Response
 
@@ -475,25 +481,28 @@ func (api *AggregatorAPI) StreamTraces(w http.ResponseWriter, r *http.Request) {
     "failed": 0
   }
 }
-```
+```text
 
 ## Dashboard Frontend
 
 ### Technology Stack
 
-**Option 1: Simple HTML + Mermaid**
+#### Option 1: Simple HTML + Mermaid
+
 - Static HTML page
 - Mermaid.js for diagrams
 - Fetch API for data
 - No build step
 
-**Option 2: React/Next.js**
+#### Option 2: React/Next.js
+
 - Rich interactivity
 - react-flow or reactflow for graph visualization
 - Real-time updates via SSE
 - D3.js for custom visualizations
 
-**Option 3: Terminal UI (Bubble Tea)**
+#### Option 3: Terminal UI (Bubble Tea)
+
 - Built-in Go
 - No separate frontend needed
 - Great for CLI workflows
@@ -517,17 +526,18 @@ graph TD
     style child1 fill:#9f9,stroke:#333
     style child2 fill:#ff9,stroke:#333
     style child3 fill:#ccc,stroke:#333
-```
+```text
 
 #### 2. Timeline View
 
 Horizontal timeline showing tool usage over time:
-```
+
+```text
 10:00 |-- Read: user.go --|
 10:01                      |-- Edit: user.go --|
 10:02                                          |-- Bash: go build --|
 10:03                                                                |-- Read: test.go --|
-```
+```text
 
 #### 3. Cost/Token Analytics
 
@@ -539,6 +549,7 @@ Horizontal timeline showing tool usage over time:
 #### 4. Session Dashboard
 
 **Overview Metrics:**
+
 - Total sessions
 - Average session duration
 - Total cost
@@ -546,12 +557,14 @@ Horizontal timeline showing tool usage over time:
 - Error rate
 
 **Task Status:**
+
 - Pending: 5
 - In Progress: 2
 - Completed: 15
 - Failed: 1
 
 **Interactive Filters:**
+
 - Date range
 - Task status
 - Tool type
@@ -563,7 +576,7 @@ Horizontal timeline showing tool usage over time:
 
 **Goal:** Capture basic trace events to JSONL
 
-```
+```text
 Tasks:
 1. ✅ Create Go binary that reads stdin JSON
 2. ✅ Parse Claude hook events
@@ -571,7 +584,7 @@ Tasks:
 4. ✅ Write to JSONL file
 5. ✅ Add hook configuration
 6. ✅ Test with simple tool calls
-```
+```text
 
 **Deliverable:** Working hook that logs tool usage to file
 
@@ -579,14 +592,14 @@ Tasks:
 
 **Goal:** Link traces to Beads tasks
 
-```
+```text
 Tasks:
 1. ✅ Read Beads task files
 2. ✅ Associate traces with current task
 3. ✅ Capture task status transitions
 4. ✅ Store parent/child relationships
 5. ✅ Test with multi-level task hierarchy
-```
+```text
 
 **Deliverable:** Traces contain task context
 
@@ -594,14 +607,14 @@ Tasks:
 
 **Goal:** Compute token usage and costs
 
-```
+```text
 Tasks:
 1. ✅ Add token counting logic
 2. ✅ Compute estimated costs per model
 3. ✅ Aggregate metrics by task
 4. ✅ Create SQLite index
 5. ✅ Build aggregation queries
-```
+```text
 
 **Deliverable:** Rich metrics available for querying
 
@@ -609,14 +622,14 @@ Tasks:
 
 **Goal:** REST API for dashboard
 
-```
+```text
 Tasks:
 1. ✅ Create HTTP server
 2. ✅ Implement query endpoints
 3. ✅ Add real-time updates (SSE)
 4. ✅ Optimize query performance
 5. ✅ Add authentication (optional)
-```
+```text
 
 **Deliverable:** API serving trace data
 
@@ -624,7 +637,7 @@ Tasks:
 
 **Goal:** Interactive visualization
 
-```
+```text
 Tasks:
 1. ✅ Choose tech stack (React/Next.js recommended)
 2. ✅ Build task tree view with Mermaid
@@ -632,7 +645,7 @@ Tasks:
 4. ✅ Create timeline view
 5. ✅ Add cost analytics charts
 6. ✅ Real-time updates
-```
+```text
 
 **Deliverable:** Production-ready dashboard
 
@@ -640,7 +653,7 @@ Tasks:
 
 **Goal:** Production readiness
 
-```
+```text
 Tasks:
 1. ✅ Add data retention policies
 2. ✅ Implement log rotation
@@ -648,7 +661,7 @@ Tasks:
 4. ✅ Performance optimization
 5. ✅ Documentation
 6. ✅ Consider cloud storage (S3, etc.)
-```
+```text
 
 ## Example Usage Scenarios
 
@@ -733,10 +746,10 @@ Tasks:
 
 ### References
 
-- Claude Hooks Docs: https://code.claude.com/docs/en/hooks
-- Example Hook: https://github.com/Dicklesworthstone/destructive_command_guard
-- OpenTelemetry: https://opentelemetry.io/docs/concepts/signals/traces/
-- Mermaid: https://mermaid.js.org/syntax/flowchart.html
+- Claude Hooks Docs: <https://code.claude.com/docs/en/hooks>
+- Example Hook: <https://github.com/Dicklesworthstone/destructive_command_guard>
+- OpenTelemetry: <https://opentelemetry.io/docs/concepts/signals/traces/>
+- Mermaid: <https://mermaid.js.org/syntax/flowchart.html>
 
 ## Next Steps
 

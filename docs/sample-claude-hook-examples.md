@@ -53,6 +53,7 @@ This is sent AFTER a bash command executes:
 ```
 
 **Key fields:**
+
 - `tool_output.exit_code` - Command exit status
 - `tool_output.stdout` - Command standard output
 - `tool_output.stderr` - Command standard error
@@ -86,6 +87,7 @@ This is sent AFTER Claude reads a file:
 ```
 
 **Key fields:**
+
 - `tool_input.file_path` - Absolute path to file read
 - `tool_output.content` - File contents (may be truncated)
 - `tool_output.line_count` - Number of lines read
@@ -119,6 +121,7 @@ This is sent AFTER Claude writes a file:
 ```
 
 **Key fields:**
+
 - `tool_input.file_path` - Where file was written
 - `tool_input.content` - Full file contents
 - `tool_output.success` - Whether write succeeded
@@ -167,6 +170,7 @@ This is sent when the user submits a prompt:
 ```
 
 **Key fields:**
+
 - `prompt` - The user's input text
 - NO tool_name, tool_input, or tool_output
 
@@ -188,6 +192,7 @@ Our `nova-go trace` command:
 ## What We're NOT Capturing (Yet)
 
 **Phase 2 features:**
+
 - Token counting (input_tokens, output_tokens)
 - Cost estimation (cost_usd)
 - Duration metrics (start/end timestamps)

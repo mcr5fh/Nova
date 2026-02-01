@@ -1,0 +1,83 @@
+run:
+  # Timeout for analysis
+  timeout: 5m
+
+  # Include test files
+  tests: true
+
+  # Allow parallel runners
+  allow-parallel-runners: true
+
+linters:
+  # Start with essential linters only, expand later
+  enable:
+    - errcheck      # Check for unchecked errors
+    - gosimple      # Simplify code
+    - govet         # Vet examines Go source code
+    - ineffassign   # Detect ineffectual assignments
+    - staticcheck   # Go static analysis
+    - unused        # Check for unused code
+
+  disable:
+    - typecheck     # Can conflict with generated code and Go version mismatches
+    - exportloopref # Deprecated since Go 1.22
+
+linters-settings:
+  errcheck:
+    # Don't check for errors in type assertions with blank identifier
+    check-type-assertions: false
+    # Exclude common false positives
+    exclude-functions:
+      - (io.Closer).Close
+      - (*os.File).Close
+
+  govet:
+    # Disable shadow to avoid false positives
+    disable:
+      - shadow
+      - fieldalignment
+
+issues:
+  # Exclude directories
+  exclude-dirs:
+    - vendor
+    - baml_client
+    - claude-trace-dashboard
+    - .beads
+    - .claude
+    - .thevillage
+    - bin
+
+  # Exclude generated files
+  exclude-files:
+    - "baml_client/.*\\.go$"
+
+  # Exclude some common false positives
+  exclude-rules:
+    # Exclude some linters from running on tests files
+    - path: _test\.go
+      linters:
+        - gosec
+        - errcheck
+        - gocritic
+
+    # Exclude known issues with generated code
+    - path: baml_client/
+      linters:
+        - all
+    - path: baml_client/.*\.go
+      linters:
+        - typecheck
+
+  # Maximum issues count per linter
+  max-issues-per-linter: 0
+
+  # Maximum count of issues with the same text
+  max-same-issues: 0
+
+  # Show all issues
+  exclude-use-default: false
+
+output:
+  # Sort results by file path and line number
+  sort-results: true

@@ -1,12 +1,14 @@
 # Fractal Task Orchestrator Brainstorm
 
 ## Problem framing
+
 - LLMs are unreliable and expensive for medium/large tasks.
 - Need a system that decomposes work into small, reliable leaf tasks that can be delegated to smaller/cheaper models.
 - The system must recurse/iterate, recover from blocks, and escalate to a human when needed.
 - Observability is required: bird's-eye status (red/yellow/green) with drill-down into task trees.
 
 ## High-level idea
+
 - The system is code-first: LLMs propose next steps, but execution and state are controlled by deterministic orchestration.
 - Entry point: `spec.md`.
 - A planner LLM decides size/complexity and whether to recurse.
@@ -16,6 +18,7 @@
 - Tree collapses upward as leaf tasks complete and are validated.
 
 ## Core loop (fractal)
+
 1. Read `spec.md` into a root task.
 2. Planner step:
    - Estimate size (T-shirt sizing).
@@ -27,7 +30,8 @@
 7. Continue until all leaves are green; roll-up completion to parents.
 
 ## Control flow (ASCII sketch)
-```
+
+```text
               +--------------------+
 spec.md ----> |  Orchestrator      |
               |  (state machine)   |
@@ -84,9 +88,10 @@ spec.md ----> |  Orchestrator      |
                  |                  |
                  v                  v
              inject guidance back into worker
-```
+```text
 
 ## Architectural sketch
+
 - **Planner** (LLM): task sizing, decomposition, routing.
 - **Worker** (small model): executes leaf tasks.
 - **Validator** (LLM or deterministic checks): evaluates outputs.
@@ -96,7 +101,9 @@ spec.md ----> |  Orchestrator      |
 - **Telemetry**: traces, status dashboard, task tree view.
 
 ## Possible frameworks to borrow ideas from
+
 These are not necessarily required to use, but useful reference points for patterns:
+
 - OpenAI Agents SDK: handoffs, guardrails, tracing/observability. citeturn4search1turn4search7
 - OpenAI Swarm (educational): handoffs, lightweight agent orchestration; replaced by Agents SDK. citeturn0search0turn4search2
 - LangGraph: stateful graphs, cycles, persistence, human-in-the-loop; integrates with LangSmith for observability. citeturn3search1
@@ -104,6 +111,7 @@ These are not necessarily required to use, but useful reference points for patte
 - CrewAI hierarchical process: explicit manager agent for task delegation and validation. citeturn1search0turn1search1
 
 ## Data model (proposal)
+
 - `Task`
   - `id`, `parent_id`, `children[]`
   - `spec` (text or reference to file)
@@ -116,12 +124,14 @@ These are not necessarily required to use, but useful reference points for patte
   - `telemetry` (tokens, cost, tool calls)
 
 ## Task sizing heuristics (ideas)
+
 - Token-based estimate of spec length + required context.
 - Complexity tags: number of files, external APIs, tests.
 - Risk signals: ambiguous requirements, missing inputs.
 - If size > S or risk high, recurse.
 
 ## Leaf task sizing (small-model friendly)
+
 - Target 10–30 minutes of human-level effort.
 - 1–2 files touched, ≤150 LOC changed, ≤2 tests added/updated.
 - One clear acceptance criterion (e.g., “new endpoint returns 200 with schema X”).
@@ -129,6 +139,7 @@ These are not necessarily required to use, but useful reference points for patte
 - Rationale: small models fail when juggling multiple artifacts or open-ended decisions.
 
 ## Additional recommendations
+
 - Task types: start with backend or frontend code changes only; expand to full-stack once stable.
 - Budget: enforce per-task token budget + global budget; pause recursion when budget is tight and ask for reprioritization.
 - Escalation channel: keep it inside the CLI first; add Slack/email later.
@@ -137,6 +148,7 @@ These are not necessarily required to use, but useful reference points for patte
 - State storage: JSON event log + SQLite for querying; migrate to Postgres later if needed.
 
 ## Self-improving loop ideas (Signals-inspired)
+
 - Add a parallel “session analysis” pipeline that periodically reviews completed runs and emits structured “friction” and “delight” signals, not raw logs. citeturn0view0
 - Use facet extraction (task intent, languages, frameworks, tool outcomes) to enable aggregate analysis without reading full conversations. citeturn0view0
 - Cluster summaries/embeddings to discover new recurring failure modes; promote them into first-class categories (new facets/friction types). citeturn0view0
@@ -146,6 +158,7 @@ These are not necessarily required to use, but useful reference points for patte
 - Add privacy-preserving abstractions: store only abstracted citations and aggregate stats for analysis. citeturn0view0
 
 ## Decomposition strategy
+
 - Decompose by artifacts (files/modules), by dependency (core -> edges), or by user stories.
 - Stop splitting when:
   - Inputs are concrete.
@@ -153,6 +166,7 @@ These are not necessarily required to use, but useful reference points for patte
   - Estimated run time is short.
 
 ## Worker contract
+
 - Worker operates in a sandboxed workspace and can only do one atomic task.
 - Must emit:
   - Output summary
@@ -161,11 +175,13 @@ These are not necessarily required to use, but useful reference points for patte
   - Confidence + unresolved questions
 
 ## Validation & gating
+
 - Deterministic checks: lint, tests, compile, schema validation.
 - LLM review: verify requirements met, no regression.
 - If validation fails, return to worker with concrete failure context.
 
 ## Escalation logic
+
 - Escalate when:
   - `attempts >= max_attempts`
   - deterministic failure is non-actionable
@@ -176,6 +192,7 @@ These are not necessarily required to use, but useful reference points for patte
 - Human guidance is stored and injected into next attempt context.
 
 ## Observability design
+
 - Task tree graph view: nodes colored R/Y/G.
 - Drill-down per task: prompt, tool calls, artifacts, costs, timings.
 - Timeline view: replays LLM decisions and handoffs.
@@ -183,12 +200,14 @@ These are not necessarily required to use, but useful reference points for patte
 - Trace log: structured events to enable replay and auditing.
 
 ## Minimal tracer (bare bones)
+
 - Keep Beads as the source of truth for task structure/status; avoid duplicating parent/child in telemetry.
 - Store only per-attempt telemetry: tokens, duration, cost, model, attempt number, and a short summary.
 - Persist as JSONL (append-only) with `run_id`, `task_id`, `timestamp`, `event_type`.
 - Add a tiny SQLite index later if queries become painful; don’t start there.
 
 ## Beads integration (bd as source of truth)
+
 - Use Beads (`bd`) as the canonical task tracker for hierarchy, dependencies, and status.
 - Keep a separate orchestrator telemetry store (JSONL/SQLite) for prompts, tool calls, retries, costs, and artifacts.
 - Join telemetry to Beads tasks via `task_id` to avoid duplicating core task state.
@@ -196,6 +215,7 @@ These are not necessarily required to use, but useful reference points for patte
 - Orchestrator writes to Beads for task creation, dependency updates, and status changes; telemetry remains append-only.
 
 ## Tool call philosophy
+
 - All tool calls are explicit; no hidden agent steps.
 - Orchestrator decides which tool set each agent can access.
 - Tools include:
@@ -204,6 +224,7 @@ These are not necessarily required to use, but useful reference points for patte
   - `ask_human` (opens a human feedback channel)
 
 ## Minimal viable prototype (MVP)
+
 1. Read `spec.md`.
 2. Planner LLM -> produce task tree (depth-limited).
 3. Execute leaves with small model + max attempts.
@@ -211,6 +232,7 @@ These are not necessarily required to use, but useful reference points for patte
 5. Track and render task tree status in a simple UI (CLI + JSON or basic web).
 
 ## Open questions
+
 - How do we define size thresholds that are robust across domains?
 - What does the “worker” prompt template look like to ensure narrow scope?
 - How do we store and re-use human interventions as policy?
@@ -219,6 +241,7 @@ These are not necessarily required to use, but useful reference points for patte
 - What are hard safety boundaries for tools and code execution?
 
 ## Risks and mitigations (initial)
+
 - Decomposition errors (over/under-splitting): enforce hard stop rules, cap depth/nodes, and require concrete acceptance criteria for leaves.
 - Hidden dependencies: require explicit dependency declaration in planner output; block execution until deps are satisfied.
 - Spec ambiguity: detect “missing info” signals and escalate early; store human clarifications as reusable policy snippets.
@@ -230,6 +253,7 @@ These are not necessarily required to use, but useful reference points for patte
 - Security boundary creep: strict tool allow-lists and sandboxing; explicit approval for sensitive operations.
 
 ## Next steps (if useful)
+
 - Decide MVP storage format: JSON file, SQLite, or event log.
 - Draft planner and worker prompts.
 - Pick an observability stack: logs + simple web UI, or trace visualization.

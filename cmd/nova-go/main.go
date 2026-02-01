@@ -24,7 +24,6 @@ captures session lifecycle events and parses transcripts for structured analysis
 
 	cmd.AddCommand(newTrackSessionCommand())      // SessionStart hook
 	cmd.AddCommand(newProcessTranscriptCommand()) // SessionEnd hook
-	cmd.AddCommand(newWatchTranscriptCommand())   // Background watcher
+	cmd.AddCommand(newOrchestrateCommand())       // Task orchestrator
 	return cmd
 }
-

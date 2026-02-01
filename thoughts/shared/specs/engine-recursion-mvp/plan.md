@@ -13,12 +13,14 @@ Build a bare-bones Go orchestration engine ("nova-go" CLI) that can recursively 
 ## Desired End State
 
 A developer can run `nova-go` locally with a spec. The CLI plans, sizes, and executes a task tree using:
+
 - Anthropic Sonnet for planning/sizing/verification (via BAML)
 - Claude CLI for leaf task execution (yolo mode with `--dangerously-skip-permissions`)
 
 Tasks are recursively decomposed until size is **XS only**, then executed via Claude CLI. The Go engine verifies completion via BAML and marks beads status accordingly. Tasks, dependencies, and labels are managed via beads CLI (`bd create`, `bd dep add`, `bd update`). Retries are enforced. A minimal trace log and run summary are emitted to disk. All code is covered by unit tests, linted, and protected by pre-commit hooks.
 
-### Key Discoveries:
+### Key Discoveries
+
 - BAML requires `baml-cli generate` after any `.baml` changes. (`docs/baml-instructions.md`)
 - System already models planner/worker roles. (`claude.md`)
 - Beads CLI (`bd`) provides full CRUD + dependency management: `bd create`, `bd dep add`, `bd update`, `bd ready`
@@ -86,7 +88,7 @@ bd ready --parent bd-xxx          # tasks ready to execute under parent
 
 # Add labels (for size)
 bd label add bd-xxx size:XS
-```
+```text
 
 ---
 
@@ -99,6 +101,7 @@ Create Go module scaffolding, BAML source layout, and wiring for code generation
 ### Changes Required
 
 #### 1. Go module and CLI entry
+
 **File**: `go.mod`
 **Changes**: Initialize Go module (module name: `nova`).
 
@@ -106,6 +109,7 @@ Create Go module scaffolding, BAML source layout, and wiring for code generation
 **Changes**: CLI entry with basic flags and a `run` subcommand.
 
 #### 2. BAML source layout
+
 **File**: `baml_src/generators.baml`
 **Changes**: Configure Go output, `baml-cli generate` target.
 
@@ -113,16 +117,19 @@ Create Go module scaffolding, BAML source layout, and wiring for code generation
 **Changes**: Define Anthropic Sonnet (thinker) and Haiku (worker) clients.
 
 #### 3. Scripts
+
 **File**: `scripts/baml-generate.sh`
 **Changes**: One-shot script to run `baml-cli generate` and format results if needed.
 
 ### Success Criteria
 
 #### Automated Verification
+
 - [ ] `baml-cli generate` produces `baml_client/` (or configured output dir)
 - [ ] `go test ./...` passes (empty tests or scaffolding tests)
 
 #### Manual Verification
+
 - [ ] `nova-go --help` runs
 
 ---
@@ -136,8 +143,10 @@ Define task tree types, constraints, sizing, and BAML function contracts with te
 ### Changes Required
 
 #### 1. Beads CLI adapter
+
 **File**: `internal/beads/cli.go`
 **Changes**: Shell adapter to execute `bd` commands:
+
 - `CreateTask(title, desc, parent, deps) -> beadID`
 - `AddDependency(blocked, blocker)`
 - `UpdateStatus(id, status)`
@@ -149,12 +158,15 @@ Define task tree types, constraints, sizing, and BAML function contracts with te
 **Changes**: Parse JSON output from `bd --json` commands, map to engine domain types.
 
 #### 2. Domain types
+
 **File**: `internal/engine/types.go`
 **Changes**: Add `Task`, `TaskNode`, `TaskSize`, `TaskStatus`, `Run`, `Constraints`, `RetryPolicy`, `Result` types.
 
 #### 3. BAML types + functions
+
 **File**: `baml_src/types.baml`
 **Changes**: Define types:
+
 ```baml
 enum TaskSize {
   XL  // Epic-level, must decompose
@@ -197,15 +209,17 @@ class VerificationResult {
   missing_items   string[]
   files_checked   string[]
 }
-```
+```text
 
 **File**: `baml_src/functions.baml`
 **Changes**: Functions:
+
 - `PlanTask(task: TaskSpec, constraints: string) -> Plan`
 - `SizeTask(task: TaskSpec) -> SizeResult` (with XS-only execution criteria)
 - `VerifyTaskComplete(task: TaskSpec, files_changed: string[], execution_log: string) -> VerificationResult`
 
 #### 4. Tests for domain rules
+
 **File**: `internal/engine/types_test.go`
 **Changes**: Tests for size ordering, tree shape, serialization.
 
@@ -218,11 +232,13 @@ class VerificationResult {
 ### Success Criteria
 
 #### Automated Verification
+
 - [ ] `go test ./internal/engine -run TestSizing` passes
 - [ ] `go test ./internal/beads` passes
 - [ ] `baml-cli test` passes for any BAML tests added
 
 #### Manual Verification
+
 - [ ] BAML functions compile and generate Go client
 
 ---
@@ -236,8 +252,10 @@ Implement recursive planning, sizing, and execution with retry enforcement.
 ### Changes Required
 
 #### 1. Orchestration engine
+
 **File**: `internal/engine/engine.go`
 **Changes**: Implement:
+
 - `Run(ctx, spec, constraints)` - main entry point
 - `PlanAndSize(task)` - recursively decompose until XS
 - `ExecuteXSTasks()` - execute leaf tasks in parallel when deps allow
@@ -246,20 +264,25 @@ Implement recursive planning, sizing, and execution with retry enforcement.
 - Retry logic per task with `max_attempts`
 
 #### 2. BAML client integration
+
 **File**: `internal/llm/baml_client.go`
 **Changes**: Thin wrapper around generated BAML client for planning/sizing/verification.
 
 #### 3. Claude CLI executor
+
 **File**: `internal/executor/claude.go`
 **Changes**: Shell executor for leaf tasks:
+
 - Constructs prompt with task details
 - Executes: `claude --dangerously-skip-permissions -p "<prompt>"`
 - Captures stdout/stderr for verification
 - Returns execution log and list of files changed
 
 #### 4. CLI wiring (REPL/TUI)
+
 **File**: `cmd/nova-go/main.go`
 **Changes**:
+
 - Accept spec as input (file or stdin)
 - Interactive REPL/TUI mode for user messages
 - Run engine with spec and constraints
@@ -269,10 +292,12 @@ Implement recursive planning, sizing, and execution with retry enforcement.
 ### Success Criteria
 
 #### Automated Verification
+
 - [ ] `go test ./...` passes
 - [ ] Unit tests for recursion and retries pass
 
 #### Manual Verification
+
 - [ ] `nova-go --spec test.md` decomposes tasks recursively until all XS
 - [ ] XS tasks execute via Claude CLI with correct prompts
 - [ ] Verification runs after each task and marks beads status
@@ -289,23 +314,28 @@ Add simple, append-only trace logging and run summaries.
 ### Changes Required
 
 #### 1. Trace model
+
 **File**: `internal/trace/events.go`
 **Changes**: Define event structs: `RunStarted`, `TaskPlanned`, `TaskSized`, `TaskSplit`, `TaskExecutionStarted`, `TaskExecutionCompleted`, `TaskVerified`, `TaskSucceeded`, `TaskFailed`, `TaskRetried`, `BeadCreated`, `BeadStatusUpdated`.
 
 #### 2. Trace writer
+
 **File**: `internal/trace/writer.go`
 **Changes**: Append JSONL events to `runs/<run-id>/trace.jsonl`.
 
 #### 3. Run summary
+
 **File**: `internal/trace/summary.go`
 **Changes**: Write `runs/<run-id>/run.json` with final tree, sizes, and outcomes.
 
 ### Success Criteria
 
 #### Automated Verification
+
 - [ ] `go test ./internal/trace` passes
 
 #### Manual Verification
+
 - [ ] `runs/<run-id>/trace.jsonl` and `run.json` are created on a run
 
 ---
@@ -319,24 +349,29 @@ Add linters, test automation, and pre-commit hooks.
 ### Changes Required
 
 #### 1. Linting
+
 **File**: `.golangci.yml`
 **Changes**: Enable standard Go linters and static checks.
 
 #### 2. Pre-commit hooks
+
 **File**: `.pre-commit-config.yaml`
 **Changes**: Hooks for `gofmt`, `golangci-lint`, `go test ./...`, `baml-cli generate`, `baml-cli test`.
 
 #### 3. CI
+
 **File**: `.github/workflows/ci.yml`
 **Changes**: Run tests and lint on push/PR.
 
 ### Success Criteria
 
 #### Automated Verification
+
 - [ ] `pre-commit run --all-files` passes
 - [ ] CI workflow passes on PR
 
 #### Manual Verification
+
 - [ ] New commit triggers lint/test locally before commit
 
 ---
@@ -344,15 +379,18 @@ Add linters, test automation, and pre-commit hooks.
 ## Testing Strategy
 
 ### Unit Tests
+
 - Task sizing and recursive decomposition
 - Retry logic per task
 - Execution ordering (parents before children or only leaves)
 
 ### Integration Tests
+
 - End-to-end run with stubbed BAML client
 - Run artifacts generated correctly
 
 ### Manual Testing Steps
+
 1. Create a test spec file with a medium-sized task
 2. Run `nova-go --spec test-spec.md`
 3. Confirm tasks are decomposed recursively until all are XS
@@ -381,6 +419,7 @@ No migrations required.
 ## Open Questions
 
 None. All clarifications resolved:
+
 - Nova is REPL/TUI, accepts specs
 - Beads CLI is used for task management (`bd create`, `bd dep`, `bd update`)
 - Only XS tasks are executable (10-30 min, 1-2 files, ≤150 LOC)

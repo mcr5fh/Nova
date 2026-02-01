@@ -15,6 +15,7 @@ The `nova-go trace` command handles Claude Code hook events and writes structure
 > **📖 Complete System Guide:** This document covers the `nova-go trace` command (hook handler) in detail. For the complete system architecture showing how all `nova-go` commands work together, installation instructions, and usage examples, see **[05-unified-architecture.md](./05-unified-architecture.md)** first.
 
 **Important:** This is a subcommand of the unified `nova-go` CLI, not a standalone binary. The system includes:
+
 - `nova-go trace` - Hook handler (this spec)
 - `nova-go implement` - Task orchestrator
 - `nova-go serve` - Trace HTTP server
@@ -47,7 +48,8 @@ The minimal working system includes:
    - Auto-create directory if missing
 
 4. **Minimal Project Structure**
-   ```
+
+   ```text
    nova/
    ├── cmd/nova-go/
    │   ├── main.go         # Cobra root CLI
@@ -67,23 +69,27 @@ The minimal working system includes:
 ### What's OUT of MVP ❌ (Deferred to Phase 2+)
 
 **Beads Integration** (lines 296-323, 359-438)
+
 - Task context enrichment
 - Reading `.beads/issues/*.json`
 - Adding `task_id` and `task_status` to traces
 - **Why defer:** Optional enrichment, not required for basic tracing
 
 **Metrics & Token Counting** (lines 325-342, 665-695)
+
 - Token counting (input/output)
 - Cost estimation
 - File operation counters
 - **Why defer:** Heuristic estimation is complex, can add later
 
 **Performance Optimizations** (lines 584-643)
+
 - Buffered writes with background flusher
 - Pre-allocated buffer pools
 - **Why defer:** Direct append is fast enough for MVP
 
-**Advanced Features**
+### Advanced Features
+
 - Data redaction for sensitive fields (lines 749-761)
 - Debug mode and verbose logging (lines 772-791)
 - SQLite indexing (line 799)
@@ -93,39 +99,44 @@ The minimal working system includes:
 ### Implementation Order
 
 **Step 1: Basic Hook Handler** (~2-3 hours)
+
 ```go
 // cmd/nova-go/main.go - Root CLI
 // cmd/nova-go/trace.go - Trace subcommand that reads stdin
 // internal/hook/parser.go - Parse JSON, validate required fields
-```
+```text
 
 **Step 2: Storage Writer** (~1-2 hours)
+
 ```go
 // internal/storage/writer.go - Append to JSONL file
 // - Daily rotation: traces-YYYY-MM-DD.jsonl
 // - Create ~/.claude/traces/ if missing
-```
+```text
 
 **Step 3: Trace Builder** (~1-2 hours)
+
 ```go
 // internal/trace/builder.go - Map HookInput → TraceEvent
 // - Generate UUID for span_id
 // - Basic event type mapping
 // - NO Beads, NO metrics for MVP
-```
+```text
 
 **Step 4: Hook Configuration** (~30 min)
+
 ```json
 // .claude/settings.json - Configure PreToolUse/PostToolUse hooks
 // Test with manual stdin echo
-```
+```text
 
 **Step 5: Build & Test** (~1 hour)
+
 ```bash
 make build && make install
 # Integration test script
 # Verify traces written to JSONL
-```
+```text
 
 **Total MVP Effort:** ~6-8 hours of focused development
 
@@ -155,7 +166,7 @@ cat ~/.claude/traces/traces-$(date +%Y-%m-%d).jsonl | jq
 # 4. Configure hooks in .claude/settings.json
 
 # 5. Run Claude Code and verify traces are written automatically
-```
+```text
 
 ### Simplified MVP Builder (No Beads)
 
@@ -178,7 +189,7 @@ func (b *Builder) Build(ctx context.Context, input *hook.HookInput) (*TraceEvent
     }
     return event, nil
 }
-```
+```text
 
 No Beads reader, no metrics calculator, no span caching. Just pure stdin → trace event → JSONL flow.
 
@@ -188,7 +199,7 @@ No Beads reader, no metrics calculator, no span caching. Just pure stdin → tra
 
 ### MVP Architecture (Phase 1)
 
-```
+```text
 Claude Code (hook trigger)
     ↓ (stdin JSON)
 nova-go trace
@@ -197,11 +208,11 @@ nova-go trace
     └─ Storage Writer (JSONL append)        ✅ MVP
     ↓ (exit 0)
 Claude Code (continues execution)
-```
+```text
 
 ### Full Architecture (Phase 2+)
 
-```
+```text
 Claude Code (hook trigger)
     ↓ (stdin JSON)
 nova-go trace
@@ -212,7 +223,7 @@ nova-go trace
     └─ Storage Writer (JSONL append)
     ↓ (exit 0)
 Claude Code (continues execution)
-```
+```text
 
 ### Design Goals
 
@@ -227,7 +238,7 @@ Claude Code (continues execution)
 
 Based on 2026 Go best practices (part of unified nova-go CLI):
 
-```
+```text
 nova/
 ├── cmd/
 │   └── nova-go/
@@ -258,7 +269,7 @@ nova/
 ├── Makefile
 ├── .golangci.yml
 └── README.md
-```
+```text
 
 ---
 
@@ -274,61 +285,61 @@ nova/
 package main
 
 import (
-	"context"
-	"fmt"
-	"os"
-	"time"
+ "context"
+ "fmt"
+ "os"
+ "time"
 
-	"github.com/spf13/cobra"
-	"github.com/yourusername/nova/internal/hook"
-	"github.com/yourusername/nova/internal/storage"
-	"github.com/yourusername/nova/internal/trace"
+ "github.com/spf13/cobra"
+ "github.com/yourusername/nova/internal/hook"
+ "github.com/yourusername/nova/internal/storage"
+ "github.com/yourusername/nova/internal/trace"
 )
 
 var traceCmd = &cobra.Command{
-	Use:   "trace",
-	Short: "Process Claude Code hook events",
-	Long: `Handle hook events from Claude Code and write trace data to JSONL.
+ Use:   "trace",
+ Short: "Process Claude Code hook events",
+ Long: `Handle hook events from Claude Code and write trace data to JSONL.
 This command is called by Claude Code hooks (PreToolUse, PostToolUse).`,
-	RunE: runTrace,
+ RunE: runTrace,
 }
 
 func runTrace(cmd *cobra.Command, args []string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+ ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+ defer cancel()
 
-	if err := processHook(ctx); err != nil {
-		// Log error but don't fail hook (non-blocking)
-		fmt.Fprintf(os.Stderr, "nova-go trace error: %v\n", err)
-	}
+ if err := processHook(ctx); err != nil {
+  // Log error but don't fail hook (non-blocking)
+  fmt.Fprintf(os.Stderr, "nova-go trace error: %v\n", err)
+ }
 
-	// Always exit 0 for observability hooks
-	return nil
+ // Always exit 0 for observability hooks
+ return nil
 }
 
 func processHook(ctx context.Context) error {
-	// 1. Parse hook input from stdin
-	input, err := hook.ParseInput(os.Stdin)
-	if err != nil {
-		return fmt.Errorf("parse input: %w", err)
-	}
+ // 1. Parse hook input from stdin
+ input, err := hook.ParseInput(os.Stdin)
+ if err != nil {
+  return fmt.Errorf("parse input: %w", err)
+ }
 
-	// 2. Build trace event
-	builder := trace.NewBuilder()
-	event, err := builder.Build(ctx, input)
-	if err != nil {
-		return fmt.Errorf("build trace: %w", err)
-	}
+ // 2. Build trace event
+ builder := trace.NewBuilder()
+ event, err := builder.Build(ctx, input)
+ if err != nil {
+  return fmt.Errorf("build trace: %w", err)
+ }
 
-	// 3. Write to storage
-	writer := storage.NewWriter()
-	if err := writer.Write(ctx, event); err != nil {
-		return fmt.Errorf("write trace: %w", err)
-	}
+ // 3. Write to storage
+ writer := storage.NewWriter()
+ if err := writer.Write(ctx, event); err != nil {
+  return fmt.Errorf("write trace: %w", err)
+ }
 
-	return nil
+ return nil
 }
-```
+```text
 
 **File:** `cmd/nova-go/main.go`
 
@@ -336,27 +347,27 @@ func processHook(ctx context.Context) error {
 package main
 
 import (
-	"os"
-	"github.com/spf13/cobra"
+ "os"
+ "github.com/spf13/cobra"
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "nova-go",
-	Short: "Nova orchestration and trace management CLI",
+ Use:   "nova-go",
+ Short: "Nova orchestration and trace management CLI",
 }
 
 func main() {
-	if err := rootCmd.Execute(); err != nil {
-		os.Exit(1)
-	}
+ if err := rootCmd.Execute(); err != nil {
+  os.Exit(1)
+ }
 }
 
 func init() {
-	rootCmd.AddCommand(traceCmd)      // Hook handler
-	rootCmd.AddCommand(implementCmd)  // Orchestrator
-	rootCmd.AddCommand(serveCmd)      // HTTP server
+ rootCmd.AddCommand(traceCmd)      // Hook handler
+ rootCmd.AddCommand(implementCmd)  // Orchestrator
+ rootCmd.AddCommand(serveCmd)      // HTTP server
 }
-```
+```text
 
 ### 2. Hook Input Parser
 
@@ -366,41 +377,41 @@ func init() {
 package hook
 
 import (
-	"encoding/json"
-	"fmt"
-	"io"
+ "encoding/json"
+ "fmt"
+ "io"
 )
 
 type HookInput struct {
-	SessionID      string                 `json:"session_id"`
-	TranscriptPath string                 `json:"transcript_path"`
-	CWD            string                 `json:"cwd"`
-	PermissionMode string                 `json:"permission_mode"`
-	HookEventName  string                 `json:"hook_event_name"`
-	ToolName       string                 `json:"tool_name,omitempty"`
-	ToolInput      map[string]interface{} `json:"tool_input,omitempty"`
-	ToolOutput     map[string]interface{} `json:"tool_output,omitempty"`
-	ToolUseID      string                 `json:"tool_use_id,omitempty"`
-	Prompt         string                 `json:"prompt,omitempty"`
+ SessionID      string                 `json:"session_id"`
+ TranscriptPath string                 `json:"transcript_path"`
+ CWD            string                 `json:"cwd"`
+ PermissionMode string                 `json:"permission_mode"`
+ HookEventName  string                 `json:"hook_event_name"`
+ ToolName       string                 `json:"tool_name,omitempty"`
+ ToolInput      map[string]interface{} `json:"tool_input,omitempty"`
+ ToolOutput     map[string]interface{} `json:"tool_output,omitempty"`
+ ToolUseID      string                 `json:"tool_use_id,omitempty"`
+ Prompt         string                 `json:"prompt,omitempty"`
 }
 
 func ParseInput(r io.Reader) (*HookInput, error) {
-	var input HookInput
-	if err := json.NewDecoder(r).Decode(&input); err != nil {
-		return nil, fmt.Errorf("decode JSON: %w", err)
-	}
+ var input HookInput
+ if err := json.NewDecoder(r).Decode(&input); err != nil {
+  return nil, fmt.Errorf("decode JSON: %w", err)
+ }
 
-	// Basic validation
-	if input.SessionID == "" {
-		return nil, fmt.Errorf("missing session_id")
-	}
-	if input.HookEventName == "" {
-		return nil, fmt.Errorf("missing hook_event_name")
-	}
+ // Basic validation
+ if input.SessionID == "" {
+  return nil, fmt.Errorf("missing session_id")
+ }
+ if input.HookEventName == "" {
+  return nil, fmt.Errorf("missing hook_event_name")
+ }
 
-	return &input, nil
+ return &input, nil
 }
-```
+```text
 
 ### 3. Trace Builder
 
@@ -410,132 +421,132 @@ func ParseInput(r io.Reader) (*HookInput, error) {
 package trace
 
 import (
-	"context"
-	"fmt"
-	"time"
+ "context"
+ "fmt"
+ "time"
 
-	"github.com/google/uuid"
-	"github.com/yourusername/nova-go trace/internal/beads"
-	"github.com/yourusername/nova-go trace/internal/hook"
-	"github.com/yourusername/nova-go trace/internal/metrics"
+ "github.com/google/uuid"
+ "github.com/yourusername/nova-go trace/internal/beads"
+ "github.com/yourusername/nova-go trace/internal/hook"
+ "github.com/yourusername/nova-go trace/internal/metrics"
 )
 
 type Builder struct {
-	beadsReader  *beads.Reader
-	metricsCalc  *metrics.Calculator
-	spanCache    map[string]string // tool_use_id -> span_id
+ beadsReader  *beads.Reader
+ metricsCalc  *metrics.Calculator
+ spanCache    map[string]string // tool_use_id -> span_id
 }
 
 func NewBuilder() *Builder {
-	return &Builder{
-		beadsReader: beads.NewReader(),
-		metricsCalc: metrics.NewCalculator(),
-		spanCache:   make(map[string]string),
-	}
+ return &Builder{
+  beadsReader: beads.NewReader(),
+  metricsCalc: metrics.NewCalculator(),
+  spanCache:   make(map[string]string),
+ }
 }
 
 func (b *Builder) Build(ctx context.Context, input *hook.HookInput) (*TraceEvent, error) {
-	now := time.Now()
+ now := time.Now()
 
-	event := &TraceEvent{
-		SessionID:  input.SessionID,
-		Timestamp:  now.Format(time.RFC3339),
-		EventType:  mapEventType(input.HookEventName),
-		HookType:   input.HookEventName,
-		Tags:       make(map[string]string),
-		Metadata:   make(map[string]interface{}),
-		Metrics:    Metrics{},
-	}
+ event := &TraceEvent{
+  SessionID:  input.SessionID,
+  Timestamp:  now.Format(time.RFC3339),
+  EventType:  mapEventType(input.HookEventName),
+  HookType:   input.HookEventName,
+  Tags:       make(map[string]string),
+  Metadata:   make(map[string]interface{}),
+  Metrics:    Metrics{},
+ }
 
-	// Generate or reuse span ID
-	if input.HookEventName == "PreToolUse" {
-		event.SpanID = uuid.New().String()
-		if input.ToolUseID != "" {
-			b.spanCache[input.ToolUseID] = event.SpanID
-		}
-	} else if input.HookEventName == "PostToolUse" {
-		// Reuse span ID from PreToolUse
-		if input.ToolUseID != "" && b.spanCache[input.ToolUseID] != "" {
-			event.SpanID = b.spanCache[input.ToolUseID]
-		} else {
-			event.SpanID = uuid.New().String()
-		}
-	} else {
-		event.SpanID = uuid.New().String()
-	}
+ // Generate or reuse span ID
+ if input.HookEventName == "PreToolUse" {
+  event.SpanID = uuid.New().String()
+  if input.ToolUseID != "" {
+   b.spanCache[input.ToolUseID] = event.SpanID
+  }
+ } else if input.HookEventName == "PostToolUse" {
+  // Reuse span ID from PreToolUse
+  if input.ToolUseID != "" && b.spanCache[input.ToolUseID] != "" {
+   event.SpanID = b.spanCache[input.ToolUseID]
+  } else {
+   event.SpanID = uuid.New().String()
+  }
+ } else {
+  event.SpanID = uuid.New().String()
+ }
 
-	// Generate trace ID (for now, use session as trace root)
-	event.TraceID = input.SessionID
+ // Generate trace ID (for now, use session as trace root)
+ event.TraceID = input.SessionID
 
-	// Tool details
-	if input.ToolName != "" {
-		event.ToolName = &input.ToolName
-		event.ToolInput = input.ToolInput
-		event.ToolOutput = input.ToolOutput
-	}
+ // Tool details
+ if input.ToolName != "" {
+  event.ToolName = &input.ToolName
+  event.ToolInput = input.ToolInput
+  event.ToolOutput = input.ToolOutput
+ }
 
-	// Enrich with Beads context
-	if err := b.enrichWithBeads(ctx, event, input.CWD); err != nil {
-		// Log but don't fail - Beads integration is optional
-		fmt.Fprintf(os.Stderr, "beads enrichment failed: %v\n", err)
-	}
+ // Enrich with Beads context
+ if err := b.enrichWithBeads(ctx, event, input.CWD); err != nil {
+  // Log but don't fail - Beads integration is optional
+  fmt.Fprintf(os.Stderr, "beads enrichment failed: %v\n", err)
+ }
 
-	// Calculate metrics
-	if err := b.enrichWithMetrics(ctx, event, input); err != nil {
-		fmt.Fprintf(os.Stderr, "metrics calculation failed: %v\n", err)
-	}
+ // Calculate metrics
+ if err := b.enrichWithMetrics(ctx, event, input); err != nil {
+  fmt.Fprintf(os.Stderr, "metrics calculation failed: %v\n", err)
+ }
 
-	return event, nil
+ return event, nil
 }
 
 func (b *Builder) enrichWithBeads(ctx context.Context, event *TraceEvent, cwd string) error {
-	task, err := b.beadsReader.GetCurrentTask(ctx, cwd)
-	if err != nil {
-		return err
-	}
-	if task == nil {
-		return nil // No active task
-	}
+ task, err := b.beadsReader.GetCurrentTask(ctx, cwd)
+ if err != nil {
+  return err
+ }
+ if task == nil {
+  return nil // No active task
+ }
 
-	event.TaskID = &task.ID
-	event.TaskStatus = &task.Status
-	event.Tags["task_title"] = task.Title
+ event.TaskID = &task.ID
+ event.TaskStatus = &task.Status
+ event.Tags["task_title"] = task.Title
 
-	return nil
+ return nil
 }
 
 func (b *Builder) enrichWithMetrics(ctx context.Context, event *TraceEvent, input *hook.HookInput) error {
-	// Calculate file operation metrics
-	if input.ToolName == "Read" {
-		event.Metrics.FilesRead = 1
-	} else if input.ToolName == "Write" {
-		event.Metrics.FilesWritten = 1
-	} else if input.ToolName == "Edit" {
-		event.Metrics.FilesEdited = 1
-	}
+ // Calculate file operation metrics
+ if input.ToolName == "Read" {
+  event.Metrics.FilesRead = 1
+ } else if input.ToolName == "Write" {
+  event.Metrics.FilesWritten = 1
+ } else if input.ToolName == "Edit" {
+  event.Metrics.FilesEdited = 1
+ }
 
-	// Token counting and cost estimation
-	// (For MVP, we'll estimate based on heuristics; later integrate with Claude API)
-	if input.Prompt != "" {
-		event.Metrics.InputTokens = b.metricsCalc.EstimateTokens(input.Prompt)
-	}
+ // Token counting and cost estimation
+ // (For MVP, we'll estimate based on heuristics; later integrate with Claude API)
+ if input.Prompt != "" {
+  event.Metrics.InputTokens = b.metricsCalc.EstimateTokens(input.Prompt)
+ }
 
-	return nil
+ return nil
 }
 
 func mapEventType(hookType string) string {
-	switch hookType {
-	case "PreToolUse":
-		return "pre_tool_use"
-	case "PostToolUse":
-		return "post_tool_use"
-	case "UserPromptSubmit":
-		return "user_prompt"
-	default:
-		return "unknown"
-	}
+ switch hookType {
+ case "PreToolUse":
+  return "pre_tool_use"
+ case "PostToolUse":
+  return "post_tool_use"
+ case "UserPromptSubmit":
+  return "user_prompt"
+ default:
+  return "unknown"
+ }
 }
-```
+```text
 
 ### 4. Beads Integration
 
@@ -545,79 +556,79 @@ func mapEventType(hookType string) string {
 package beads
 
 import (
-	"context"
-	"encoding/json"
-	"fmt"
-	"os"
-	"path/filepath"
-	"time"
+ "context"
+ "encoding/json"
+ "fmt"
+ "os"
+ "path/filepath"
+ "time"
 )
 
 type BeadsTask struct {
-	ID        string   `json:"id"`
-	Title     string   `json:"title"`
-	Status    string   `json:"status"`
-	ParentID  *string  `json:"parentId"`
-	UpdatedAt string   `json:"updatedAt"`
+ ID        string   `json:"id"`
+ Title     string   `json:"title"`
+ Status    string   `json:"status"`
+ ParentID  *string  `json:"parentId"`
+ UpdatedAt string   `json:"updatedAt"`
 }
 
 type Reader struct{}
 
 func NewReader() *Reader {
-	return &Reader{}
+ return &Reader{}
 }
 
 func (r *Reader) GetCurrentTask(ctx context.Context, projectDir string) (*BeadsTask, error) {
-	issuesDir := filepath.Join(projectDir, ".beads", "issues")
+ issuesDir := filepath.Join(projectDir, ".beads", "issues")
 
-	// Check if .beads directory exists
-	if _, err := os.Stat(issuesDir); os.IsNotExist(err) {
-		return nil, nil // No Beads integration
-	}
+ // Check if .beads directory exists
+ if _, err := os.Stat(issuesDir); os.IsNotExist(err) {
+  return nil, nil // No Beads integration
+ }
 
-	// Find most recently updated task with status "in_progress"
-	entries, err := os.ReadDir(issuesDir)
-	if err != nil {
-		return nil, fmt.Errorf("read issues dir: %w", err)
-	}
+ // Find most recently updated task with status "in_progress"
+ entries, err := os.ReadDir(issuesDir)
+ if err != nil {
+  return nil, fmt.Errorf("read issues dir: %w", err)
+ }
 
-	var currentTask *BeadsTask
-	var latestTime time.Time
+ var currentTask *BeadsTask
+ var latestTime time.Time
 
-	for _, entry := range entries {
-		if entry.IsDir() || filepath.Ext(entry.Name()) != ".json" {
-			continue
-		}
+ for _, entry := range entries {
+  if entry.IsDir() || filepath.Ext(entry.Name()) != ".json" {
+   continue
+  }
 
-		taskPath := filepath.Join(issuesDir, entry.Name())
-		data, err := os.ReadFile(taskPath)
-		if err != nil {
-			continue
-		}
+  taskPath := filepath.Join(issuesDir, entry.Name())
+  data, err := os.ReadFile(taskPath)
+  if err != nil {
+   continue
+  }
 
-		var task BeadsTask
-		if err := json.Unmarshal(data, &task); err != nil {
-			continue
-		}
+  var task BeadsTask
+  if err := json.Unmarshal(data, &task); err != nil {
+   continue
+  }
 
-		if task.Status != "in_progress" {
-			continue
-		}
+  if task.Status != "in_progress" {
+   continue
+  }
 
-		updatedAt, err := time.Parse(time.RFC3339, task.UpdatedAt)
-		if err != nil {
-			continue
-		}
+  updatedAt, err := time.Parse(time.RFC3339, task.UpdatedAt)
+  if err != nil {
+   continue
+  }
 
-		if currentTask == nil || updatedAt.After(latestTime) {
-			currentTask = &task
-			latestTime = updatedAt
-		}
-	}
+  if currentTask == nil || updatedAt.After(latestTime) {
+   currentTask = &task
+   latestTime = updatedAt
+  }
+ }
 
-	return currentTask, nil
+ return currentTask, nil
 }
-```
+```text
 
 ### 5. Storage Writer
 
@@ -627,54 +638,54 @@ func (r *Reader) GetCurrentTask(ctx context.Context, projectDir string) (*BeadsT
 package storage
 
 import (
-	"context"
-	"encoding/json"
-	"fmt"
-	"os"
-	"path/filepath"
-	"time"
+ "context"
+ "encoding/json"
+ "fmt"
+ "os"
+ "path/filepath"
+ "time"
 
-	"github.com/yourusername/nova-go trace/internal/trace"
+ "github.com/yourusername/nova-go trace/internal/trace"
 )
 
 type Writer struct {
-	baseDir string
+ baseDir string
 }
 
 func NewWriter() *Writer {
-	baseDir := os.Getenv("CLAUDE_TRACE_DIR")
-	if baseDir == "" {
-		homeDir, _ := os.UserHomeDir()
-		baseDir = filepath.Join(homeDir, ".claude", "traces")
-	}
-	return &Writer{baseDir: baseDir}
+ baseDir := os.Getenv("CLAUDE_TRACE_DIR")
+ if baseDir == "" {
+  homeDir, _ := os.UserHomeDir()
+  baseDir = filepath.Join(homeDir, ".claude", "traces")
+ }
+ return &Writer{baseDir: baseDir}
 }
 
 func (w *Writer) Write(ctx context.Context, event *trace.TraceEvent) error {
-	// Ensure directory exists
-	if err := os.MkdirAll(w.baseDir, 0755); err != nil {
-		return fmt.Errorf("create traces dir: %w", err)
-	}
+ // Ensure directory exists
+ if err := os.MkdirAll(w.baseDir, 0755); err != nil {
+  return fmt.Errorf("create traces dir: %w", err)
+ }
 
-	// Daily rotation: traces-YYYY-MM-DD.jsonl
-	filename := fmt.Sprintf("traces-%s.jsonl", time.Now().Format("2006-01-02"))
-	filePath := filepath.Join(w.baseDir, filename)
+ // Daily rotation: traces-YYYY-MM-DD.jsonl
+ filename := fmt.Sprintf("traces-%s.jsonl", time.Now().Format("2006-01-02"))
+ filePath := filepath.Join(w.baseDir, filename)
 
-	// Open file in append mode
-	file, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		return fmt.Errorf("open trace file: %w", err)
-	}
-	defer file.Close()
+ // Open file in append mode
+ file, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+ if err != nil {
+  return fmt.Errorf("open trace file: %w", err)
+ }
+ defer file.Close()
 
-	// Write as single-line JSON
-	if err := json.NewEncoder(file).Encode(event); err != nil {
-		return fmt.Errorf("encode trace: %w", err)
-	}
+ // Write as single-line JSON
+ if err := json.NewEncoder(file).Encode(event); err != nil {
+  return fmt.Errorf("encode trace: %w", err)
+ }
 
-	return nil
+ return nil
 }
-```
+```text
 
 ---
 
@@ -717,9 +728,10 @@ func (w *Writer) Write(ctx context.Context, event *trace.TraceEvent) error {
     ]
   }
 }
-```
+```text
 
 **Notes:**
+
 - Assumes `nova-go` is in your PATH (installed via `make install`)
 - Alternatively, use absolute path: `"/usr/local/bin/nova-go trace"`
 - For complete installation instructions, see [05-unified-architecture.md](./05-unified-architecture.md#installation-steps)
@@ -748,7 +760,7 @@ echo '{"session_id":"test","hook_event_name":"PostToolUse","tool_name":"Read","c
 
 # 5. Check traces
 cat ~/.claude/traces/traces-$(date +%Y-%m-%d).jsonl | jq
-```
+```text
 
 ### Testing
 
@@ -759,7 +771,7 @@ go test -v -race ./...
 # Test hook-specific code
 go test -v ./internal/hook/...
 go test -v ./internal/trace/...
-```
+```text
 
 ---
 
@@ -771,58 +783,58 @@ For high-frequency events, batch writes:
 
 ```go
 type BufferedWriter struct {
-	buffer   []*trace.TraceEvent
-	mu       sync.Mutex
-	ticker   *time.Ticker
-	done     chan struct{}
+ buffer   []*trace.TraceEvent
+ mu       sync.Mutex
+ ticker   *time.Ticker
+ done     chan struct{}
 }
 
 func (w *BufferedWriter) Start() {
-	w.ticker = time.NewTicker(1 * time.Second)
-	go func() {
-		for {
-			select {
-			case <-w.ticker.C:
-				w.flush()
-			case <-w.done:
-				w.flush()
-				return
-			}
-		}
-	}()
+ w.ticker = time.NewTicker(1 * time.Second)
+ go func() {
+  for {
+   select {
+   case <-w.ticker.C:
+    w.flush()
+   case <-w.done:
+    w.flush()
+    return
+   }
+  }
+ }()
 }
 
 func (w *BufferedWriter) Write(event *trace.TraceEvent) {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-	w.buffer = append(w.buffer, event)
+ w.mu.Lock()
+ defer w.mu.Unlock()
+ w.buffer = append(w.buffer, event)
 }
 
 func (w *BufferedWriter) flush() {
-	// Write all buffered events to file
+ // Write all buffered events to file
 }
-```
+```text
 
 ### 2. Pre-allocated Buffers
 
 ```go
 var bufPool = sync.Pool{
-	New: func() interface{} {
-		return new(bytes.Buffer)
-	},
+ New: func() interface{} {
+  return new(bytes.Buffer)
+ },
 }
 
 func encodeEvent(event *TraceEvent) ([]byte, error) {
-	buf := bufPool.Get().(*bytes.Buffer)
-	defer bufPool.Put(buf)
-	buf.Reset()
+ buf := bufPool.Get().(*bytes.Buffer)
+ defer bufPool.Put(buf)
+ buf.Reset()
 
-	if err := json.NewEncoder(buf).Encode(event); err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
+ if err := json.NewEncoder(buf).Encode(event); err != nil {
+  return nil, err
+ }
+ return buf.Bytes(), nil
 }
-```
+```text
 
 ### 3. Context Timeout
 
@@ -831,7 +843,7 @@ Always use short timeouts to prevent hanging:
 ```go
 ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 defer cancel()
-```
+```text
 
 ---
 
@@ -841,39 +853,39 @@ defer cancel()
 
 ```go
 func TestParseInput(t *testing.T) {
-	tests := map[string]struct {
-		input       string
-		expected    *HookInput
-		expectError bool
-	}{
-		"valid PreToolUse": {
-			input: `{"session_id":"abc","hook_event_name":"PreToolUse","tool_name":"Read"}`,
-			expected: &HookInput{
-				SessionID:     "abc",
-				HookEventName: "PreToolUse",
-				ToolName:      "Read",
-			},
-		},
-		"missing session_id": {
-			input:       `{"hook_event_name":"PreToolUse"}`,
-			expectError: true,
-		},
-	}
+ tests := map[string]struct {
+  input       string
+  expected    *HookInput
+  expectError bool
+ }{
+  "valid PreToolUse": {
+   input: `{"session_id":"abc","hook_event_name":"PreToolUse","tool_name":"Read"}`,
+   expected: &HookInput{
+    SessionID:     "abc",
+    HookEventName: "PreToolUse",
+    ToolName:      "Read",
+   },
+  },
+  "missing session_id": {
+   input:       `{"hook_event_name":"PreToolUse"}`,
+   expectError: true,
+  },
+ }
 
-	for name, tt := range tests {
-		t.Run(name, func(t *testing.T) {
-			result, err := ParseInput(strings.NewReader(tt.input))
-			if tt.expectError && err == nil {
-				t.Fatal("expected error but got none")
-			}
-			if !tt.expectError && err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			// Assert result matches expected
-		})
-	}
+ for name, tt := range tests {
+  t.Run(name, func(t *testing.T) {
+   result, err := ParseInput(strings.NewReader(tt.input))
+   if tt.expectError && err == nil {
+    t.Fatal("expected error but got none")
+   }
+   if !tt.expectError && err != nil {
+    t.Fatalf("unexpected error: %v", err)
+   }
+   // Assert result matches expected
+  })
+ }
 }
-```
+```text
 
 ### Integration Tests
 
@@ -897,7 +909,7 @@ else
   echo "✗ No traces found"
   exit 1
 fi
-```
+```text
 
 ---
 
@@ -909,13 +921,13 @@ The hook should NEVER fail the Claude workflow:
 
 ```go
 func main() {
-	if err := run(); err != nil {
-		// Log error but always exit 0
-		fmt.Fprintf(os.Stderr, "nova-go trace: %v\n", err)
-	}
-	os.Exit(0) // Always succeed
+ if err := run(); err != nil {
+  // Log error but always exit 0
+  fmt.Fprintf(os.Stderr, "nova-go trace: %v\n", err)
+ }
+ os.Exit(0) // Always succeed
 }
-```
+```text
 
 ### Graceful Degradation
 
@@ -933,14 +945,14 @@ Redact sensitive data before writing:
 
 ```go
 func redactToolInput(input map[string]interface{}) {
-	sensitiveKeys := []string{"password", "token", "api_key", "secret", "authorization"}
-	for _, key := range sensitiveKeys {
-		if _, exists := input[key]; exists {
-			input[key] = "REDACTED"
-		}
-	}
+ sensitiveKeys := []string{"password", "token", "api_key", "secret", "authorization"}
+ for _, key := range sensitiveKeys {
+  if _, exists := input[key]; exists {
+   input[key] = "REDACTED"
+  }
+ }
 }
-```
+```text
 
 ### File Permissions
 
@@ -955,9 +967,10 @@ func redactToolInput(input map[string]interface{}) {
 
 ```bash
 export CLAUDE_TRACE_DEBUG=1
-```
+```text
 
 Outputs:
+
 - Parsed hook input
 - Built trace event
 - File write confirmation
@@ -971,7 +984,7 @@ echo '{"session_id":"test","hook_event_name":"PostToolUse","tool_name":"Read"}' 
 
 # Watch traces in real-time
 tail -f ~/.claude/traces/traces-$(date +%Y-%m-%d).jsonl | jq
-```
+```text
 
 ---
 
@@ -980,6 +993,7 @@ tail -f ~/.claude/traces/traces-$(date +%Y-%m-%d).jsonl | jq
 > **Note:** These features were explicitly deferred from MVP (see [MVP Scope](#mvp-scope) for rationale).
 
 ### Phase 2 (Post-MVP)
+
 - **Beads Integration**: Task context enrichment (lines 296-323, 359-438)
 - **Token Counting**: Estimate tokens via Claude API (lines 325-342)
 - **Cost Metrics**: Calculate usage costs per event
@@ -990,6 +1004,7 @@ tail -f ~/.claude/traces/traces-$(date +%Y-%m-%d).jsonl | jq
 - **Debug Mode**: Verbose logging for troubleshooting (lines 772-791)
 
 ### Phase 3 (Advanced Features)
+
 - **Remote Trace Shipping**: HTTP POST to aggregator
 - **Compression**: Compress old traces (gzip)
 - **Advanced Metrics**: Memory usage, CPU time, disk I/O

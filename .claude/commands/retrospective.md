@@ -19,9 +19,10 @@ bd list --status=open
 
 # Check for blocked work
 bd blocked
-```
+```text
 
 Look for patterns:
+
 - What types of tasks succeeded/failed?
 - Which beads took longer than expected?
 - Are there recurring blockers?
@@ -35,23 +36,26 @@ ls -lt ~/.village/logs/worker-*.log 2>/dev/null | head -5
 
 # If logs exist, sample a few for patterns
 # Look for: timeouts, repeated tool use, context churn, successes
-```
+```text
 
 ### 3. Identify Patterns
 
 Group observations into categories:
 
-**Successes ✓**
+#### Successes ✓
+
 - What went well and why?
 - Which task types have high success rates?
 - What patterns should we replicate?
 
-**Struggles ✗**
+#### Struggles ✗
+
 - What was difficult or failed?
 - Where did workers get stuck?
 - What took longer than expected?
 
-**Surprises**
+#### Surprises
+
 - Unexpected findings or behaviors
 - New insights about the system
 
@@ -65,15 +69,17 @@ bd create --title="[Clear issue title]" --type=bug|task --priority=0-4
 
 # Add village-retrospective label (THE WATERMARK)
 bd label add beads-xxx village-retrospective
-```
+```text
 
-**When to create a village-retrospective bead:**
+#### When to create a village-retrospective bead:
+
 - Issue affects multiple tasks or workers
 - Pattern appears 3+ times
 - Likely to recur without intervention
 - Could prevent future failures
 
-**Don't create beads for:**
+#### Don't create beads for:
+
 - One-off issues
 - Already tracked problems
 - Vague observations without clear action
@@ -85,7 +91,7 @@ Add concrete insights to `thoughts/worker-learnings.md`:
 ```markdown
 ### [Task Type]
 - [Date] [Bead ID if relevant]: [Specific learning or pattern]
-```
+```text
 
 Focus on actionable advice for future work.
 
@@ -98,9 +104,10 @@ Copy the template and fill it out:
 cp thoughts/retrospectives/template.md thoughts/retrospectives/$(date +%Y-%m-%d).md
 
 # Edit the file with your findings
-```
+```text
 
 Include:
+
 - Period covered
 - Work completed (bead IDs + brief outcomes)
 - Patterns observed (successes/struggles/surprises)
@@ -111,7 +118,7 @@ Include:
 
 Present findings to the user:
 
-```
+```text
 ## Retrospective Complete
 
 **Period:** [Date range or "Last N beads"]
@@ -119,11 +126,11 @@ Present findings to the user:
 
 ### Key Findings
 
-**Successes:**
+#### Successes:
 - [Pattern 1]
 - [Pattern 2]
 
-**Issues Identified:**
+#### Issues Identified:
 - [Pattern 1] → Created beads-xxx (village-retrospective)
 - [Pattern 2] → Created beads-yyy (village-retrospective)
 
@@ -144,7 +151,7 @@ Would you like me to:
 1. Dive deeper into any specific pattern?
 2. Create additional beads for issues found?
 3. Update documentation based on learnings?
-```
+```text
 
 ## Important Guidelines
 
@@ -167,9 +174,10 @@ Would you like me to:
 
 ## Village Watermark
 
-**Always add the `village-retrospective` label to beads created during retrospectives.**
+#### Always add the `village-retrospective` label to beads created during retrospectives.
 
 This distinguishes systematic analysis (retrospective) from ad-hoc user requests. Over time, you can track:
+
 - Which village-retrospective beads lead to improvements?
 - What patterns keep recurring?
 - Are retrospectives finding real issues?
@@ -180,17 +188,20 @@ bd list --label=village-retrospective
 
 # See which are still open
 bd list --label=village-retrospective --status=open
-```
+```text
 
 ## Examples of Good Patterns
 
 ### Success Pattern
+
 "Tasks with 'test' in title have 90% success rate and complete in <30min. Pattern: Clear verification step + focused scope."
 
 ### Struggle Pattern
+
 "Refactor tasks affecting >5 files have 40% timeout rate. Pattern: No chunking strategy, workers try to do everything at once."
 
 ### Actionable Improvement
+
 "Create bead: 'Workers need chunking guidance for large refactors' → Update worker prompt template to suggest breaking into subtasks when file_count > 5"
 
 ## Remember

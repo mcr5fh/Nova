@@ -22,7 +22,7 @@ I'll help you create a detailed implementation plan.
 
 Tip: You can also invoke this command with a ticket file directly: `/create_plan thoughts/allison/tickets/eng_1234.md`
 For deeper analysis, try: `/create_plan think deeply about thoughts/allison/tickets/eng_1234.md`
-```
+```text
 
 Then wait for the user's input.
 
@@ -172,7 +172,8 @@ Before creating the plan structure, determine if any architectural decisions nee
 1. **Apply the ADR forcing function**:
 
    Ask yourself: Does this decision meet 2+ of these criteria?
-   ```
+
+   ```text
    [ ] Multiple valid alternatives were seriously considered
    [ ] Decision has cross-cutting impact (affects 3+ modules/components)
    [ ] Reversing it would be painful (3+ days of work to undo)
@@ -206,6 +207,7 @@ Before creating the plan structure, determine if any architectural decisions nee
    - No separate ADR needed
 
 **Why this matters:**
+
 - ADRs capture the "why" behind architectural choices
 - Implementation plans reference ADRs for context
 - Future maintainers understand trade-offs made
@@ -282,7 +284,7 @@ After structure approval:
 
 ```[language]
 // Specific code to add/modify
-```
+```text
 
 ### Success Criteria
 
@@ -341,7 +343,7 @@ After structure approval:
 - Related ADRs: `docs/adr/NNNN-decision-title.md` (if applicable)
 - Similar implementation: `[file:line]`
 
-```
+```text
 
 ### Step 5: Sync and Review
 
@@ -427,11 +429,12 @@ After structure approval:
    - Only use fallback logic if the user has said so. Do NOT add fallback logic unless the user asked for it.
 
 10. **Timezone handling for date fields**:
-   - When working with date-only fields (not datetimes), ALWAYS plan to store the user's timezone
-   - Include timezone columns in database schema changes for date fields
-   - Document how epoch seconds from frontend will be converted using user timezone
-   - Plan for proper round-trip conversion: epoch → user's local date → epoch
-   - Consider edge cases where dates cross timezone boundaries (e.g., 11pm PST → next day UTC)
+
+- When working with date-only fields (not datetimes), ALWAYS plan to store the user's timezone
+- Include timezone columns in database schema changes for date fields
+- Document how epoch seconds from frontend will be converted using user timezone
+- Plan for proper round-trip conversion: epoch → user's local date → epoch
+- Consider edge cases where dates cross timezone boundaries (e.g., 11pm PST → next day UTC)
 
 ## Success Criteria Guidelines
 
@@ -465,7 +468,7 @@ After structure approval:
 - [ ] Performance is acceptable with 1000+ items
 - [ ] Error messages are user-friendly
 - [ ] Feature works correctly on mobile devices
-```
+```text
 
 ## Common Patterns
 
@@ -526,7 +529,7 @@ tasks = [
     Task("Investigate UI components", ui_research_prompt),
     Task("Check test patterns", test_research_prompt)
 ]
-```
+```text
 
 ## Example Interaction Flow
 
@@ -542,4 +545,4 @@ Assistant: Let me read that ticket file completely first...
 Based on the ticket, I understand we need to track parent-child relationships for Claude sub-task events in the hld daemon. Before I start planning, I have some questions...
 
 [Interactive process continues...]
-```
+```text

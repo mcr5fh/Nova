@@ -56,6 +56,11 @@ lint:
 	@echo "Running linter..."
 	$(GO) vet ./...
 
+# Run golangci-lint
+golangci-lint:
+	@echo "Running golangci-lint..."
+	GODEBUG=gotypesalias=1 golangci-lint run --config=.golangci.yml --timeout=5m
+
 # Build and run
 run: build
 	$(BIN_DIR)/$(BINARY_NAME)

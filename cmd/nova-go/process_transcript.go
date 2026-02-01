@@ -52,7 +52,7 @@ func runProcessTranscript(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("create writer: %w", err)
 	}
-	defer writer.Close()
+	defer func() { _ = writer.Close() }()
 
 	for _, trace := range traces {
 		// Convert TraceEvent to map for storage writer

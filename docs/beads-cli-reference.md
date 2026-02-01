@@ -29,6 +29,7 @@ bd create "Task with deps" \
 ```
 
 **Flags:**
+
 - `--description` / `-d`: Task description
 - `--parent`: Parent bead ID for hierarchical tasks
 - `--type` / `-t`: Issue type (task, bug, feature, epic, etc.)
@@ -57,6 +58,7 @@ bd dep tree bd-xxx
 ```
 
 **Dependency semantics:**
+
 - `bd dep add bd-blocked bd-blocker`: bd-blocked depends on (waits for) bd-blocker
 - A task can only execute after all its blockers are completed
 
@@ -77,6 +79,7 @@ bd update bd-xxx --status completed --json
 ```
 
 **Status values:**
+
 - `open`: Ready to be worked on (default)
 - `in_progress`: Currently being executed
 - `completed`: Successfully finished
@@ -99,6 +102,7 @@ bd ready --parent bd-xxx --limit 10
 ```
 
 **Useful flags:**
+
 - `--parent`: Filter to descendants of a bead
 - `--assignee` / `-a`: Filter by assignee
 - `--label` / `-l`: Filter by labels
@@ -123,6 +127,7 @@ bd label list bd-xxx
 ```
 
 **Common labels for Nova:**
+
 - `size:XS`, `size:S`, `size:M`, `size:L`, `size:XL`: Task size
 - `agent:planner`, `agent:worker`, `agent:verifier`: Which agent handled the task
 - `retry:1`, `retry:2`, etc.: Retry attempts
@@ -217,11 +222,13 @@ All `bd` commands support these global flags:
 ## Error Handling
 
 **Common errors:**
+
 - `issue not found`: Invalid bead ID
 - `circular dependency`: Dependency cycle detected
 - `database locked`: Another process has lock (retry with backoff)
 
 **Recommendations:**
+
 - Use `--json` for all programmatic access
 - Check exit codes: 0 = success, non-zero = error
 - Parse stderr for error messages

@@ -4,7 +4,7 @@ Nova is a fractal task orchestrator with integrated session-based trace collecti
 
 ## Project Structure
 
-```
+```text
 .
 ├── cmd/
 │   └── nova-go/          # Main CLI application entry point
@@ -12,7 +12,7 @@ Nova is a fractal task orchestrator with integrated session-based trace collecti
 │   ├── transcript/       # Transcript parser and token tracking
 │   └── storage/          # JSONL trace storage writer
 └── go.mod                # Go module definition
-```
+```text
 
 ## Architecture
 
@@ -23,6 +23,7 @@ Nova uses a session-based architecture for trace collection:
 - **SessionEnd hook** - Parses full transcript and generates detailed traces
 
 This approach provides:
+
 - ✅ Live token tracking during sessions
 - ✅ Detailed end-of-session breakdown with tool uses + token data
 - ✅ Token counts (input, output, cache read, cache write)
@@ -49,22 +50,19 @@ cat ~/.claude/traces/traces-$(date +%Y-%m-%d).jsonl | jq .
 
 # View sessions
 cat ~/.claude/traces/sessions.jsonl | jq .
-
-# View live session stats (during active session)
-cat ~/.claude/traces/session-*-live.json | jq .
-```
+```text
 
 ## Building
 
 ```bash
 make build
-```
+```text
 
 ## Testing
 
 ```bash
 make test
-```
+```text
 
 ## Development
 

@@ -35,6 +35,7 @@ This document outlines a phased implementation approach for the Claude trace sys
 ### Implementation Steps
 
 1. **Setup Go Project** (1 hour)
+
    ```bash
    mkdir claude-trace && cd claude-trace
    go mod init github.com/yourusername/claude-trace
@@ -52,6 +53,7 @@ This document outlines a phased implementation approach for the Claude trace sys
    - Write to daily JSONL file
 
 4. **Build & Install** (1 hour)
+
    ```bash
    make build
    make install-local
@@ -62,6 +64,7 @@ This document outlines a phased implementation approach for the Claude trace sys
    - Test with manual JSON input
 
 6. **Verify** (30 minutes)
+
    ```bash
    cat ~/.claude/traces/traces-$(date +%Y-%m-%d).jsonl | jq
    ```
@@ -98,6 +101,7 @@ This document outlines a phased implementation approach for the Claude trace sys
 ### Implementation Steps
 
 1. **Setup Server Project** (1 hour)
+
    ```bash
    mkdir claude-trace-server && cd claude-trace-server
    go mod init github.com/yourusername/claude-trace-server
@@ -126,11 +130,13 @@ This document outlines a phased implementation approach for the Claude trace sys
    - CORS for local dev
 
 6. **Test SSE with curl** (30 minutes)
+
    ```bash
    curl -N http://localhost:8080/api/stream
    ```
 
 7. **Create Simple HTML Test Page** (1 hour)
+
    ```html
    <script>
    const es = new EventSource('http://localhost:8080/api/stream');
@@ -171,6 +177,7 @@ This document outlines a phased implementation approach for the Claude trace sys
 ### Implementation Steps
 
 1. **Setup React Project** (1 hour)
+
    ```bash
    npm create vite@latest claude-trace-dashboard -- --template react-ts
    cd claude-trace-dashboard
@@ -178,6 +185,7 @@ This document outlines a phased implementation approach for the Claude trace sys
    ```
 
 2. **Install Dependencies** (30 minutes)
+
    ```bash
    npm install @tanstack/react-query zustand tailwindcss
    npx tailwindcss init -p
@@ -214,7 +222,7 @@ This document outlines a phased implementation approach for the Claude trace sys
 
 ### Success Criteria
 
-- [ ] Dashboard loads at http://localhost:3000
+- [ ] Dashboard loads at <http://localhost:3000>
 - [ ] SSE connection established automatically
 - [ ] New traces appear without refresh
 - [ ] Filters work correctly
@@ -418,6 +426,7 @@ This document outlines a phased implementation approach for the Claude trace sys
 ### Risk: Hook Performance Impact
 
 **Mitigation:**
+
 - Benchmark hook latency (target: <100ms)
 - Use buffered writes if needed
 - Add timeout to all operations
@@ -425,6 +434,7 @@ This document outlines a phased implementation approach for the Claude trace sys
 ### Risk: SSE Connection Stability
 
 **Mitigation:**
+
 - Browser auto-reconnects EventSource
 - Server sends heartbeats every 30s
 - Client UI shows connection status
@@ -432,6 +442,7 @@ This document outlines a phased implementation approach for the Claude trace sys
 ### Risk: SQLite Write Bottleneck
 
 **Mitigation:**
+
 - Use WAL mode for concurrent reads
 - Batch inserts if needed
 - Consider migration to PostgreSQL in Phase 6
@@ -439,6 +450,7 @@ This document outlines a phased implementation approach for the Claude trace sys
 ### Risk: Frontend Performance with Large Datasets
 
 **Mitigation:**
+
 - Implement virtual scrolling from Phase 3
 - Pagination for REST API
 - Limit SSE events to recent/filtered only
@@ -479,7 +491,7 @@ cd claude-trace-server && ./bin/server
 cd claude-trace-dashboard && npm run dev
 
 # Hook already installed in .claude/hooks/
-```
+```text
 
 ### Option 2: Docker Compose (Production)
 
@@ -499,7 +511,7 @@ services:
       - "3000:80"
     depends_on:
       - server
-```
+```text
 
 ### Option 3: Single Binary (Future)
 
@@ -510,16 +522,19 @@ Embed frontend assets in Go binary for single-file distribution.
 ## Success Metrics
 
 ### Phase 1-2 (MVP)
+
 - Traces captured without missing events
 - <100ms hook latency
 - <500ms API response time
 
 ### Phase 3-4 (Usable)
+
 - Dashboard loads in <2 seconds
 - Real-time updates within 100ms
 - 95% uptime for SSE connections
 
 ### Phase 5-6 (Production)
+
 - Handles 10K+ traces smoothly
 - Cost estimates within 5% of actual
 - Positive user feedback
@@ -578,6 +593,7 @@ Embed frontend assets in Go binary for single-file distribution.
 ## Conclusion
 
 This phased approach ensures:
+
 - ✅ **Working software at each stage**
 - ✅ **Iterative value delivery**
 - ✅ **Manageable complexity**

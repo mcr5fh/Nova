@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"time"
 
@@ -64,23 +63,6 @@ func runTrackSession(cmd *cobra.Command, args []string) error {
 
 	if err := json.NewEncoder(file).Encode(entry); err != nil {
 		return fmt.Errorf("write entry: %w", err)
-	}
-
-	// Spawn background watcher for live token tracking
-	// Skip spawning watcher in test environment
-	if os.Getenv("NOVA_TEST_MODE") == "" {
-		watchCmd := exec.Command(os.Args[0], "watch-transcript", sessionID, transcriptPath)
-		// Redirect output to /dev/null to avoid test pollution
-		watchCmd.Stdout = nil
-		watchCmd.Stderr = nil
-
-		if err := watchCmd.Start(); err != nil {
-			// Log error but don't fail - live tracking is optional
-			fmt.Fprintf(os.Stderr, "Warning: could not start watcher: %v\n", err)
-		} else {
-			// Detach so it survives after hook exits
-			go watchCmd.Wait()
-		}
 	}
 
 	return nil

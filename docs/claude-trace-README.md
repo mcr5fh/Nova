@@ -31,7 +31,7 @@ This system is documented across several files:
 
 Build a dashboard that provides:
 
-```
+```text
 Dashboard
 ├── Task Hierarchy (Mermaid diagram with drill-up/drill-down)
 │   ├── Task ID
@@ -46,7 +46,7 @@ Dashboard
 │   └── Efficiency metrics
 └── Session Management
     └── Filter, search, and export traces
-```
+```text
 
 ### Interactive Features
 
@@ -58,7 +58,7 @@ Dashboard
 
 ## 🏗️ Architecture Overview
 
-```
+```text
 Claude Code
     ↓ (hook events via stdin JSON)
 claude-trace binary (Go)
@@ -70,7 +70,7 @@ SQLite database
 Aggregator Service (Go)
     ↓ (HTTP + SSE)
 Dashboard Frontend (React)
-```
+```text
 
 ## 🚀 Quick Start
 
@@ -92,7 +92,7 @@ make install-local
 
 # 5. Configure hook in .claude/settings.json
 # 6. Test with Claude
-```
+```text
 
 See **[claude-trace-quickstart.md](./claude-trace-quickstart.md)** for detailed steps.
 
@@ -107,7 +107,7 @@ cat .claude/traces/traces-2024-01-31.jsonl | jq
 
 # Query sessions
 go run ./cmd/trace-query sessions
-```
+```text
 
 ## 📊 Example Output
 
@@ -141,7 +141,7 @@ go run ./cmd/trace-query sessions
     "task_title": "Implement Authentication"
   }
 }
-```
+```text
 
 ### Dashboard View (Mermaid)
 
@@ -153,33 +153,38 @@ graph TB
     root --> child3["NOV-125: Tests ⚪"]
     child2 --> sub1["NOV-126: Validate ✅"]
     child2 --> sub2["NOV-127: Token 🟡"]
-```
+```text
 
 ## 🎨 Key Features
 
 ### 1. Hierarchical Task Tracking
+
 - Link traces to Beads tasks automatically
 - Show parent/child relationships
 - Visual status indicators (✅ 🟡 🔴 ⚪)
 
 ### 2. Cost & Token Analytics
+
 - Track token usage per tool
 - Compute estimated costs
 - Identify expensive operations
 - Optimize prompts based on data
 
 ### 3. Timeline Visualization
+
 - See tool execution chronologically
 - Identify bottlenecks
 - Debug failed operations
 - Replay sessions
 
 ### 4. Real-Time Updates
+
 - Watch tasks as they execute
 - Server-Sent Events (SSE)
 - Live metrics updates
 
 ### 5. Powerful Queries
+
 - SQL-based analytics
 - Pre-built dashboard queries
 - Custom reporting
@@ -188,17 +193,20 @@ graph TB
 ## 🛠️ Tech Stack
 
 ### Backend (Go)
+
 - **Hook Binary**: Captures and processes events
 - **Aggregator API**: REST endpoints + SSE
 - **Storage**: JSONL + SQLite
 
 ### Frontend (React/Next.js)
+
 - **Mermaid.js**: Task hierarchy diagrams
 - **Recharts**: Cost analytics charts
 - **React Flow**: Alternative for complex graphs
 - **Tailwind CSS**: Styling
 
 ### Optional Future Stack
+
 - **ClickHouse**: OLAP queries for scale
 - **TimescaleDB**: Time-series analytics
 - **Docker**: Easy deployment
@@ -206,32 +214,38 @@ graph TB
 ## 📈 Implementation Phases
 
 ### ✅ Phase 1: MVP Hook (Week 1)
+
 - Basic event capture
 - JSONL storage
 - Simple CLI queries
 
 ### 🔄 Phase 2: Beads Integration (Week 2)
+
 - Link traces to tasks
 - Capture hierarchy
 - Task status tracking
 
 ### 🔄 Phase 3: Metrics & Aggregation (Week 3)
+
 - Token counting
 - Cost calculation
 - SQLite indexing
 
 ### 🔄 Phase 4: Aggregator API (Week 4)
+
 - REST endpoints
 - Real-time updates (SSE)
 - Query optimization
 
 ### 🔄 Phase 5: Dashboard UI (Week 5-6)
+
 - React/Next.js app
 - Mermaid diagrams
 - Cost analytics charts
 - Interactive navigation
 
 ### 🔄 Phase 6: Polish & Scale (Week 7+)
+
 - Data retention policies
 - Performance optimization
 - Cloud deployment
@@ -242,12 +256,14 @@ graph TB
 You mentioned the [destructive_command_guard](https://github.com/Dicklesworthstone/destructive_command_guard) hook as reference.
 
 ### Similarities
+
 - ✅ Reads JSON from stdin
 - ✅ Processes hook events synchronously
 - ✅ Returns exit code (0 = success, non-zero = block)
 - ✅ Can inspect tool inputs/outputs
 
 ### Our Additions
+
 - ✨ Structured trace format with hierarchy
 - ✨ Integration with Beads task tracker
 - ✨ Token/cost metrics tracking
@@ -264,6 +280,7 @@ The `destructive_command_guard` is a **safety hook** (blocking dangerous command
 Our `claude-trace` is an **observability hook** (capturing telemetry for analysis).
 
 Both are valid hook patterns:
+
 - **Blocking hooks** → Exit non-zero to prevent execution
 - **Observability hooks** → Exit 0, log data for later analysis
 
@@ -279,13 +296,13 @@ task := getCurrentBeadsTask()
 trace.TaskID = task.ID
 trace.TaskStatus = task.Status
 trace.ParentID = task.ParentID
-```
+```text
 
 ### With Fractal Orchestrator (from brainstorm.md)
 
 The tracing system aligns perfectly with your orchestrator design:
 
-```
+```text
 Planner → creates tasks in Beads
     ↓
 Worker → executes leaf tasks
@@ -295,7 +312,7 @@ claude-trace → captures all tool usage
 Dashboard → shows task tree + metrics
     ↓
 Human → drills down to debug/optimize
-```
+```text
 
 ### With Claude Hooks
 
@@ -339,7 +356,7 @@ Add to `.claude/settings.json`:
     }]
   }
 }
-```
+```text
 
 ### Environment Variables
 
@@ -352,7 +369,7 @@ export CLAUDE_TRACE_DIR=/path/to/traces
 
 # Hook type (set automatically by Claude)
 export CLAUDE_HOOK_TYPE=PostToolUse
-```
+```text
 
 ## 🐛 Debugging
 
@@ -366,7 +383,7 @@ echo '{"session_id":"test","tool_name":"Read","timestamp":"2024-01-31T10:00:00Z"
 
 # Check exit code
 echo $?  # Should be 0
-```
+```text
 
 ### View Logs
 
@@ -376,7 +393,7 @@ tail -f .claude/traces/current.jsonl | jq
 
 # Count events by tool
 cat .claude/traces/*.jsonl | jq -r '.tool_name' | sort | uniq -c
-```
+```text
 
 ### Common Issues
 
@@ -398,17 +415,20 @@ cat .claude/traces/*.jsonl | jq -r '.tool_name' | sort | uniq -c
 ## 📚 Resources
 
 ### Documentation
+
 - [System Design](./claude-trace-system.md)
 - [Quick Start Guide](./claude-trace-quickstart.md)
 - [Dashboard Examples](./claude-trace-dashboard-examples.md)
 
 ### External References
+
 - [Claude Hooks Documentation](https://code.claude.com/docs/en/hooks)
 - [Example Hook: Destructive Command Guard](https://github.com/Dicklesworthstone/destructive_command_guard)
 - [OpenTelemetry Tracing](https://opentelemetry.io/docs/concepts/signals/traces/)
 - [Mermaid.js Diagrams](https://mermaid.js.org/)
 
 ### Related Tools
+
 - [Beads Task Tracker](https://github.com/beadslabs/beads) (integrated)
 - [Jaeger](https://www.jaegertracing.io/) (inspiration for UI)
 - [LangSmith](https://www.langchain.com/langsmith) (LLM observability)

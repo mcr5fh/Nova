@@ -17,10 +17,6 @@ func TestTrackSession(t *testing.T) {
 	os.Setenv("HOME", homeDir)
 	defer os.Setenv("HOME", originalHome)
 
-	// Set test mode to skip watcher spawning
-	os.Setenv("NOVA_TEST_MODE", "1")
-	defer os.Unsetenv("NOVA_TEST_MODE")
-
 	// Create test input
 	input := map[string]interface{}{
 		"session_id":      "test-session-123",
@@ -104,10 +100,6 @@ func TestTrackSessionMissingFields(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Set test mode
-			os.Setenv("NOVA_TEST_MODE", "1")
-			defer os.Unsetenv("NOVA_TEST_MODE")
-
 			inputJSON, err := json.Marshal(tt.input)
 			if err != nil {
 				t.Fatalf("failed to marshal input: %v", err)

@@ -46,7 +46,7 @@ The main application renders three demo components stacked vertically:
     <TraceTable ... />     // Events table
   </div>
 </Layout>
-```
+```text
 
 All content appears on every URL because **React Router is installed but not implemented**. The sidebar navigation uses plain `<a href>` tags (lines 113-122 in `Sidebar.tsx`) which cause full page reloads but always serve the same SPA content.
 
@@ -58,9 +58,10 @@ The FlowView component has a **fixed height of 600px**:
 
 ```tsx
 <div className="flow-view w-full h-[600px] border border-slate-700 rounded-lg">
-```
+```text
 
 This constraint exists because:
+
 1. The FlowView is designed to be one section among several on a demo page
 2. React Flow requires a defined container height to render properly
 3. The surrounding demo wrapper adds additional padding and styling
@@ -80,9 +81,10 @@ The TaskTreeDemo wraps the graph in a dark-themed container:
     </div>
   </div>
 </div>
-```
+```text
 
 This creates:
+
 - A full viewport dark section (`min-h-screen bg-slate-900`)
 - A centered max-width container (`max-w-7xl mx-auto`)
 - A card-style wrapper around the graph (`bg-slate-800 rounded-lg p-6`)
@@ -95,7 +97,7 @@ The AnalyticsDemo also has its own full-height wrapper:
 
 ```tsx
 <div className="min-h-screen bg-bg-0 p-8">
-```
+```text
 
 This uses the light theme color (`bg-bg-0: #f6f7f8`) creating a visual contrast with the dark TaskTreeDemo section.
 
@@ -115,7 +117,7 @@ The Layout provides a shell with Header and Sidebar:
     </main>
   </div>
 </div>
-```
+```text
 
 The main content area is scrollable (`overflow-auto`) and stretches to fill available space (`flex-1`).
 
@@ -165,7 +167,7 @@ However, the TaskTreeDemo uses hardcoded Slate colors (`bg-slate-900`, `bg-slate
 
 ### Current Content Flow
 
-```
+```text
 App.tsx
 ├── Layout (shell with Header + Sidebar)
 │   └── Main content area (scrollable)
@@ -177,7 +179,7 @@ App.tsx
 │       │   └── TaskTree
 │       │       └── FlowView (h-[600px] fixed)
 │       └── TraceTable (card wrapper)
-```
+```text
 
 ### Why the Layout Appears This Way
 
@@ -208,9 +210,10 @@ _No prior research documents exist for this feature._
 #### 1. Minimal Depth and Elevation System
 
 **Single Shadow Definition** (`index.css:23`):
+
 ```css
 --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.06), 0 8px 24px rgba(15, 23, 42, 0.08);
-```
+```text
 
 The design uses only ONE shadow value for all cards. Modern UIs typically have an elevation scale (4-6 shadow levels) to create visual hierarchy and depth.
 
@@ -219,6 +222,7 @@ The design uses only ONE shadow value for all cards. Modern UIs typically have a
 #### 2. Basic Border Treatment
 
 **Uniform Border System**:
+
 - All borders: 1px solid `#e2e8f0` (light gray)
 - No border gradients
 - No accent borders or highlights
@@ -231,6 +235,7 @@ The design uses only ONE shadow value for all cards. Modern UIs typically have a
 #### 3. Theme Inconsistency
 
 **Mixed Color Schemes**:
+
 - Main app: Light theme with `bg-bg-0: #f6f7f8` and `color-card: #ffffff`
 - TaskTree nodes: Dark theme with `bg-slate-800` (`TaskNodeComponent.tsx:16`)
 - TaskTree demo wrapper: `bg-slate-900` (`TaskTree.demo.tsx:69`)
@@ -241,6 +246,7 @@ The design uses only ONE shadow value for all cards. Modern UIs typically have a
 #### 4. No Dark Mode Support
 
 **Single Theme Only**:
+
 - Fixed light theme colors
 - No theme toggle mechanism
 - No `prefers-color-scheme` detection
@@ -251,6 +257,7 @@ The design uses only ONE shadow value for all cards. Modern UIs typically have a
 #### 5. Minimal Interactive Feedback
 
 **Basic Hover States**:
+
 - Simple color changes: `hover:bg-gray-100` (`Sidebar.tsx:115`, `Header.tsx:18`)
 - No scale transforms on buttons
 - No ripple effects
@@ -258,6 +265,7 @@ The design uses only ONE shadow value for all cards. Modern UIs typically have a
 - Single transition type: `transition-colors`
 
 **Missing Modern Interactions**:
+
 - No button press states (transform, scale)
 - No micro-animations
 - No spring physics
@@ -269,6 +277,7 @@ The design uses only ONE shadow value for all cards. Modern UIs typically have a
 
 **Basic Font Usage**:
 While using modern fonts (Sora, IBM Plex Mono), the implementation is basic:
+
 - No font weight variation for emphasis
 - Limited use of letter-spacing
 - No gradient text effects
@@ -281,6 +290,7 @@ While using modern fonts (Sora, IBM Plex Mono), the implementation is basic:
 #### 7. Lack of Modern Visual Effects
 
 **Missing Effects**:
+
 - No glassmorphism (backdrop blur on cards)
 - No gradient backgrounds
 - No animated gradients
@@ -293,6 +303,7 @@ While using modern fonts (Sora, IBM Plex Mono), the implementation is basic:
 #### 8. Basic Color Palette
 
 **Limited Color System** (`index.css:5-18`):
+
 - 3 background grays
 - 3 text grays
 - 1 primary accent (teal)
@@ -300,6 +311,7 @@ While using modern fonts (Sora, IBM Plex Mono), the implementation is basic:
 - **Total: 11 colors**
 
 Modern design systems typically have:
+
 - 10+ shades per color
 - Multiple accent colors
 - Semantic color tokens
@@ -310,6 +322,7 @@ Modern design systems typically have:
 #### 9. No Loading State Sophistication
 
 **Basic Loaders**:
+
 - Simple spinner: `animate-spin rounded-full h-12 w-12 border-b-2` (`FlowView.tsx:225`)
 - Text-only states: "Loading traces..." (`TraceTable.tsx:72`)
 - No skeleton screens
@@ -321,11 +334,13 @@ Modern design systems typically have:
 #### 10. Dated Card Design
 
 **Plain Card Pattern**:
+
 ```tsx
 className="bg-card border border-border rounded-lg p-6"
-```
+```text
 
 **What's Missing**:
+
 - No hover effects (elevation change, border glow)
 - No gradient borders
 - No inner shadows
@@ -340,6 +355,7 @@ className="bg-card border border-border rounded-lg p-6"
 #### 11. React Flow Integration Issues
 
 **Dark Component in Light UI** (`FlowView.tsx:252-267`):
+
 ```tsx
 <div className="... border border-slate-700">  // Dark border
   <ReactFlow ...>
@@ -348,9 +364,10 @@ className="bg-card border border-border rounded-lg p-6"
     <MiniMap maskColor="rgba(0, 0, 0, 0.2)" />
   </ReactFlow>
 </div>
-```
+```text
 
 The React Flow component uses dark slate colors that don't match the light theme:
+
 - Border: `border-slate-700` (very dark gray)
 - Background grid: `#64748b` (slate-500)
 - Node backgrounds: `bg-slate-800` (very dark)
@@ -360,13 +377,14 @@ The React Flow component uses dark slate colors that don't match the light theme
 #### 12. Excessive Container Nesting
 
 **Multiple Wrapper Layers**:
-```
+
+```text
 TaskTreeDemo (min-h-screen bg-slate-900 p-8)
   └── max-w-7xl container (mx-auto)
       └── Card wrapper (bg-slate-800 rounded-lg p-6)
           └── TaskTree
               └── FlowView (h-[600px])
-```
+```text
 
 Each layer adds padding and background, creating excessive visual weight.
 
@@ -374,7 +392,7 @@ Each layer adds padding and background, creating excessive visual weight.
 
 ### Comparison to Modern Design Patterns (2024-2026)
 
-#### What Modern Apps Have That This Lacks:
+#### What Modern Apps Have That This Lacks
 
 1. **Depth System**: Multiple elevation levels with corresponding shadows
 2. **Dark Mode**: Universal theme switching with `prefers-color-scheme`
@@ -411,6 +429,7 @@ Each layer adds padding and background, creating excessive visual weight.
 ### Summary: The "1990s" Appearance
 
 The dashboard looks dated because it uses:
+
 - **1990s-era flat design**: Minimal shadows, plain borders, static colors
 - **Early 2010s card patterns**: Basic white cards without modern effects
 - **Pre-dark-mode era**: Single light theme without modern theme support
@@ -418,6 +437,7 @@ The dashboard looks dated because it uses:
 - **Inconsistent styling**: Mixed themes suggest rapid prototyping without design cohesion
 
 Modern web apps (2024-2026) expect:
+
 - Rich elevation systems with multiple shadow levels
 - Universal dark mode support
 - Micro-interactions and spring animations

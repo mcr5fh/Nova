@@ -24,9 +24,10 @@ graph TB
     style validate fill:#dcfce7,stroke:#22c55e,stroke-width:2px
     style token fill:#fef3c7,stroke:#eab308,stroke-width:2px
     style error fill:#fee2e2,stroke:#ef4444,stroke-width:2px
-```
+```text
 
 **Interactive Features:**
+
 - Click node → drill into task details
 - Hover → show tooltip with more metrics
 - Color coding: 🟢 Complete | 🟡 In Progress | 🔴 Failed | ⚪ Pending
@@ -34,7 +35,7 @@ graph TB
 
 ### 2. Timeline View
 
-```
+```text
 Session: abc123 | Duration: 2h 15m | Cost: $3.50
 ─────────────────────────────────────────────────────────────────────
 10:00 ┃ 🔵 Task Start: Implement Authentication
@@ -73,11 +74,11 @@ Session: abc123 | Duration: 2h 15m | Cost: $3.50
 
 Legend:
 📖 Read | ✏️  Edit | ⚙️  Bash | 🔄 Test | 🔵 Task | ✅ Success | ❌ Fail
-```
+```text
 
 ### 3. Cost Analytics Dashboard
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │  Cost Overview - Last 30 Days                                   │
 ├─────────────────────────────────────────────────────────────────┤
@@ -119,11 +120,11 @@ Legend:
 │  │ Cache Write: █ 50K (3%)                                   │ │
 │  └───────────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────────┘
-```
+```text
 
 ### 4. Session Summary Card
 
-```
+```text
 ┌─────────────────────────────────────────────────────────┐
 │ 🎯 Session: abc-def-123                                 │
 │ ⏱️  Duration: 2h 15m                                     │
@@ -148,7 +149,7 @@ Legend:
 ├─────────────────────────────────────────────────────────┤
 │ [View Details] [Export] [Share]                        │
 └─────────────────────────────────────────────────────────┘
-```
+```text
 
 ## SQL Queries for Dashboard
 
@@ -208,7 +209,7 @@ CREATE TABLE IF NOT EXISTS task_summary (
     INDEX idx_task_status (status),
     INDEX idx_task_start (start_time)
 );
-```
+```text
 
 ### Common Queries
 
@@ -228,7 +229,7 @@ SELECT
 FROM traces
 GROUP BY session_id
 ORDER BY start_time DESC;
-```
+```text
 
 #### 2. Get Task Hierarchy (Parent → Children)
 
@@ -261,7 +262,7 @@ WITH RECURSIVE task_tree AS (
 )
 SELECT * FROM task_tree
 ORDER BY depth, task_id;
-```
+```text
 
 #### 3. Get Tool Usage Distribution
 
@@ -278,7 +279,7 @@ WHERE tool_name IS NOT NULL
     AND session_id = ?  -- Parameter: session ID
 GROUP BY tool_name
 ORDER BY usage_count DESC;
-```
+```text
 
 #### 4. Get Timeline for Session
 
@@ -300,7 +301,7 @@ SELECT
 FROM traces
 WHERE session_id = ?  -- Parameter: session ID
 ORDER BY timestamp ASC;
-```
+```text
 
 #### 5. Get Cost Over Time (Daily)
 
@@ -316,7 +317,7 @@ WHERE timestamp >= ?  -- Parameter: start timestamp
     AND timestamp <= ?  -- Parameter: end timestamp
 GROUP BY date
 ORDER BY date DESC;
-```
+```text
 
 #### 6. Get Top Expensive Tasks
 
@@ -334,7 +335,7 @@ LEFT JOIN traces tr ON tr.task_id = t.task_id
 GROUP BY t.task_id
 ORDER BY t.total_cost DESC
 LIMIT 10;
-```
+```text
 
 #### 7. Get Failed Operations
 
@@ -352,7 +353,7 @@ WHERE tool_output LIKE '%error%'
     OR tool_output LIKE '%exception%'
 ORDER BY timestamp DESC
 LIMIT 50;
-```
+```text
 
 #### 8. Get Token Efficiency (Tokens per Dollar)
 
@@ -368,7 +369,7 @@ WHERE tool_name IS NOT NULL
     AND estimated_cost > 0
 GROUP BY tool_name
 ORDER BY tokens_per_dollar DESC;
-```
+```text
 
 #### 9. Get Session Activity Heatmap Data
 
@@ -381,7 +382,7 @@ FROM traces
 WHERE timestamp >= ?  -- Last 7 days
 GROUP BY hour, day_of_week
 ORDER BY day_of_week, hour;
-```
+```text
 
 #### 10. Get Most Edited Files
 
@@ -397,13 +398,13 @@ WHERE tool_name IN ('Edit', 'Write', 'MultiEdit')
 GROUP BY file_path
 ORDER BY edit_count DESC
 LIMIT 20;
-```
+```text
 
 ## API Endpoints for Dashboard
 
 ### REST API Design
 
-```
+```text
 GET /api/sessions
   → List all sessions with summary
 
@@ -439,11 +440,11 @@ GET /api/search?q={query}
 
 GET /api/stream (SSE)
   → Real-time trace updates
-```
+```text
 
 ### Example API Response
 
-**GET /api/sessions/{session_id}**
+#### GET /api/sessions/{session_id}
 
 ```json
 {
@@ -485,11 +486,11 @@ GET /api/stream (SSE)
     "auth/handler_test.go"
   ]
 }
-```
+```text
 
 ## Dashboard Component Hierarchy (React)
 
-```
+```text
 App
 ├── Header
 │   ├── Logo
@@ -520,7 +521,7 @@ App
 └── Footer
     ├── Status
     └── Version
-```
+```text
 
 ## Mermaid Generation from Traces
 
@@ -625,7 +626,7 @@ func sanitizeID(id string) string {
     // Replace special characters for Mermaid compatibility
     return strings.ReplaceAll(id, "-", "_")
 }
-```
+```text
 
 ## Real-Time Updates (Server-Sent Events)
 
@@ -671,7 +672,7 @@ func (api *API) StreamTraces(w http.ResponseWriter, r *http.Request) {
         }
     }
 }
-```
+```text
 
 ### React Component Using SSE
 
@@ -702,7 +703,7 @@ function RealtimeTraces() {
     </div>
   );
 }
-```
+```text
 
 ## Next Steps
 

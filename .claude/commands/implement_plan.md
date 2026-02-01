@@ -35,7 +35,7 @@ If you encounter a mismatch:
 - STOP and think deeply about why the plan can't be followed
 - Present the issue clearly:
 
-  ```
+  ```text
   Issue in Phase [N]:
   Expected: [what the plan says]
   Found: [actual situation]
@@ -54,7 +54,7 @@ After implementing a phase:
 - Check off completed items in the plan file itself using Edit
 - **Pause for human verification**: After completing all automated verification for a phase, pause and inform the human that the phase is ready for manual testing. Use this format:
 
-  ```
+  ```text
   Phase [N] Complete - Ready for Manual Verification
 
   Automated verification passed:
@@ -69,7 +69,6 @@ After implementing a phase:
 If instructed to execute multiple phases consecutively, skip the pause until the last phase. Otherwise, assume you are just doing one phase.
 
 do not check off items in the manual testing steps until confirmed by the user.
-
 
 ## Repository Standards
 

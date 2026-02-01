@@ -2,7 +2,7 @@
 
 ## Project Structure
 
-```
+```text
 claude-trace/
 ├── cmd/
 │   ├── claude-trace/           # Main hook binary
@@ -34,7 +34,7 @@ claude-trace/
 ├── go.sum
 ├── Makefile
 └── README.md
-```
+```text
 
 ## Phase 1: Basic Hook Implementation
 
@@ -47,7 +47,7 @@ go mod init github.com/yourusername/claude-trace
 # Add dependencies
 go get github.com/google/uuid
 go get github.com/mattn/go-sqlite3
-```
+```text
 
 ### Step 2: Core Types (`internal/hook/types.go`)
 
@@ -99,7 +99,7 @@ type Metrics struct {
     FilesWritten     int     `json:"files_written,omitempty"`
     FilesEdited      int     `json:"files_edited,omitempty"`
 }
-```
+```text
 
 ### Step 3: Hook Processor (`internal/hook/processor.go`)
 
@@ -210,7 +210,7 @@ func getOrCreateTraceID(sessionID string) string {
     // Later: read from state file to maintain trace ID across invocations
     return sessionID
 }
-```
+```text
 
 ### Step 4: Storage Writer (`internal/storage/jsonl.go`)
 
@@ -265,7 +265,7 @@ func (w *JSONLWriter) Write(event *hook.TraceEvent) error {
 
     return nil
 }
-```
+```text
 
 ### Step 5: Main Hook Binary (`cmd/claude-trace/main.go`)
 
@@ -321,7 +321,7 @@ func main() {
     // Exit successfully (non-blocking)
     os.Exit(0)
 }
-```
+```text
 
 ### Step 6: Build and Install
 
@@ -334,33 +334,33 @@ BINARY_NAME=claude-trace
 INSTALL_DIR=$(HOME)/.local/bin
 
 build:
-	go build -o bin/$(BINARY_NAME) ./cmd/claude-trace
+ go build -o bin/$(BINARY_NAME) ./cmd/claude-trace
 
 install: build
-	mkdir -p $(INSTALL_DIR)
-	cp bin/$(BINARY_NAME) $(INSTALL_DIR)/
-	chmod +x $(INSTALL_DIR)/$(BINARY_NAME)
+ mkdir -p $(INSTALL_DIR)
+ cp bin/$(BINARY_NAME) $(INSTALL_DIR)/
+ chmod +x $(INSTALL_DIR)/$(BINARY_NAME)
 
 test:
-	go test -v ./...
+ go test -v ./...
 
 clean:
-	rm -rf bin/
-	go clean
+ rm -rf bin/
+ go clean
 
 # Development: install to project .claude/hooks
 install-local: build
-	mkdir -p .claude/hooks
-	cp bin/$(BINARY_NAME) .claude/hooks/
-	chmod +x .claude/hooks/$(BINARY_NAME)
-```
+ mkdir -p .claude/hooks
+ cp bin/$(BINARY_NAME) .claude/hooks/
+ chmod +x .claude/hooks/$(BINARY_NAME)
+```text
 
 Build and install:
 
 ```bash
 make build
 make install-local  # or: make install for global
-```
+```text
 
 ### Step 7: Configure Hook
 
@@ -393,7 +393,7 @@ Update `.claude/settings.json`:
     ]
   }
 }
-```
+```text
 
 ### Step 8: Test It
 
@@ -403,9 +403,10 @@ Update `.claude/settings.json`:
 ```bash
 ls -la .claude/traces/
 cat .claude/traces/traces-2024-01-31.jsonl | jq
-```
+```text
 
 Expected output:
+
 ```json
 {
   "trace_id": "abc123",
@@ -423,7 +424,7 @@ Expected output:
   },
   "tags": {}
 }
-```
+```text
 
 ## Phase 2: Query Tool (CLI)
 
@@ -552,7 +553,7 @@ func showStats(cmd *cobra.Command, args []string) {
         fmt.Printf("  %s: %d\n", tool, count)
     }
 }
-```
+```text
 
 ## Next Steps After Phase 1
 
@@ -576,7 +577,7 @@ if os.Getenv("CLAUDE_TRACE_DEBUG") == "1" {
 
     fmt.Fprintf(logFile, "[%s] Hook event: %+v\n", time.Now(), hookEvent)
 }
-```
+```text
 
 ### Testing Without Claude
 
@@ -595,7 +596,7 @@ Create test input files:
 
 # Test the hook
 cat test-input.json | CLAUDE_HOOK_TYPE=PreToolUse ./bin/claude-trace
-```
+```text
 
 ### Performance Monitoring
 
@@ -609,7 +610,7 @@ defer func() {
         fmt.Fprintf(os.Stderr, "WARN: Hook took %v\n", duration)
     }
 }()
-```
+```text
 
 ## Common Issues
 
@@ -632,5 +633,5 @@ defer func() {
 ## Resources
 
 - Full design doc: `docs/claude-trace-system.md`
-- Example hook: https://github.com/Dicklesworthstone/destructive_command_guard
-- Claude hooks docs: https://code.claude.com/docs/en/hooks
+- Example hook: <https://github.com/Dicklesworthstone/destructive_command_guard>
+- Claude hooks docs: <https://code.claude.com/docs/en/hooks>

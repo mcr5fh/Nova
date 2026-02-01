@@ -2,17 +2,18 @@
 
 From our current session (ID: `62157f1e-5efa-409b-b873-0f2461137911`):
 
-```
+```text
 /Users/mattruiters/.claude/projects/-Users-mattruiters-Code-Projects-NovaHack-Nova/62157f1e-5efa-409b-b873-0f2461137911.jsonl
-```
+```text
 
 ## Path Structure
 
-```
+```text
 ~/.claude/projects/<encoded-project-path>/<session-id>.jsonl
-```
+```text
 
 Where:
+
 - `<encoded-project-path>` = URL-safe encoding of absolute project path
   - Example: `/Users/mattruiters/Code/Projects/NovaHack/Nova`
   - Becomes: `-Users-mattruiters-Code-Projects-NovaHack-Nova`
@@ -35,13 +36,14 @@ When a hook fires, Claude Code sends this path in the `transcript_path` field:
   "tool_input": { "command": "bd show Nova-c3n" },
   "tool_response": { "exit_code": 0, "stdout": "..." }
 }
-```
+```text
 
 ## Transcript Format
 
 The transcript is a JSONL file (one JSON object per line) containing the conversation history.
 
 **Each entry has:**
+
 - Message exchanges (user, assistant)
 - Tool calls and results
 - Usage statistics (tokens, costs)
@@ -57,6 +59,7 @@ To extract token usage and costs for our trace system, Phase 2 will:
 5. **Enrich trace events** with metrics
 
 Example pseudocode:
+
 ```python
 def enrich_with_usage(hook_input):
     transcript_path = hook_input['transcript_path']
@@ -73,7 +76,7 @@ def enrich_with_usage(hook_input):
         'output_tokens': usage['output_tokens'],
         'cost_usd': calculate_cost(usage, model='sonnet-4.5')
     }
-```
+```text
 
 ## File Size
 
