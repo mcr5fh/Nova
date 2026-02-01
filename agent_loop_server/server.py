@@ -14,7 +14,7 @@ from typing import Set, List, Dict, Any
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
-from .agent import AgentLoopRunner
+from .agent import AgentLoopRunner, DiagramGenerator
 from .events import UserMessageEvent, ErrorEvent
 from .baml_client import b
 from .baml_client.types import Message, MessageRole
@@ -29,6 +29,7 @@ class ConnectionManager:
     def __init__(self):
         self.active_connections: Set[WebSocket] = set()
         self.session_agents: dict[str, AgentLoopRunner] = {}
+        self.session_diagram_generators: dict[str, DiagramGenerator] = {}
 
     async def connect(self, websocket: WebSocket):
         """Accept and register a WebSocket connection."""
@@ -56,14 +57,48 @@ class ConnectionManager:
         # Clean up dead connections
         self.active_connections -= dead_connections
 
+    async def broadcast_event(self, event):
+        """Broadcast an event object to all clients.
+
+        Args:
+            event: Event object with to_dict() method
+        """
+        await self.broadcast(event.to_dict())
+
+    def get_session_diagram_generator(self, session_id: str) -> DiagramGenerator:
+        """Get or create a diagram generator for a logical session.
+
+        Args:
+            session_id: Session identifier
+
+        Returns:
+            DiagramGenerator instance for the session
+        """
+        generator = self.session_diagram_generators.get(session_id)
+        if generator is None:
+            # Get API base URL from environment or use default
+            api_base_url = f"http://localhost:{os.getenv('AGENT_LOOP_PORT', 8001)}"
+
+            generator = DiagramGenerator(
+                api_base_url=api_base_url,
+                debounce_seconds=5.0,
+                broadcast_callback=self.broadcast_event,
+            )
+            self.session_diagram_generators[session_id] = generator
+        return generator
+
     def get_session_agent(self, session_id: str, on_event) -> AgentLoopRunner:
         """Get or create an agent for a logical session."""
         agent = self.session_agents.get(session_id)
         if agent is None:
+            # Get or create diagram generator for this session
+            diagram_generator = self.get_session_diagram_generator(session_id)
+
             agent = AgentLoopRunner(
                 working_dir=".",
                 on_event=on_event,
                 session_id=session_id,
+                diagram_generator=diagram_generator,
             )
             self.session_agents[session_id] = agent
         else:
@@ -129,10 +164,19 @@ async def websocket_endpoint(websocket: WebSocket):
         """Broadcast agent events in real-time."""
         await manager.broadcast(event.to_dict())
 
+    # Create diagram generator for default (non-session) agent
+    api_base_url = f"http://localhost:{os.getenv('AGENT_LOOP_PORT', 8001)}"
+    default_diagram_generator = DiagramGenerator(
+        api_base_url=api_base_url,
+        debounce_seconds=5.0,
+        broadcast_callback=manager.broadcast_event,
+    )
+
     # Default agent (per-connection, non-persistent across reconnects)
     default_agent = AgentLoopRunner(
         working_dir=".",
         on_event=on_event,
+        diagram_generator=default_diagram_generator,
     )
 
     try:
