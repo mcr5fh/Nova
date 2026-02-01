@@ -7,6 +7,7 @@
 import 'dotenv/config';
 import { WebSocketServer } from 'ws';
 import express from 'express';
+import cors from 'cors';
 import { createServer } from 'http';
 import multer from 'multer';
 import { SessionManager } from './sessions/manager.js';
@@ -83,16 +84,11 @@ export function createNovaServer(config: NovaServerConfig = {}): NovaServer {
   const app = express();
 
   // Enable CORS for frontend
-  app.use((_req, res, next) => {
-    res.header('Access-Control-Allow-Origin', corsOrigin);
-    res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type');
-    if (_req.method === 'OPTIONS') {
-      res.sendStatus(204);
-      return;
-    }
-    next();
-  });
+  app.use(cors({
+    origin: corsOrigin,
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type'],
+  }));
 
   // Parse JSON bodies for TTS endpoint
   app.use(express.json());

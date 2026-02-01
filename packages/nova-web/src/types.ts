@@ -49,3 +49,35 @@ export interface SpeechRecognitionResult {
   isFinal: boolean;
   confidence: number;
 }
+
+// Web Speech API types (not in standard lib)
+export interface WebSpeechRecognitionEvent extends Event {
+  results: SpeechRecognitionResultList;
+  resultIndex: number;
+}
+
+export interface WebSpeechRecognitionErrorEvent extends Event {
+  error: string;
+  message: string;
+}
+
+export interface WebSpeechRecognition extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  start(): void;
+  stop(): void;
+  abort(): void;
+  onresult: ((event: WebSpeechRecognitionEvent) => void) | null;
+  onerror: ((event: WebSpeechRecognitionErrorEvent) => void) | null;
+  onend: (() => void) | null;
+  onstart: (() => void) | null;
+  onspeechend?: (() => void) | null;
+}
+
+declare global {
+  interface Window {
+    SpeechRecognition: new () => WebSpeechRecognition;
+    webkitSpeechRecognition: new () => WebSpeechRecognition;
+  }
+}

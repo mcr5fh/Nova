@@ -1,37 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { SpeechRecognitionResult } from '../types';
-
-// Web Speech API types (not in standard lib)
-interface SpeechRecognitionEvent extends Event {
-  results: SpeechRecognitionResultList;
-  resultIndex: number;
-}
-
-interface SpeechRecognitionErrorEvent extends Event {
-  error: string;
-  message: string;
-}
-
-interface SpeechRecognition extends EventTarget {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  start(): void;
-  stop(): void;
-  abort(): void;
-  onresult: ((event: SpeechRecognitionEvent) => void) | null;
-  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
-  onend: (() => void) | null;
-  onstart: (() => void) | null;
-  onspeechend: (() => void) | null;
-}
-
-declare global {
-  interface Window {
-    SpeechRecognition: new () => SpeechRecognition;
-    webkitSpeechRecognition: new () => SpeechRecognition;
-  }
-}
+import type {
+  SpeechRecognitionResult,
+  WebSpeechRecognition,
+  WebSpeechRecognitionEvent,
+  WebSpeechRecognitionErrorEvent,
+} from '../types';
 
 export interface UseSpeechRecognitionOptions {
   continuous?: boolean;
@@ -69,7 +42,7 @@ export function useSpeechRecognition(
   const [interimTranscript, setInterimTranscript] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<WebSpeechRecognition | null>(null);
   const finalTranscriptRef = useRef('');
 
   // Use refs for callbacks to avoid recreating recognition on every render
@@ -101,7 +74,7 @@ export function useSpeechRecognition(
       finalTranscriptRef.current = '';
     };
 
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
+    recognition.onresult = (event: WebSpeechRecognitionEvent) => {
       let interim = '';
       let final = '';
 
@@ -138,7 +111,7 @@ export function useSpeechRecognition(
       }
     };
 
-    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+    recognition.onerror = (event: WebSpeechRecognitionErrorEvent) => {
       const errorMessage = `Speech recognition error: ${event.error}`;
       setError(errorMessage);
       setIsListening(false);

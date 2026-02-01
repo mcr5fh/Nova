@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNovaSession } from './hooks/useNovaSession';
 import { useSpeechRecognition } from './hooks/useSpeechRecognition';
 import { useWhisperTranscription } from './hooks/useWhisperTranscription';
+import { useHybridSpeechRecognition } from './hooks/useHybridSpeechRecognition';
 import { useTextToSpeech } from './hooks/useTextToSpeech';
 import { VoiceButton } from './components/VoiceButton';
 import { ConversationView } from './components/ConversationView';
@@ -10,8 +11,26 @@ import { ModeSelector } from './components/ModeSelector';
 import type { VoiceState, SessionMode } from './types';
 import './App.css';
 
-// Use Whisper transcription by default, can be disabled via env var
-const USE_WHISPER = import.meta.env.VITE_USE_WHISPER !== 'false';
+// Speech recognition mode:
+// - 'hybrid' (default): Web Speech API for real-time interim + Whisper for accurate final
+// - 'whisper': Whisper only (no interim transcripts)
+// - 'webspeech': Web Speech API only (faster but less accurate)
+type SpeechMode = 'hybrid' | 'whisper' | 'webspeech';
+
+const getSpeechMode = (): SpeechMode => {
+  const mode = import.meta.env.VITE_SPEECH_MODE;
+  if (mode === 'whisper' || mode === 'webspeech') {
+    return mode;
+  }
+  // Legacy support: VITE_USE_WHISPER=false means webspeech mode
+  if (import.meta.env.VITE_USE_WHISPER === 'false') {
+    return 'webspeech';
+  }
+  // Default to hybrid mode
+  return 'hybrid';
+};
+
+const SPEECH_MODE = getSpeechMode();
 
 export default function App() {
   const [voiceState, setVoiceState] = useState<VoiceState>('IDLE');
@@ -43,29 +62,52 @@ export default function App() {
 
   const { speak, stop: stopSpeaking, isSpeaking } = useTextToSpeech();
 
-  // Web Speech API recognition (fallback)
+  // Hybrid speech recognition (Web Speech API for interim + Whisper for final)
+  const {
+    isListening: isHybridListening,
+    isTranscribing: isHybridTranscribing,
+    isSupported: isHybridSupported,
+    interimTranscript: hybridInterimTranscript,
+    start: startHybridListening,
+    stop: stopHybridListening,
+  } = useHybridSpeechRecognition({
+    onFinalTranscript: (text) => {
+      if (text.trim()) {
+        setVoiceState('PROCESSING');
+        sendMessage(text);
+      } else {
+        setVoiceState('IDLE');
+      }
+    },
+    onError: (error) => {
+      console.error('Hybrid transcription error:', error);
+      setVoiceState('IDLE');
+    },
+  });
+
+  // Web Speech API recognition (fallback/standalone mode)
   const {
     isListening: isWebSpeechListening,
     isSupported: isWebSpeechSupported,
     transcript: webSpeechTranscript,
-    interimTranscript,
+    interimTranscript: webSpeechInterimTranscript,
     start: startWebSpeechListening,
     stop: stopWebSpeechListening,
   } = useSpeechRecognition({
     onSpeechEnd: (finalTranscript) => {
-      if (!USE_WHISPER && finalTranscript.trim()) {
+      if (SPEECH_MODE === 'webspeech' && finalTranscript.trim()) {
         setVoiceState('PROCESSING');
         sendMessage(finalTranscript);
-      } else if (!USE_WHISPER) {
+      } else if (SPEECH_MODE === 'webspeech') {
         setVoiceState('IDLE');
       }
     },
   });
 
-  // Whisper transcription (primary)
+  // Whisper-only transcription (no interim transcripts)
   const {
     isRecording: isWhisperRecording,
-    isTranscribing,
+    isTranscribing: isWhisperTranscribing,
     isSupported: isWhisperSupported,
     start: startWhisperRecording,
     stop: stopWhisperRecording,
@@ -84,27 +126,47 @@ export default function App() {
     },
   });
 
-  // Determine which transcription method to use
-  const useWhisper = USE_WHISPER && isWhisperSupported;
-  const isListening = useWhisper ? isWhisperRecording : isWebSpeechListening;
-  const isSpeechSupported = useWhisper ? isWhisperSupported : isWebSpeechSupported;
-  const transcript = useWhisper ? '' : webSpeechTranscript; // Whisper doesn't provide interim transcripts
-
-  const startListening = useCallback(() => {
-    if (useWhisper) {
-      startWhisperRecording();
-    } else {
-      startWebSpeechListening();
+  // Determine active transcription method based on mode
+  const getActiveState = () => {
+    switch (SPEECH_MODE) {
+      case 'hybrid':
+        return {
+          isListening: isHybridListening,
+          isTranscribing: isHybridTranscribing,
+          isSupported: isHybridSupported,
+          interimTranscript: hybridInterimTranscript,
+          transcript: '', // Hybrid mode uses Whisper for final, no web speech transcript
+          startListening: startHybridListening,
+          stopListening: stopHybridListening,
+          showRecordingIndicator: false, // Hybrid shows interim transcripts
+        };
+      case 'whisper':
+        return {
+          isListening: isWhisperRecording,
+          isTranscribing: isWhisperTranscribing,
+          isSupported: isWhisperSupported,
+          interimTranscript: '',
+          transcript: '',
+          startListening: startWhisperRecording,
+          stopListening: stopWhisperRecording,
+          showRecordingIndicator: true, // Whisper-only shows "Recording..."
+        };
+      case 'webspeech':
+        return {
+          isListening: isWebSpeechListening,
+          isTranscribing: false,
+          isSupported: isWebSpeechSupported,
+          interimTranscript: webSpeechInterimTranscript,
+          transcript: webSpeechTranscript,
+          startListening: startWebSpeechListening,
+          stopListening: stopWebSpeechListening,
+          showRecordingIndicator: false,
+        };
     }
-  }, [useWhisper, startWhisperRecording, startWebSpeechListening]);
+  };
 
-  const stopListening = useCallback(() => {
-    if (useWhisper) {
-      stopWhisperRecording();
-    } else {
-      stopWebSpeechListening();
-    }
-  }, [useWhisper, stopWhisperRecording, stopWebSpeechListening]);
+  const activeState = getActiveState();
+  const { isListening, isTranscribing, isSupported, interimTranscript, transcript, startListening, stopListening, showRecordingIndicator } = activeState;
 
   // Connect on mount
   useEffect(() => {
@@ -118,7 +180,7 @@ export default function App() {
     }
   }, [isSpeaking, voiceState]);
 
-  // Sync processing state (including transcribing for Whisper)
+  // Sync processing state (including transcribing)
   useEffect(() => {
     if ((isProcessing || isTranscribing) && voiceState !== 'PROCESSING') {
       setVoiceState('PROCESSING');
@@ -130,16 +192,13 @@ export default function App() {
     if (isListening && voiceState !== 'LISTENING') {
       setVoiceState('LISTENING');
     }
-    // Reset to IDLE when listening stops without triggering onSpeechEnd
-    // (onSpeechEnd handles the case where there's a transcript)
-    // Only reset if we were actually listening before (prevIsListeningRef.current === true)
-    // to avoid resetting immediately after clicking the button but before recognition starts
-    // For Whisper, don't reset to IDLE here - let the transcription callback handle it
-    if (!useWhisper && !isListening && prevIsListeningRef.current && voiceState === 'LISTENING') {
+    // Reset to IDLE when listening stops without triggering callback
+    // Only for webspeech mode (hybrid and whisper handle this in their callbacks)
+    if (SPEECH_MODE === 'webspeech' && !isListening && prevIsListeningRef.current && voiceState === 'LISTENING') {
       setVoiceState('IDLE');
     }
     prevIsListeningRef.current = isListening;
-  }, [isListening, voiceState, useWhisper]);
+  }, [isListening, voiceState]);
 
   const handleVoiceButtonClick = useCallback(() => {
     switch (voiceState) {
@@ -175,6 +234,23 @@ export default function App() {
     return '';
   };
 
+  // Determine what to show in the transcript area
+  const getTranscriptDisplay = () => {
+    if (showRecordingIndicator && isListening) {
+      return 'Recording...';
+    }
+    if (interimTranscript) {
+      return interimTranscript;
+    }
+    if (transcript) {
+      return transcript;
+    }
+    return null;
+  };
+
+  const transcriptDisplay = getTranscriptDisplay();
+  const isInterim = showRecordingIndicator || !!interimTranscript;
+
   return (
     <div className="app">
       <header className="app__header">
@@ -196,9 +272,9 @@ export default function App() {
         <div className="app__conversation-area">
           <ConversationView messages={messages} currentResponse={currentResponse} />
 
-          {(transcript || interimTranscript || (useWhisper && isListening)) && (
-            <div className={`app__transcript ${interimTranscript || (useWhisper && isListening) ? 'app__transcript--interim' : 'app__transcript--final'}`}>
-              {useWhisper && isListening ? 'Recording...' : (interimTranscript || transcript)}
+          {transcriptDisplay && (
+            <div className={`app__transcript ${isInterim ? 'app__transcript--interim' : 'app__transcript--final'}`}>
+              {transcriptDisplay}
             </div>
           )}
         </div>
@@ -212,7 +288,7 @@ export default function App() {
         <VoiceButton
           state={voiceState}
           onClick={handleVoiceButtonClick}
-          disabled={!isConnected || !isSpeechSupported || !mode}
+          disabled={!isConnected || !isSupported || !mode}
         />
       </footer>
     </div>
