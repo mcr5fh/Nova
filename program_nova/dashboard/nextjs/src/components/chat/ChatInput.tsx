@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, KeyboardEvent, ChangeEvent } from 'react';
 import VoiceControls from './VoiceControls';
+import { useVoiceChat } from '@/hooks';
 
 interface ChatInputProps {
   onSend: (message: string) => void;
@@ -17,6 +18,17 @@ export default function ChatInput({
   const [message, setMessage] = useState('');
   const [mode, setMode] = useState<'text' | 'voice'>('text');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Voice chat hook
+  const {
+    voiceState,
+    transcript,
+    agentResponse,
+    connect,
+    disconnect,
+    startRecording,
+    stopRecording,
+  } = useVoiceChat();
 
   // Auto-resize textarea based on content
   useEffect(() => {
@@ -53,6 +65,20 @@ export default function ChatInput({
 
   const handleChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
     setMessage(e.target.value);
+  };
+
+  const handleVoiceToggle = async () => {
+    const isActive = voiceState !== 'disconnected' && voiceState !== 'connecting';
+
+    if (!isActive) {
+      // Start voice mode
+      await connect();
+      await startRecording();
+    } else {
+      // Stop voice mode
+      stopRecording();
+      disconnect();
+    }
   };
 
   return (
@@ -108,9 +134,22 @@ export default function ChatInput({
         </div>
       ) : (
         <VoiceControls
-          onToggle={() => {}}
-          isActive={false}
+          onToggle={handleVoiceToggle}
+          isActive={voiceState !== 'disconnected' && voiceState !== 'connecting'}
           disabled={disabled}
+          voiceState={
+            voiceState === 'listening'
+              ? 'listening'
+              : voiceState === 'processing'
+              ? 'processing'
+              : voiceState === 'speaking'
+              ? 'speaking'
+              : voiceState === 'connected'
+              ? 'idle'
+              : undefined
+          }
+          transcript={transcript}
+          agentResponse={agentResponse}
         />
       )}
     </div>
