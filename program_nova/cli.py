@@ -3,6 +3,7 @@
 
 Usage:
     nova init
+    nova run
     nova start [orchestrator|dashboard|all]
     nova stop [orchestrator|dashboard|all]
     nova restart [orchestrator|dashboard|all]
@@ -11,8 +12,10 @@ Usage:
 """
 
 import argparse
+import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 
@@ -66,6 +69,15 @@ def check_cascade_exists() -> bool:
     return True
 
 
+def is_systemd_available() -> bool:
+    """Check if systemd is available on this system.
+
+    Returns:
+        True if systemctl is found in PATH, False otherwise.
+    """
+    return shutil.which("systemctl") is not None
+
+
 def run_systemctl(command: str, service: str) -> int:
     """Run systemctl command for a service.
 
@@ -95,7 +107,7 @@ def run_systemctl(command: str, service: str) -> int:
 
 
 def start(target: str) -> int:
-    """Start service(s).
+    """Start service(s) using systemd.
 
     Args:
         target: 'orchestrator', 'dashboard', or 'all'
@@ -105,6 +117,14 @@ def start(target: str) -> int:
     """
     # Check if CASCADE.md exists before starting services
     if not check_cascade_exists():
+        return 1
+
+    # Check if systemd is available
+    if not is_systemd_available():
+        print("Error: systemd not available on this system", file=sys.stderr)
+        print("", file=sys.stderr)
+        print("Use 'nova run' instead to run in foreground mode:", file=sys.stderr)
+        print("  nova run", file=sys.stderr)
         return 1
 
     if target == "all":
@@ -214,6 +234,120 @@ def init() -> int:
         return 1
 
 
+def run() -> int:
+    """Run orchestrator and dashboard in foreground mode.
+
+    Starts both services directly (not via systemd) and runs them in the
+    foreground with combined output. Both processes run until interrupted
+    with Ctrl+C.
+
+    Returns:
+        Exit code (0 = success, 1 = error)
+    """
+    # Check if CASCADE.md exists before starting services
+    if not check_cascade_exists():
+        return 1
+
+    print("Starting Nova in foreground mode...")
+    print("Press Ctrl+C to stop both services")
+    print()
+
+    # Find python3 executable
+    python_exe = sys.executable
+
+    # Start orchestrator process
+    orchestrator_cmd = [
+        python_exe,
+        "-m",
+        "program_nova.engine.orchestrator",
+        "--cascade-file", "./CASCADE.md",
+        "--state-file", "./cascade_state.json",
+    ]
+
+    # Start dashboard process
+    dashboard_cmd = [
+        python_exe,
+        "-m",
+        "program_nova.dashboard.server",
+        "--host", "0.0.0.0",
+        "--port", "8000",
+        "--state-file", "./cascade_state.json",
+        "--cascade-file", "./CASCADE.md",
+    ]
+
+    orchestrator_process = None
+    dashboard_process = None
+
+    try:
+        # Start both processes
+        print("Starting orchestrator...")
+        orchestrator_process = subprocess.Popen(
+            orchestrator_cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+        )
+
+        print("Starting dashboard on http://0.0.0.0:8000...")
+        dashboard_process = subprocess.Popen(
+            dashboard_cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+        )
+
+        print()
+        print("Both services started successfully!")
+        print("Dashboard: http://localhost:8000")
+        print()
+
+        # Monitor both processes
+        while True:
+            # Check if either process has exited
+            orch_status = orchestrator_process.poll()
+            dash_status = dashboard_process.poll()
+
+            if orch_status is not None:
+                print(f"Orchestrator exited with code {orch_status}", file=sys.stderr)
+                if dashboard_process and dashboard_process.poll() is None:
+                    dashboard_process.terminate()
+                return orch_status
+
+            if dash_status is not None:
+                print(f"Dashboard exited with code {dash_status}", file=sys.stderr)
+                if orchestrator_process and orchestrator_process.poll() is None:
+                    orchestrator_process.terminate()
+                return dash_status
+
+            # Small sleep to avoid busy waiting
+            time.sleep(0.1)
+
+    except KeyboardInterrupt:
+        print("\nShutting down services...")
+        if orchestrator_process:
+            orchestrator_process.terminate()
+        if dashboard_process:
+            dashboard_process.terminate()
+
+        # Wait for processes to terminate
+        if orchestrator_process:
+            orchestrator_process.wait(timeout=5)
+        if dashboard_process:
+            dashboard_process.wait(timeout=5)
+
+        print("Services stopped.")
+        return 1
+    except Exception as e:
+        print(f"Error running services: {e}", file=sys.stderr)
+        if orchestrator_process:
+            orchestrator_process.terminate()
+        if dashboard_process:
+            dashboard_process.terminate()
+        return 1
+
+
 def logs(target: str, follow: bool = False) -> int:
     """Show logs for a service.
 
@@ -254,8 +388,17 @@ def main():
     # Init command
     subparsers.add_parser("init", help="Initialize CASCADE.md template")
 
+    # Run command
+    subparsers.add_parser(
+        "run",
+        help="Run orchestrator and dashboard in foreground mode (no systemd required)"
+    )
+
     # Start command
-    start_parser = subparsers.add_parser("start", help="Start service(s)")
+    start_parser = subparsers.add_parser(
+        "start",
+        help="Start service(s) via systemd (use 'nova run' if systemd not available)"
+    )
     start_parser.add_argument(
         "target",
         nargs="?",
@@ -316,6 +459,8 @@ def main():
     # Execute command
     if args.command == "init":
         return init()
+    elif args.command == "run":
+        return run()
     elif args.command == "start":
         return start(args.target)
     elif args.command == "stop":
