@@ -1,5 +1,5 @@
 export type ViewLevel = 'l0' | 'l1' | 'l2' | 'l3';
-export type DashboardMode = 'cascade' | 'bead';
+export type DashboardMode = 'planning' | 'cascade' | 'bead';
 
 export interface NavigationState {
   currentView: ViewLevel;
