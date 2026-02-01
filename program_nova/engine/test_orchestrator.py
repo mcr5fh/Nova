@@ -163,6 +163,30 @@ class TestWorkerManagement:
         assert orchestrator.active_workers["F1"] == mock_worker
 
     @patch('program_nova.engine.orchestrator.Worker')
+    def test_start_worker_uses_claude_code_command(self, mock_worker_class, orchestrator):
+        """Test that start_worker uses the Claude Code command to spawn workers."""
+        mock_worker = Mock()
+        mock_worker.task_id = "F1"
+        mock_worker.pid = 12345
+        mock_worker.status = WorkerStatus.RUNNING
+        mock_worker_class.return_value = mock_worker
+
+        # Get the task description for F1
+        task_description = orchestrator.tasks["F1"]["description"]
+
+        orchestrator.start_worker("F1")
+
+        # Verify worker.start was called with the correct Claude Code command
+        mock_worker.start.assert_called_once()
+        called_command = mock_worker.start.call_args[0][0]
+
+        # Verify it's a Claude Code command with the right structure
+        assert called_command[0] == "claude"
+        assert "--model" in called_command
+        assert "sonnet" in called_command
+        assert task_description in called_command
+
+    @patch('program_nova.engine.orchestrator.Worker')
     def test_respects_max_workers(self, mock_worker_class, orchestrator):
         """Test that orchestrator respects max concurrent workers limit."""
         # Set max_workers to 2

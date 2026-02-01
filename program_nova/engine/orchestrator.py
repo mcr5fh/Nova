@@ -130,11 +130,8 @@ class Orchestrator:
         # Create worker
         worker = Worker(task_id=task_id, task_description=task_description)
 
-        # Build command for worker
-        # TODO: This should be configurable - for now use a simple echo command
-        # In production, this would be something like:
-        # command = ["claude", "code", "--task", task_description]
-        command = ["sleep", "0.1"]  # Placeholder for testing
+        # Build command for worker to spawn Claude Code agent
+        command = ["claude", "--model", "sonnet", task_description]
 
         # Mark task as in-progress in state
         started_at = datetime.now(timezone.utc).isoformat()
