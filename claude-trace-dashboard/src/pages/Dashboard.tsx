@@ -1,61 +1,68 @@
-import { Layout } from '@/components/Layout';
-import { TraceTable } from '@/components/TraceTable';
-import { CostChart, TokenChart, ToolUsage } from '@/components/Analytics';
-import { useTraces, useTraceStream } from '@/api/hooks';
-import { useUIStore } from '@/stores/uiStore';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-/**
- * Dashboard - Main page for Claude Trace Dashboard
- *
- * Features:
- * - Real-time trace table with all events
- * - Analytics charts (cost, tokens, tool usage)
- * - Live updates via SSE
- */
 export function Dashboard() {
-  const { filters } = useUIStore();
-  const { data, isLoading } = useTraces({
-    from: filters.timeRange.from || undefined,
-    to: filters.timeRange.to || undefined,
-  });
-
-  // Enable real-time streaming
-  useTraceStream({ enabled: true });
-
-  const traces = data?.traces || [];
-
   return (
-    <Layout>
-      <div className="p-6 space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-text-0">Dashboard</h1>
-            <p className="text-sm text-text-2 mt-1">
-              Monitor Claude Code execution traces and analytics
-            </p>
-          </div>
+    <div className="container py-6">
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
+          <p className="text-muted-foreground">
+            Overview of your Claude task executions and traces
+          </p>
         </div>
 
-        {/* Analytics Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-card border border-border rounded-lg p-6">
-            <CostChart traces={traces} />
-          </div>
-          <div className="bg-card border border-border rounded-lg p-6">
-            <TokenChart traces={traces} />
-          </div>
-          <div className="bg-card border border-border rounded-lg p-6 lg:col-span-2">
-            <ToolUsage traces={traces} />
-          </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Total Sessions</CardTitle>
+              <CardDescription>All time</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">--</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Active Tasks</CardTitle>
+              <CardDescription>Currently running</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">--</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Completed</CardTitle>
+              <CardDescription>Last 24 hours</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">--</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Failed</CardTitle>
+              <CardDescription>Last 24 hours</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">--</div>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Trace Table */}
-        <div className="bg-card border border-border rounded-lg p-6">
-          <h2 className="text-lg font-semibold text-text-0 mb-4">Recent Traces</h2>
-          <TraceTable traces={traces} isLoading={isLoading} />
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Activity</CardTitle>
+            <CardDescription>Latest task executions</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">No data available</p>
+          </CardContent>
+        </Card>
       </div>
-    </Layout>
+    </div>
   );
 }

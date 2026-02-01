@@ -1,0 +1,26 @@
+{
+  "_comment": "This is what Claude Code sends to nova-go trace via stdin",
+  "_note": "Reconstructed from actual session b32ac98b-8104-4265-b9fc-a6dce4ecc447",
+
+  "session_id": "b32ac98b-8104-4265-b9fc-a6dce4ecc447",
+  "transcript_path": "/Users/mattruiters/.claude/sessions/b32ac98b-8104-4265-b9fc-a6dce4ecc447/transcript.jsonl",
+  "cwd": "/Users/mattruiters/Code/Projects/NovaHack/Nova",
+  "permission_mode": "yolo",
+  "hook_event_name": "PostToolUse",
+  "tool_name": "Bash",
+  "tool_use_id": "toolu_01XYZ123ABC",
+  "tool_input": {
+    "command": "bd show Nova-c3n.8",
+    "description": "Check QA task status"
+  },
+  "tool_output": {
+    "exit_code": 0,
+    "stdout": "✓ Nova-c3n.8 · QA: Verify nova-go trace MVP implementation   [● P2 · CLOSED]\nOwner: Ruiters · Type: task\nCreated: 2026-01-31 · Updated: 2026-01-31",
+    "stderr": ""
+  },
+  "_processing_notes": {
+    "what_nova_go_does": "Reads this JSON from stdin, generates span_id UUID, maps event_type, writes to .claude/traces/",
+    "what_mvp_excludes": "Token counting, cost calculation, duration tracking, Beads task_id enrichment",
+    "phase_2_will_add": "Metrics (tokens, cost), Beads integration (task context), duration tracking"
+  }
+}

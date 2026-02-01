@@ -1,0 +1,368 @@
+{
+    "version": "1.0",
+    "description": "Skill activation triggers for Claude Code in ProjectMitochondria",
+    "skills": {
+        "skill-developer": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "high",
+            "description": "Meta-skill for creating and managing Claude Code skills",
+            "promptTriggers": {
+                "keywords": [
+                    "skill system",
+                    "create skill",
+                    "add skill",
+                    "skill triggers",
+                    "skill rules",
+                    "hook system",
+                    "skill development",
+                    "skill-rules.json"
+                ],
+                "intentPatterns": [
+                    "(how do|how does|explain).*?skill",
+                    "(create|add|modify|build).*?skill",
+                    "skill.*?(work|trigger|activate|system)"
+                ]
+            }
+        },
+        "backend-dev-guidelines": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "high",
+            "description": "Backend development patterns for Python/FastAPI/SQLAlchemy",
+            "promptTriggers": {
+                "keywords": [
+                    "backend",
+                    "FastAPI",
+                    "SQLAlchemy",
+                    "Pydantic",
+                    "API",
+                    "endpoint",
+                    "repository",
+                    "service",
+                    "Alembic",
+                    "migration",
+                    "PostgreSQL"
+                ],
+                "intentPatterns": [
+                    "(create|add|implement|build).*?(endpoint|API|route|service|repository)",
+                    "(fix|handle|debug).*?(error|exception|backend)",
+                    "(how to|best practice).*?(FastAPI|SQLAlchemy|backend)"
+                ]
+            },
+            "fileTriggers": {
+                "pathPatterns": [
+                    "backend/src/**/*.py",
+                    "backend/alembic/**/*.py",
+                    "backend/scripts/**/*.py"
+                ],
+                "contentPatterns": [
+                    "@router\\.",
+                    "class.*Service",
+                    "class.*Repository",
+                    "AsyncSession",
+                    "select\\(.*\\).where"
+                ]
+            }
+        },
+        "frontend-dev-guidelines": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "high",
+            "description": "Frontend development patterns for React Native/Expo",
+            "promptTriggers": {
+                "keywords": [
+                    "React Native",
+                    "Expo",
+                    "component",
+                    "mobile",
+                    "iOS",
+                    "Android",
+                    "StyleSheet",
+                    "Zustand",
+                    "React Query",
+                    "navigation",
+                    "Expo Router"
+                ],
+                "intentPatterns": [
+                    "(create|add|build).*?(component|screen|view)",
+                    "(implement|add).*?(navigation|routing)",
+                    "(style|design).*?(component|screen)"
+                ]
+            },
+            "fileTriggers": {
+                "pathPatterns": [
+                    "frontend/app/**/*.tsx",
+                    "frontend/app/**/*.ts",
+                    "frontend/components/**/*.tsx",
+                    "frontend/hooks/**/*.ts"
+                ],
+                "contentPatterns": [
+                    "StyleSheet\\.create",
+                    "useQuery|useMutation",
+                    "create\\(.*zustand",
+                    "expo-router",
+                    "React\\.memo"
+                ]
+            }
+        },
+        "tdd-workflow": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "high",
+            "description": "Test-Driven Development workflow. Failing tests as verification harnesses for code changes. Red-Green-Refactor cycle.",
+            "promptTriggers": {
+                "keywords": [
+                    "TDD",
+                    "test-driven",
+                    "test driven",
+                    "failing test",
+                    "test first",
+                    "red-green",
+                    "red green refactor",
+                    "write test first",
+                    "tests fail"
+                ],
+                "intentPatterns": [
+                    "(write|create|add).*?test.*?(first|before)",
+                    "(fix|implement).*?with.*?TDD",
+                    "test.*?(driven|first).*?(development|approach)",
+                    "(how|should).*?TDD"
+                ]
+            },
+            "fileTriggers": {
+                "pathPatterns": [
+                    "backend/src/tests/**/*.py",
+                    "frontend/**/*.test.ts",
+                    "frontend/**/*.test.tsx",
+                    "integ_tests/**/*.py"
+                ]
+            }
+        },
+        "swift-development": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "high",
+            "description": "Swift and SwiftUI development patterns for iOS. Covers type safety, optionals, error handling, Swift 6 concurrency, SwiftUI state management, view composition, and HybrdUI-specific patterns.",
+            "promptTriggers": {
+                "keywords": [
+                    "Swift",
+                    "SwiftUI",
+                    "iOS",
+                    "UIKit",
+                    "Xcode",
+                    "@State",
+                    "@Binding",
+                    "@Observable",
+                    "ViewState",
+                    "HybrdUI",
+                    "optionals",
+                    "async await",
+                    "actor",
+                    "Sendable"
+                ],
+                "intentPatterns": [
+                    "(create|add|build|implement).*?(Swift|SwiftUI|iOS).*?(view|component|screen)",
+                    "(fix|handle|debug).*?(Swift|SwiftUI|iOS)",
+                    "(how to|best practice).*?(Swift|SwiftUI|iOS)",
+                    "(state management|data flow).*?(SwiftUI|iOS)",
+                    "(type safety|optionals|error handling).*?Swift"
+                ]
+            },
+            "fileTriggers": {
+                "pathPatterns": [
+                    "frontend/modules/HybrdUI/**/*.swift",
+                    "frontend/ios/**/*.swift",
+                    "**/*.swift"
+                ],
+                "contentPatterns": [
+                    "import SwiftUI",
+                    "import UIKit",
+                    "@Observable",
+                    "@State private var",
+                    "struct.*: View",
+                    "class.*: ObservableObject"
+                ]
+            }
+        },
+        "advanced-swift-development": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "high",
+            "dependsOn": ["swift-development"],
+            "description": "Advanced Swift patterns including architecture, performance optimization, memory management, macros, testing strategies, and complex concurrency. Builds on swift-development skill.",
+            "promptTriggers": {
+                "keywords": [
+                    "Swift architecture",
+                    "Swift performance",
+                    "memory leak",
+                    "memory management",
+                    "ARC",
+                    "weak self",
+                    "unowned",
+                    "Swift macro",
+                    "@attached",
+                    "@freestanding",
+                    "Instruments",
+                    "profiling",
+                    "snapshot test",
+                    "Swift testing",
+                    "XCTest",
+                    "task group",
+                    "custom executor",
+                    "actor reentrancy",
+                    "protocol witness",
+                    "type erasure",
+                    "dependency injection Swift"
+                ],
+                "intentPatterns": [
+                    "(optimize|improve|profile).*?(Swift|SwiftUI|iOS).*?(performance|memory|speed)",
+                    "(architect|design|structure).*?(Swift|iOS).*?(module|framework|app)",
+                    "(test|testing).*?(Swift|SwiftUI|iOS).*?(view|component|unit|snapshot)",
+                    "(memory|leak|retain cycle).*?(Swift|iOS)",
+                    "(macro|metaprogramming).*?Swift",
+                    "(advanced|complex|expert).*?(Swift|SwiftUI|concurrency)"
+                ]
+            },
+            "fileTriggers": {
+                "pathPatterns": [
+                    "frontend/modules/HybrdUI/**/*.swift",
+                    "frontend/ios/**/*.swift",
+                    "**/*.swift"
+                ],
+                "contentPatterns": [
+                    "@attached\\(",
+                    "@freestanding\\(",
+                    "TaskGroup",
+                    "withTaskGroup",
+                    "withThrowingTaskGroup",
+                    "#Preview",
+                    "XCTestCase",
+                    "@testable import"
+                ]
+            }
+        },
+        "ears-requirements": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "medium",
+            "description": "Write requirements using EARS (Easy Approach to Requirements Syntax) format. Only activates when explicitly requested.",
+            "promptTriggers": {
+                "keywords": [
+                    "EARS",
+                    "EARS format",
+                    "EARS requirements",
+                    "EARS syntax",
+                    "EARS patterns"
+                ],
+                "intentPatterns": [
+                    "(use|write|apply|follow).*?EARS",
+                    "EARS.*?(requirements|format|syntax|pattern)",
+                    "(convert|translate).*?EARS"
+                ]
+            }
+        },
+        "visual-tdd-workflow": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "high",
+            "description": "Visual TDD workflow for SwiftUI snapshot testing with PNG format and XCTest. Guides agent through snapshot-based UI iteration with image comparison, beads issue tracking, and human-in-the-loop checkpoints. PNG format enables inline diff viewing in GitHub PRs and Xcode Report Navigator. All snapshots use iPhone 16 device configuration.",
+            "promptTriggers": {
+                "keywords": [
+                    "snapshot test",
+                    "visual TDD",
+                    "UI iteration",
+                    "reference image",
+                    "make it look like",
+                    "match the design",
+                    "Figma reference",
+                    "swift-snapshot-testing",
+                    "snapshot comparison",
+                    "visual regression"
+                ],
+                "intentPatterns": [
+                    "(implement|create|build).*?(from|based on).*?(figma|design|reference|image)",
+                    "(iterate|refine|adjust).*?(UI|component|view).*?(until|to match)",
+                    "(compare|match|look like).*?(reference|design|figma)",
+                    "snapshot.*?(test|testing|compare|iteration)"
+                ]
+            },
+            "fileTriggers": {
+                "pathPatterns": [
+                    "frontend/modules/HybrdUI/**/*SnapshotTests.swift",
+                    "**/__Snapshots__/**/*.png"
+                ],
+                "contentPatterns": [
+                    "assertSnapshot",
+                    "SnapshotTesting",
+                    "\\.standardImage"
+                ]
+            }
+        },
+        "sim-screenshot": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "medium",
+            "description": "Capture iOS Simulator screenshots for visual UI feedback during development. Enables fast feedback loop for UI iteration.",
+            "promptTriggers": {
+                "keywords": [
+                    "simulator screenshot",
+                    "sim screenshot",
+                    "check the UI",
+                    "see the screen",
+                    "visual feedback",
+                    "how does it look",
+                    "what does it look like",
+                    "looks wrong",
+                    "looks off",
+                    "verify the layout",
+                    "check the styling"
+                ],
+                "intentPatterns": [
+                    "(check|verify|see|show).*?(UI|screen|layout|styling|view)",
+                    "(does|how).*?(it|this).*?look",
+                    "(screenshot|capture).*?(sim|simulator)",
+                    "what.*?(changed|happening).*?(screen|UI)"
+                ]
+            },
+            "fileTriggers": {
+                "pathPatterns": [
+                    "frontend/app/**/*.tsx",
+                    "frontend/components/**/*.tsx",
+                    "frontend/modules/HybrdUI/**/*.swift"
+                ]
+            }
+        },
+        "revyl-test": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "medium",
+            "description": "Create Revyl E2E tests for mobile UI testing. Generates YAML test files with instructions and validations for automated mobile app testing.",
+            "promptTriggers": {
+                "keywords": [
+                    "revyl",
+                    "revyl test",
+                    "e2e test",
+                    "end to end test",
+                    "mobile test",
+                    "UI test",
+                    "user journey test",
+                    "automated test",
+                    "paywall test",
+                    "auth test",
+                    "onboarding test"
+                ],
+                "intentPatterns": [
+                    "(create|write|add).*?(e2e|end.to.end|mobile|UI|revyl).*?test",
+                    "(test|verify).*?(user journey|flow|paywall|auth|onboarding)",
+                    "revyl.*?(test|scenario|flow)"
+                ]
+            },
+            "fileTriggers": {
+                "pathPatterns": [
+                    "frontend/revyl-tests/**/*.yaml"
+                ]
+            }
+        }
+    }
+}

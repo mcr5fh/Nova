@@ -1,120 +1,73 @@
-# Claude Trace Dashboard
+# React + TypeScript + Vite
 
-A React + TypeScript dashboard for visualizing Claude Code traces in real-time.
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-## Tech Stack
+Currently, two official plugins are available:
 
-- **React 19** - Server Components, useOptimistic, use() hook
-- **TypeScript 5.7+** - Strict mode, type-safe APIs
-- **Vite 6** - Fast dev server, HMR
-- **Tailwind CSS 4** - Utility-first styling with @theme directive
-- **TanStack Query v5** - Server state, caching, real-time sync
-- **TanStack Table v8** - Trace event tables
-- **Zustand** - Client state management
-- **Mermaid.js 11.12+** - Task hierarchy diagrams
-- **Recharts** - Cost/token analytics charts
-- **React Flow** - Interactive task graph
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
-## Project Structure
+## React Compiler
 
-```
-claude-trace-dashboard/
-├── src/
-│   ├── api/              # API client, hooks, SSE
-│   ├── components/       # React components
-│   │   ├── TaskTree/
-│   │   ├── Timeline/
-│   │   ├── Analytics/
-│   │   ├── TraceTable/
-│   │   └── Layout/
-│   ├── pages/           # Page components
-│   ├── stores/          # Zustand stores
-│   ├── types/           # TypeScript types
-│   ├── lib/             # Utility functions
-│   └── data/            # Mock data
-├── vite.config.ts
-├── tsconfig.json
-└── package.json
-```
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
 
-## Getting Started
+## Expanding the ESLint configuration
 
-### Install Dependencies
+If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
 
-```bash
-npm install
+```js
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      // Other configs...
+
+      // Remove tseslint.configs.recommended and replace with this
+      tseslint.configs.recommendedTypeChecked,
+      // Alternatively, use this for stricter rules
+      tseslint.configs.strictTypeChecked,
+      // Optionally, add this for stylistic rules
+      tseslint.configs.stylisticTypeChecked,
+
+      // Other configs...
+    ],
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.node.json', './tsconfig.app.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+      // other options...
+    },
+  },
+])
 ```
 
-### Development
+You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
 
-```bash
-npm run dev
-# → http://localhost:3000
+```js
+// eslint.config.js
+import reactX from 'eslint-plugin-react-x'
+import reactDom from 'eslint-plugin-react-dom'
+
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      // Other configs...
+      // Enable lint rules for React
+      reactX.configs['recommended-typescript'],
+      // Enable lint rules for React DOM
+      reactDom.configs.recommended,
+    ],
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.node.json', './tsconfig.app.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+      // other options...
+    },
+  },
+])
 ```
-
-### Build
-
-```bash
-npm run build
-```
-
-### Preview Production Build
-
-```bash
-npm run preview
-```
-
-### Type Checking
-
-```bash
-npm run type-check
-```
-
-### Linting
-
-```bash
-npm run lint
-```
-
-## Configuration
-
-### Path Aliases
-
-The project uses `@/*` path aliases for cleaner imports:
-
-```typescript
-import { api } from '@/api/client';
-import { TaskTree } from '@/components/TaskTree/TaskTree';
-```
-
-### API Proxy
-
-The dev server proxies `/api` requests to `http://localhost:8080`:
-
-```typescript
-// Automatically proxied in development
-fetch('/api/traces');
-```
-
-## Design System
-
-### Typography
-
-- **Primary Font:** Sora (clean, technical)
-- **Mono Font:** IBM Plex Mono (IDs, payloads, timestamps)
-- **Type Scale:** 12px (meta), 13px (table), 14px (body), 16px (section), 20px (card title), 28px (page title)
-
-### Colors
-
-Available via CSS variables:
-
-- `--color-bg-0`, `--color-bg-1` - Background colors
-- `--color-card` - Card background
-- `--color-text-0`, `--color-text-1`, `--color-text-2` - Text colors
-- `--color-border` - Border color
-- `--color-accent`, `--color-accent-2` - Accent colors
-- `--color-status-green`, `--color-status-amber`, `--color-status-red`, `--color-status-gray` - Status colors
-
-## Next Steps
-
-See the [Frontend Specification](../thoughts/shared/specs/claude-trace/04-frontend-specification.md) for implementation details.

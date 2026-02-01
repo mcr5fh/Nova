@@ -1,151 +1,63 @@
-import { useUIStore } from '@/stores/uiStore';
+import { NavLink } from "react-router-dom";
+import { cn } from "@/lib/utils";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { LayoutDashboard, Network, ListTree, BarChart3 } from "lucide-react";
 
 interface NavItem {
-  id: string;
-  label: string;
-  icon: JSX.Element;
-  path: string;
+  title: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
 }
 
 const navItems: NavItem[] = [
   {
-    id: 'dashboard',
-    label: 'Dashboard',
-    path: '/',
-    icon: (
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <rect x="3" y="3" width="7" height="7" />
-        <rect x="14" y="3" width="7" height="7" />
-        <rect x="14" y="14" width="7" height="7" />
-        <rect x="3" y="14" width="7" height="7" />
-      </svg>
-    ),
+    title: "Dashboard",
+    href: "/",
+    icon: LayoutDashboard,
   },
   {
-    id: 'sessions',
-    label: 'Sessions',
-    path: '/sessions',
-    icon: (
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-      </svg>
-    ),
+    title: "Task Tree",
+    href: "/task-tree",
+    icon: Network,
   },
   {
-    id: 'tasks',
-    label: 'Tasks',
-    path: '/tasks',
-    icon: (
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M9 11l3 3L22 4" />
-        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
-      </svg>
-    ),
+    title: "Sessions",
+    href: "/sessions",
+    icon: ListTree,
   },
   {
-    id: 'analytics',
-    label: 'Analytics',
-    path: '/analytics',
-    icon: (
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <line x1="12" y1="20" x2="12" y2="10" />
-        <line x1="18" y1="20" x2="18" y2="4" />
-        <line x1="6" y1="20" x2="6" y2="16" />
-      </svg>
-    ),
+    title: "Analytics",
+    href: "/analytics",
+    icon: BarChart3,
   },
 ];
 
 export function Sidebar() {
-  const sidebarOpen = useUIStore((state) => state.sidebarOpen);
-
-  if (!sidebarOpen) return null;
-
   return (
-    <aside
-      className="w-64 border-r flex flex-col"
-      style={{
-        backgroundColor: 'var(--color-card)',
-        borderColor: 'var(--color-border)',
-      }}
-    >
-      {/* Navigation */}
-      <nav className="flex-1 p-4">
-        <ul className="space-y-1">
-          {navItems.map((item) => (
-            <li key={item.id}>
-              <a
-                href={item.path}
-                className="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors hover:bg-gray-100"
-                style={{
-                  color: 'var(--color-text-1)',
-                }}
-              >
-                {item.icon}
-                <span className="text-sm font-medium">{item.label}</span>
-              </a>
-            </li>
+    <aside className="glass-strong border-r w-64 flex-shrink-0">
+      <ScrollArea className="h-full py-4">
+        <nav className="flex flex-col gap-1 px-2">
+          {navItems.map((item, index) => (
+            <NavLink
+              key={item.href}
+              to={item.href}
+              style={{ animationDelay: `${index * 50}ms` }}
+              className={({ isActive }) =>
+                cn(
+                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all duration-300",
+                  "hover:glass hover:scale-105 hover:shadow-lg animate-fade-in",
+                  isActive
+                    ? "glass text-accent-foreground glow-primary"
+                    : "text-muted-foreground"
+                )
+              }
+            >
+              <item.icon className="h-4 w-4" />
+              <span>{item.title}</span>
+            </NavLink>
           ))}
-        </ul>
-      </nav>
-
-      {/* Footer */}
-      <div
-        className="p-4 border-t text-xs"
-        style={{
-          borderColor: 'var(--color-border)',
-          color: 'var(--color-text-2)',
-        }}
-      >
-        <div className="flex items-center justify-between">
-          <span>Version 1.0.0</span>
-          <a
-            href="https://github.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:underline"
-            style={{ color: 'var(--color-accent)' }}
-          >
-            GitHub
-          </a>
-        </div>
-      </div>
+        </nav>
+      </ScrollArea>
     </aside>
   );
 }
