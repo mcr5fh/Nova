@@ -14,6 +14,7 @@ import { useState, useEffect, useRef, type ReactNode } from 'react';
 
 interface ChatPanelProps {
   children?: ReactNode;
+  isFullScreen?: boolean;
 }
 
 const MIN_WIDTH = 300;
@@ -44,7 +45,7 @@ function getInitialCollapsed(): boolean {
   return savedCollapsed === 'true';
 }
 
-export function ChatPanel({ children }: ChatPanelProps) {
+export function ChatPanel({ children, isFullScreen = false }: ChatPanelProps) {
   const [width, setWidth] = useState(getInitialWidth);
   const [isCollapsed, setIsCollapsed] = useState(getInitialCollapsed);
   const [isResizing, setIsResizing] = useState(false);
@@ -103,6 +104,20 @@ export function ChatPanel({ children }: ChatPanelProps) {
   };
 
   const displayWidth = isCollapsed ? 0 : width;
+
+  // Full screen mode overrides
+  if (isFullScreen) {
+    return (
+      <div
+        ref={panelRef}
+        className="relative flex flex-col bg-bg-secondary overflow-hidden w-full h-full"
+      >
+        <div className="flex-1 flex flex-col h-full overflow-hidden">
+          {children}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

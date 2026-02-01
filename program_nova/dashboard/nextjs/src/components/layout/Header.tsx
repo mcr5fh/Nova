@@ -1,14 +1,17 @@
 'use client';
 
 import { formatDuration, formatCost } from '@/lib';
-import { ModeSelector, EpicSelector } from '@/components/mode';
+import { EpicSelector } from '@/components/mode';
+import { ViewModeControl } from './ViewModeControl';
 import type { StatusResponse } from '@/types';
 
 interface HeaderProps {
   status?: StatusResponse;
+  isPlanMode?: boolean;
+  onTogglePlanMode?: () => void;
 }
 
-export function Header({ status }: HeaderProps) {
+export function Header({ status, isPlanMode = false, onTogglePlanMode }: HeaderProps) {
   const projectName = status?.project?.name ?? 'Program Nova';
   const l0Rollup = status?.rollups?.l0_rollup;
 
@@ -23,9 +26,12 @@ export function Header({ status }: HeaderProps) {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <h1 className="text-3xl font-bold text-text-primary">{projectName} Dashboard</h1>
 
-        <div className="flex items-center gap-4">
-          <ModeSelector />
-        </div>
+        {onTogglePlanMode && (
+          <ViewModeControl
+            isPlanMode={isPlanMode}
+            onToggle={onTogglePlanMode}
+          />
+        )}
 
         {/* Project Stats */}
         <div className="flex items-center gap-4">
