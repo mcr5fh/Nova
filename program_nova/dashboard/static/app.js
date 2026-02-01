@@ -13,7 +13,9 @@ let appState = {
     selectedL2: null,
     selectedTaskId: null,
     pollInterval: null,
-    logsInterval: null
+    logsInterval: null,
+    mode: localStorage.getItem('dashboard-mode') || 'cascade',
+    epicId: localStorage.getItem('selected-epic') || null
 };
 
 // API Configuration
@@ -23,6 +25,7 @@ const POLL_INTERVAL = 1000; // 1 seconds
 // Initialize the app
 document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
+    updateEpicSelectorVisibility();
     startPolling();
     updateStatusIndicator('connecting');
 });
@@ -45,6 +48,93 @@ function setupEventListeners() {
             const viewType = e.target.dataset.view;
             switchTab(viewType);
         });
+    });
+
+    // Mode selector listeners (if they exist)
+    const modeRadios = document.querySelectorAll('input[name="mode"]');
+    modeRadios.forEach(radio => {
+        radio.addEventListener('change', handleModeChange);
+        // Set initial checked state
+        if (radio.value === appState.mode) {
+            radio.checked = true;
+        }
+    });
+
+    // Epic selector listener (if it exists)
+    const epicSelect = document.getElementById('epic-select');
+    if (epicSelect) {
+        epicSelect.addEventListener('change', handleEpicChange);
+    }
+
+    const startBtn = document.getElementById('start-btn');
+    if (startBtn) {
+        startBtn.addEventListener('click', handleStartExecution);
+    }
+}
+
+// Mode Switching Functions
+function handleModeChange(e) {
+    const newMode = e.target.value;
+    console.log(`[handleModeChange] Switching to ${newMode} mode`);
+
+    appState.mode = newMode;
+    localStorage.setItem('dashboard-mode', newMode);
+
+    // Update epic selector visibility
+    updateEpicSelectorVisibility();
+
+    // Reset data and view
+    appState.data = null;
+    showView('l0');
+
+    // Restart polling with new mode
+    if (appState.pollInterval) {
+        clearInterval(appState.pollInterval);
+    }
+    startPolling();
+}
+
+function handleEpicChange(e) {
+    const newEpicId = e.target.value;
+    console.log(`[handleEpicChange] Epic selected: ${newEpicId}`);
+
+    appState.epicId = newEpicId;
+    localStorage.setItem('selected-epic', newEpicId);
+}
+
+function handleStartExecution() {
+    if (!appState.epicId) {
+        alert('Please select an epic first');
+        return;
+    }
+
+    console.log(`[handleStartExecution] Starting execution for epic: ${appState.epicId}`);
+
+    // Call the start endpoint
+    fetch(`${API_BASE}/api/beads/start`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ epic_id: appState.epicId })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('[handleStartExecution] Execution started:', data);
+        // Restart polling to show live updates
+        if (appState.pollInterval) {
+            clearInterval(appState.pollInterval);
+        }
+        startPolling();
+    })
+    .catch(error => {
+        console.error('[handleStartExecution] Error starting execution:', error);
+        alert(`Failed to start execution: ${error.message}`);
     });
 }
 
@@ -161,6 +251,23 @@ async function fetchStatus() {
     try {
         console.log('[fetchStatus] Fetching status from API');
 
+        // Branch based on mode
+        if (appState.mode === 'cascade') {
+            return fetchCascadeStatus();
+        } else {
+            return fetchBeadStatus();
+        }
+    } catch (error) {
+        console.error('[fetchStatus] Error fetching status:', error);
+        console.error('[fetchStatus] Stack trace:', error.stack);
+        updateStatusIndicator('error');
+    }
+}
+
+async function fetchCascadeStatus() {
+    try {
+        console.log('[fetchCascadeStatus] Fetching cascade status from API');
+
         const response = await fetch(`${API_BASE}/api/status`);
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
@@ -216,8 +323,78 @@ async function fetchStatus() {
             updateStatusIndicator('connected');
         }
     } catch (error) {
-        console.error('[fetchStatus] Error fetching status:', error);
-        console.error('[fetchStatus] Stack trace:', error.stack);
+        console.error('[fetchCascadeStatus] Error fetching cascade status:', error);
+        console.error('[fetchCascadeStatus] Stack trace:', error.stack);
+        updateStatusIndicator('error');
+    }
+}
+
+async function fetchBeadStatus() {
+    try {
+        console.log('[fetchBeadStatus] Fetching bead status from API');
+
+        // Check if epic is selected
+        if (!appState.epicId) {
+            console.log('[fetchBeadStatus] No epic selected, showing empty state');
+            updateStatusIndicator('connecting');
+            return;
+        }
+
+        const response = await fetch(`${API_BASE}/api/beads/status/${appState.epicId}`);
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        console.log('[fetchBeadStatus] Received data from API:', {
+            hasProject: !!data.project,
+            hasTasks: !!data.tasks,
+            hasRollups: !!data.rollups,
+            hasHierarchy: !!data.hierarchy,
+            hasMilestones: !!data.milestones,
+            taskCount: data.tasks ? Object.keys(data.tasks).length : 0,
+            hierarchyKeys: data.hierarchy ? Object.keys(data.hierarchy) : [],
+            rollupsStructure: data.rollups ? {
+                hasL0: !!data.rollups.l0_rollup,
+                hasL1: !!data.rollups.l1_rollups,
+                hasL2: !!data.rollups.l2_rollups,
+                l1Keys: data.rollups.l1_rollups ? Object.keys(data.rollups.l1_rollups) : [],
+                l2Keys: data.rollups.l2_rollups ? Object.keys(data.rollups.l2_rollups) : []
+            } : null
+        });
+
+        appState.data = data;
+
+        // Update the current view
+        try {
+            renderCurrentView();
+        } catch (renderError) {
+            console.error('[fetchBeadStatus] Error in renderCurrentView:', renderError);
+        }
+
+        // Update header stats
+        try {
+            updateHeaderStats(data);
+        } catch (statsError) {
+            console.error('[fetchBeadStatus] Error in updateHeaderStats:', statsError);
+        }
+
+        // Check if all tasks are complete - stop polling if so
+        if (data.all_tasks_completed) {
+            if (appState.pollInterval) {
+                clearInterval(appState.pollInterval);
+                appState.pollInterval = null;
+                console.log('[fetchBeadStatus] All tasks complete - polling stopped');
+                updateStatusIndicator('completed');
+            }
+        } else {
+            // Update status indicator
+            updateStatusIndicator('connected');
+        }
+    } catch (error) {
+        console.error('[fetchBeadStatus] Error fetching bead status:', error);
+        console.error('[fetchBeadStatus] Stack trace:', error.stack);
         updateStatusIndicator('error');
     }
 }
@@ -1403,4 +1580,46 @@ function renderDependencyGraphSVG(graph) {
     container.appendChild(legend);
     console.log('[renderDependencyGraphSVG] Legend appended to container');
     console.log('[renderDependencyGraphSVG] Render complete! Container now has', container.children.length, 'children');
+}
+
+// Mode Management Functions
+
+// Epic Selector Visibility
+function updateEpicSelectorVisibility() {
+    const epicSelector = document.getElementById('epic-selector');
+    if (appState.mode === 'bead') {
+        epicSelector.style.display = 'block';
+        fetchEpics();
+    } else {
+        epicSelector.style.display = 'none';
+    }
+}
+
+// Fetch Epics for Bead Mode
+async function fetchEpics() {
+    try {
+        const response = await fetch(`${API_BASE}/api/beads/epics`);
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const epics = await response.json();
+        const select = document.getElementById('epic-select');
+        
+        // Clear existing options except first
+        select.innerHTML = '<option value="">Select an epic...</option>';
+        
+        // Populate with epics
+        for (const epic of epics) {
+            const option = document.createElement('option');
+            option.value = epic.id;
+            option.textContent = `${epic.id}: ${epic.title}`;
+            if (epic.id === appState.epicId) {
+                option.selected = true;
+            }
+            select.appendChild(option);
+        }
+    } catch (error) {
+        console.error('[fetchEpics] Error fetching epics:', error);
+    }
 }

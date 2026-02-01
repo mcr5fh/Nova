@@ -1,6 +1,7 @@
 """Tests for FastAPI server endpoints."""
 
 import json
+import subprocess
 import tempfile
 from pathlib import Path
 
@@ -221,3 +222,226 @@ class TestLogsEndpoint:
 
         data = response.json()
         assert data["logs"] == "Log line 2\nLog line 3\n"
+
+
+class TestBeadsEndpoints:
+    """Test /api/beads/* endpoints for bead mode."""
+
+    def test_list_epics_success(self, client, monkeypatch, caplog):
+        """GET /api/beads/epics returns list of epic beads."""
+        import logging
+        caplog.set_level(logging.INFO)
+
+        # Mock bd list command output
+        mock_output = json.dumps([
+            {
+                "id": "Nova-epic1",
+                "title": "Test Epic 1",
+                "type": "epic",
+                "status": "open",
+                "priority": 2
+            },
+            {
+                "id": "Nova-epic2",
+                "title": "Test Epic 2",
+                "type": "epic",
+                "status": "in_progress",
+                "priority": 1
+            }
+        ])
+
+        def mock_run(*args, **kwargs):
+            class MockResult:
+                stdout = mock_output
+                returncode = 0
+            return MockResult()
+
+        monkeypatch.setattr("subprocess.run", mock_run)
+
+        response = client.get("/api/beads/epics")
+        assert response.status_code == 200
+
+        data = response.json()
+        assert len(data) == 2
+        assert data[0]["id"] == "Nova-epic1"
+        assert data[0]["title"] == "Test Epic 1"
+        assert data[0]["type"] == "epic"
+        assert data[1]["id"] == "Nova-epic2"
+
+        # Verify logging occurred
+        assert any("epic list requested" in record.message.lower() for record in caplog.records)
+        assert any("2" in record.message for record in caplog.records)  # Count of epics
+
+    def test_start_epic_success(self, client, caplog):
+        """POST /api/beads/start starts epic execution."""
+        import logging
+        caplog.set_level(logging.INFO)
+
+        response = client.post(
+            "/api/beads/start",
+            json={"epic_id": "Nova-epic1"}
+        )
+        assert response.status_code == 200
+
+        data = response.json()
+        assert data["status"] == "started"
+        assert data["epic_id"] == "Nova-epic1"
+
+        # Verify logging occurred
+        assert any("epic start requested" in record.message.lower() for record in caplog.records)
+        assert any("Nova-epic1" in record.message for record in caplog.records)
+
+    def test_get_epic_status_success(self, client, monkeypatch, caplog):
+        """GET /api/beads/status/{epic_id} returns epic status in dashboard format."""
+        import logging
+        caplog.set_level(logging.INFO)
+
+        # Mock bd graph command output
+        mock_graph = {
+            "root": {
+                "id": "Nova-epic1",
+                "title": "Test Epic"
+            },
+            "issues": [
+                {
+                    "id": "Nova-epic1",
+                    "title": "Test Epic",
+                    "status": "in_progress",
+                    "type": "epic"
+                },
+                {
+                    "id": "Nova-epic1.1",
+                    "title": "Task 1",
+                    "status": "closed",
+                    "type": "task",
+                    "notes": "Metrics: {\"duration_seconds\": 45, \"token_usage\": {\"input_tokens\": 100, \"output_tokens\": 50}, \"cost_usd\": 0.01}"
+                },
+                {
+                    "id": "Nova-epic1.2",
+                    "title": "Task 2",
+                    "status": "in_progress",
+                    "type": "task",
+                    "notes": ""
+                }
+            ],
+            "layout": {
+                "Layers": [
+                    ["Nova-epic1"],
+                    ["Nova-epic1.1", "Nova-epic1.2"]
+                ],
+                "Nodes": {
+                    "Nova-epic1": {"DependsOn": []},
+                    "Nova-epic1.1": {"DependsOn": []},
+                    "Nova-epic1.2": {"DependsOn": ["Nova-epic1.1"]}
+                }
+            }
+        }
+
+        # Mock metrics comment for Nova-epic1.1
+        metrics_comment = {
+            "type": "metrics",
+            "token_usage": {
+                "input_tokens": 100,
+                "output_tokens": 50,
+                "cache_read_tokens": 0,
+                "cache_creation_tokens": 0
+            },
+            "cost_usd": 0.01,
+            "duration_seconds": 45
+        }
+
+        def mock_run(*args, **kwargs):
+            # Return graph for 'bd graph' command
+            if args[0][0] == "bd" and args[0][1] == "graph":
+                class MockResult:
+                    stdout = json.dumps(mock_graph)
+                    returncode = 0
+                return MockResult()
+            # Return comments for 'bd comments' command
+            elif args[0][0] == "bd" and args[0][1] == "comments":
+                bead_id = args[0][2]
+                if bead_id == "Nova-epic1.1":
+                    # Return metrics comment for task 1
+                    comments = [{"text": json.dumps(metrics_comment)}]
+                    class MockResult:
+                        stdout = json.dumps(comments)
+                        returncode = 0
+                    return MockResult()
+                else:
+                    # No comments for other beads
+                    class MockResult:
+                        stdout = "[]"
+                        returncode = 0
+                    return MockResult()
+
+        monkeypatch.setattr("program_nova.dashboard.beads_adapter.subprocess.run", mock_run)
+
+        response = client.get("/api/beads/status/Nova-epic1")
+        assert response.status_code == 200
+
+        data = response.json()
+        assert "project" in data
+        assert "tasks" in data
+        assert "hierarchy" in data
+        assert "task_definitions" in data
+        assert "rollups" in data
+
+        # Check project info
+        assert data["project"]["name"] == "Test Epic"
+
+        # Check tasks (epic itself should be excluded)
+        assert "Nova-epic1" not in data["tasks"]
+        assert "Nova-epic1.1" in data["tasks"]
+        assert "Nova-epic1.2" in data["tasks"]
+
+        # Check task 1 has parsed metrics
+        task1 = data["tasks"]["Nova-epic1.1"]
+        assert task1["status"] == "completed"
+        assert task1["duration_seconds"] == 45
+        assert task1["token_usage"]["input_tokens"] == 100
+        assert task1["token_usage"]["output_tokens"] == 50
+
+        # Check task 2
+        task2 = data["tasks"]["Nova-epic1.2"]
+        assert task2["status"] == "in_progress"
+
+        # Check task definitions have dependencies
+        assert data["task_definitions"]["Nova-epic1.2"]["depends_on"] == ["Nova-epic1.1"]
+
+        # Verify logging occurred
+        assert any("epic status queried" in record.message.lower() for record in caplog.records)
+        assert any("Nova-epic1" in record.message for record in caplog.records)
+
+    def test_list_epics_error_logging(self, client, monkeypatch, caplog):
+        """GET /api/beads/epics logs errors with full details."""
+        import logging
+        caplog.set_level(logging.ERROR)
+
+        def mock_run(*args, **kwargs):
+            raise subprocess.CalledProcessError(1, "bd", stderr="Command failed: bd not found")
+
+        monkeypatch.setattr("subprocess.run", mock_run)
+
+        response = client.get("/api/beads/epics")
+        assert response.status_code == 500
+
+        # Verify error logging occurred
+        assert any(record.levelname == "ERROR" for record in caplog.records)
+        assert any("error listing epics" in record.message.lower() for record in caplog.records)
+
+    def test_get_epic_status_error_logging(self, client, monkeypatch, caplog):
+        """GET /api/beads/status/{epic_id} logs errors with full details."""
+        import logging
+        caplog.set_level(logging.ERROR)
+
+        def mock_run(*args, **kwargs):
+            raise subprocess.CalledProcessError(1, "bd", stderr="Epic not found")
+
+        monkeypatch.setattr("program_nova.dashboard.beads_adapter.subprocess.run", mock_run)
+
+        response = client.get("/api/beads/status/NonExistent")
+        assert response.status_code == 500
+
+        # Verify error logging occurred
+        assert any(record.levelname == "ERROR" for record in caplog.records)
+        assert any("error getting epic status" in record.message.lower() for record in caplog.records)

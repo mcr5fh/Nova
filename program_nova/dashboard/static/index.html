@@ -11,6 +11,16 @@
         <!-- Header -->
         <header class="header">
             <h1>Program Nova Dashboard</h1>
+            <div class="mode-selector">
+                <label><input type="radio" name="mode" value="cascade" checked> Cascade</label>
+                <label><input type="radio" name="mode" value="bead"> Bead</label>
+            </div>
+            <div id="epic-selector" style="display: none;">
+                <select id="epic-select">
+                    <option value="">Select an epic...</option>
+                </select>
+                <button id="start-btn">Start</button>
+            </div>
             <div class="project-stats">
                 <div class="stat">
                     <span class="stat-label">Progress:</span>

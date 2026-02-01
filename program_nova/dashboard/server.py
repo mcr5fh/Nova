@@ -4,8 +4,15 @@ Provides API endpoints for:
 - /api/status: Full project status with rollups
 - /api/tasks/{task_id}: Individual task details
 - /api/tasks/{task_id}/logs: Task log files
+- /api/beads/epics: List available bead epics
+- /api/beads/start: Start epic execution
+- /api/beads/status/{epic_id}: Get epic status in dashboard format
 """
 
+import json
+import logging
+import subprocess
+import threading
 from pathlib import Path
 from typing import Optional
 
@@ -13,17 +20,27 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 
 from program_nova.engine.parser import parse_cascade
 from program_nova.engine.state import StateManager
+from program_nova.engine.bead_orchestrator import BeadOrchestrator
 from program_nova.dashboard.rollup import compute_hierarchy_rollups
 from program_nova.dashboard.milestones import MilestoneEvaluator
+from program_nova.dashboard.beads_adapter import get_epic_status
 
+# Get logger for this module
+logger = logging.getLogger(__name__)
 
 # Default paths (can be overridden in create_app)
 # LOGS_DIR is now set relative to cwd where the app is run
 LOGS_DIR = Path.cwd() / "logs"
 STATIC_DIR = Path(__file__).parent / "static"
+
+
+class StartEpicRequest(BaseModel):
+    """Request model for starting epic execution."""
+    epic_id: str
 
 
 def create_app(
@@ -197,6 +214,96 @@ def create_app(
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error reading log file: {str(e)}")
 
+    @app.get("/api/beads/epics")
+    async def list_epics():
+        """List all bead epics available for execution.
+
+        Returns:
+            JSON array of epic beads with id, title, type, status, priority
+        """
+        logger.info("Epic list requested")
+        try:
+            result = subprocess.run(
+                ["bd", "list", "--type=epic", "--json"],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            epics = json.loads(result.stdout)
+            logger.info(f"Epic list returned {len(epics)} epics")
+            return epics
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Error listing epics: {e.stderr}", exc_info=True)
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error listing epics: {e.stderr}"
+            )
+        except json.JSONDecodeError as e:
+            logger.error(f"Error parsing epic list: {str(e)}", exc_info=True)
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error parsing epic list: {str(e)}"
+            )
+
+    @app.post("/api/beads/start")
+    async def start_epic(request: StartEpicRequest):
+        """Start execution of an epic's children.
+
+        Args:
+            request: Request containing epic_id
+
+        Returns:
+            JSON with status and epic_id
+        """
+        logger.info(f"Epic start requested for epic_id={request.epic_id}")
+        try:
+            # Instantiate and start the BeadOrchestrator
+            logger.info(f"Starting BeadOrchestrator for epic_id={request.epic_id}")
+            orchestrator = BeadOrchestrator(request.epic_id)
+            orchestrator.start()
+            logger.info(f"BeadOrchestrator started successfully for epic_id={request.epic_id}")
+
+            return JSONResponse(
+                content={
+                    "status": "started",
+                    "epic_id": request.epic_id
+                }
+            )
+        except Exception as e:
+            logger.error(f"Error starting epic {request.epic_id}: {str(e)}", exc_info=True)
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error starting epic: {str(e)}"
+            )
+
+    @app.get("/api/beads/status/{epic_id}")
+    async def get_epic_status_endpoint(epic_id: str):
+        """Get status for bead mode in dashboard format.
+
+        Args:
+            epic_id: Epic bead identifier
+
+        Returns:
+            JSON with dashboard-compatible status structure
+        """
+        logger.info(f"Epic status queried for epic_id={epic_id}")
+        try:
+            status = get_epic_status(epic_id)
+            logger.info(f"Epic status retrieved successfully for epic_id={epic_id}")
+            return JSONResponse(content=status)
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Error getting epic status for {epic_id}: {e.stderr}", exc_info=True)
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error getting epic status: {e.stderr}"
+            )
+        except json.JSONDecodeError as e:
+            logger.error(f"Error parsing epic graph for {epic_id}: {str(e)}", exc_info=True)
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error parsing epic graph: {str(e)}"
+            )
+
     return app
 
 
@@ -305,7 +412,7 @@ def main():
     # Setup logging
     logger = setup_logging(daemon_mode=args.daemon)
 
-    logger.info(f"Starting Program Nova Dashboard")
+    logger.info("Starting Program Nova Dashboard")
     logger.info(f"Host: {args.host}:{args.port}")
     logger.info(f"State file: {args.state_file}")
     logger.info(f"Cascade file: {args.cascade_file}")
