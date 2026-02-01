@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigation } from '@/context';
 import { fetchEpics, startEpicExecution } from '@/lib/api';
@@ -11,11 +12,19 @@ interface EpicSelectorProps {
 
 export function EpicSelector({ className = '' }: EpicSelectorProps) {
   const { mode, epicId, setEpicId } = useNavigation();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Use default 'cascade' mode during SSR and initial client render to prevent hydration mismatch
+  const displayMode = mounted ? mode : 'cascade';
 
   const { data: epics, isLoading, error } = useQuery({
     queryKey: ['epics'],
     queryFn: fetchEpics,
-    enabled: mode === 'bead',
+    enabled: displayMode === 'bead',
     staleTime: 30000,
   });
 
@@ -33,7 +42,7 @@ export function EpicSelector({ className = '' }: EpicSelectorProps) {
   };
 
   // Only show in bead mode
-  if (mode !== 'bead') {
+  if (displayMode !== 'bead') {
     return null;
   }
 

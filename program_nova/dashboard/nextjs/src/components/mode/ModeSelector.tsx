@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useNavigation } from '@/context';
 import type { DashboardMode } from '@/types';
 
@@ -9,10 +10,18 @@ interface ModeSelectorProps {
 
 export function ModeSelector({ className = '' }: ModeSelectorProps) {
   const { mode, setMode } = useNavigation();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleModeChange = (newMode: DashboardMode) => {
     setMode(newMode);
   };
+
+  // Use default 'cascade' mode during SSR and initial client render to prevent hydration mismatch
+  const displayMode = mounted ? mode : 'cascade';
 
   return (
     <div className={`flex items-center gap-2 text-sm ${className}`}>
@@ -22,11 +31,11 @@ export function ModeSelector({ className = '' }: ModeSelectorProps) {
           type="radio"
           name="dashboard-mode"
           value="cascade"
-          checked={mode === 'cascade'}
+          checked={displayMode === 'cascade'}
           onChange={() => handleModeChange('cascade')}
           className="accent-accent w-4 h-4"
         />
-        <span className={`${mode === 'cascade' ? 'text-text-primary font-medium' : 'text-text-secondary'}`}>
+        <span className={`${displayMode === 'cascade' ? 'text-text-primary font-medium' : 'text-text-secondary'}`}>
           Cascade
         </span>
       </label>
@@ -35,11 +44,11 @@ export function ModeSelector({ className = '' }: ModeSelectorProps) {
           type="radio"
           name="dashboard-mode"
           value="bead"
-          checked={mode === 'bead'}
+          checked={displayMode === 'bead'}
           onChange={() => handleModeChange('bead')}
           className="accent-accent w-4 h-4"
         />
-        <span className={`${mode === 'bead' ? 'text-text-primary font-medium' : 'text-text-secondary'}`}>
+        <span className={`${displayMode === 'bead' ? 'text-text-primary font-medium' : 'text-text-secondary'}`}>
           Bead
         </span>
       </label>
