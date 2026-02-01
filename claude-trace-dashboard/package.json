@@ -7,7 +7,14 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "test:debug": "playwright test --debug",
+    "screenshot": "playwright test tests/screenshots/dashboard-views.spec.ts",
+    "screenshot:headed": "playwright test tests/screenshots/dashboard-views.spec.ts --headed",
+    "screenshot:update": "playwright test tests/screenshots/dashboard-views.spec.ts --update-snapshots"
   },
   "dependencies": {
     "@radix-ui/react-scroll-area": "^1.2.10",
@@ -25,6 +32,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@playwright/test": "^1.58.1",
     "@tailwindcss/postcss": "^4.1.18",
     "@types/node": "^24.10.9",
     "@types/react": "^19.2.5",

@@ -256,7 +256,7 @@ export function TimelineFlow({ tasks, edges }: TimelineFlowProps) {
                   y="20"
                   fontSize="11"
                   fontWeight="600"
-                  fill="hsl(var(--foreground))"
+                  className="fill-foreground"
                 >
                   {node.task.id}
                 </text>
@@ -275,7 +275,7 @@ export function TimelineFlow({ tasks, edges }: TimelineFlowProps) {
                   y="19"
                   fontSize="9"
                   textAnchor="middle"
-                  fill="hsl(var(--foreground))"
+                  className="fill-foreground"
                   fontWeight="600"
                 >
                   {node.task.size}
@@ -283,7 +283,7 @@ export function TimelineFlow({ tasks, edges }: TimelineFlowProps) {
 
                 {/* Spec text */}
                 <foreignObject x="15" y="28" width={node.width - 30} height="28">
-                  <div className="text-xs leading-tight line-clamp-2">
+                  <div className="text-xs text-foreground leading-tight line-clamp-2">
                     {node.task.spec}
                   </div>
                 </foreignObject>
@@ -293,7 +293,7 @@ export function TimelineFlow({ tasks, edges }: TimelineFlowProps) {
                   x="15"
                   y={NODE_HEIGHT - 10}
                   fontSize="10"
-                  fill="hsl(var(--muted-foreground))"
+                  className="fill-muted-foreground"
                 >
                   {statusLabel}
                 </text>
@@ -302,7 +302,7 @@ export function TimelineFlow({ tasks, edges }: TimelineFlowProps) {
                   y={NODE_HEIGHT - 10}
                   fontSize="10"
                   textAnchor="end"
-                  fill="hsl(var(--muted-foreground))"
+                  className="fill-muted-foreground"
                   fontFamily="monospace"
                 >
                   {node.task.attempts}/{node.task.maxAttempts}
@@ -326,7 +326,7 @@ export function TimelineFlow({ tasks, edges }: TimelineFlowProps) {
                         x="5"
                         y={NODE_HEIGHT + 20}
                         fontSize="10"
-                        fill="hsl(var(--popover-foreground))"
+                        className="fill-popover-foreground"
                       >
                         Model: {node.task.workerModel}
                       </text>
@@ -337,7 +337,7 @@ export function TimelineFlow({ tasks, edges }: TimelineFlowProps) {
                         x="5"
                         y={NODE_HEIGHT + 35}
                         fontSize="9"
-                        fill="hsl(var(--muted-foreground))"
+                        className="fill-muted-foreground"
                         fontFamily="monospace"
                       >
                         {node.task.telemetry.tokens.toLocaleString()} tokens · $
@@ -353,7 +353,7 @@ export function TimelineFlow({ tasks, edges }: TimelineFlowProps) {
 
         {/* Timeline labels */}
         <g className="timeline-labels">
-          <text x="10" y="15" fontSize="11" fontWeight="600" fill="hsl(var(--foreground))">
+          <text x="10" y="15" fontSize="11" fontWeight="600" className="fill-foreground">
             Timeline Flow
           </text>
           <text
@@ -361,7 +361,7 @@ export function TimelineFlow({ tasks, edges }: TimelineFlowProps) {
             y="15"
             fontSize="10"
             textAnchor="middle"
-            fill="hsl(var(--muted-foreground))"
+            className="fill-muted-foreground"
           >
             Start
           </text>

@@ -216,7 +216,7 @@ export function NetworkView({ tasks, edges }: NetworkViewProps) {
                   fontSize="20"
                   fontWeight="700"
                   textAnchor="middle"
-                  fill="hsl(var(--foreground))"
+                  className="fill-foreground"
                 >
                   {node.task.size}
                 </text>
@@ -227,7 +227,7 @@ export function NetworkView({ tasks, edges }: NetworkViewProps) {
                   y={node.y + 10}
                   fontSize="10"
                   textAnchor="middle"
-                  fill="hsl(var(--muted-foreground))"
+                  className="fill-muted-foreground"
                   fontWeight="500"
                 >
                   {node.task.id}
@@ -239,7 +239,7 @@ export function NetworkView({ tasks, edges }: NetworkViewProps) {
                   y={node.y + 22}
                   fontSize="9"
                   textAnchor="middle"
-                  fill="hsl(var(--muted-foreground))"
+                  className="fill-muted-foreground"
                   fontFamily="monospace"
                 >
                   {node.task.attempts}/{node.task.maxAttempts}
@@ -267,7 +267,7 @@ export function NetworkView({ tasks, edges }: NetworkViewProps) {
                       width="220"
                       height="35"
                     >
-                      <div className="text-xs leading-tight line-clamp-2 font-medium">
+                      <div className="text-xs text-foreground leading-tight line-clamp-2 font-medium">
                         {node.task.spec}
                       </div>
                     </foreignObject>
@@ -277,7 +277,7 @@ export function NetworkView({ tasks, edges }: NetworkViewProps) {
                       x={node.x - 110}
                       y={node.y - NODE_RADIUS - 22}
                       fontSize="10"
-                      fill="hsl(var(--muted-foreground))"
+                      className="fill-muted-foreground"
                     >
                       Status: {statusLabel}
                     </text>
@@ -288,7 +288,7 @@ export function NetworkView({ tasks, edges }: NetworkViewProps) {
                         x={node.x - 110}
                         y={node.y - NODE_RADIUS - 10}
                         fontSize="9"
-                        fill="hsl(var(--muted-foreground))"
+                        className="fill-muted-foreground"
                         fontFamily="monospace"
                       >
                         {node.task.workerModel}
@@ -304,7 +304,7 @@ export function NetworkView({ tasks, edges }: NetworkViewProps) {
         {/* Legend */}
         <g transform="translate(20, 20)">
           <rect width="180" height="160" rx="4" fill="hsl(var(--card))" stroke="hsl(var(--border))" opacity="0.9" />
-          <text x="10" y="20" fontSize="12" fontWeight="600" fill="hsl(var(--foreground))">
+          <text x="10" y="20" fontSize="12" fontWeight="600" className="fill-foreground">
             Status Clusters
           </text>
           {[
@@ -318,7 +318,7 @@ export function NetworkView({ tasks, edges }: NetworkViewProps) {
           ].map((item, i) => (
             <g key={item.status} transform={`translate(10, ${40 + i * 18})`}>
               <circle cx="6" cy="-3" r="5" fill={getClusterColor(item.status)} />
-              <text x="18" y="0" fontSize="11" fill="hsl(var(--foreground))">
+              <text x="18" y="0" fontSize="11" className="fill-foreground">
                 {item.label}
               </text>
             </g>

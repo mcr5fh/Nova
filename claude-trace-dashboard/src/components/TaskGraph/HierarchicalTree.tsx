@@ -157,11 +157,10 @@ export function HierarchicalTree({ tasks, edges }: HierarchicalTreeProps) {
               <path
                 key={`${node.task.id}-${child.task.id}`}
                 d={getConnectionPath(node, child)}
-                stroke="hsl(var(--muted-foreground))"
+                className="stroke-muted-foreground transition-all duration-200 hover:opacity-100 hover:stroke-primary"
                 strokeWidth="2"
                 fill="none"
                 opacity={0.3}
-                className="transition-all duration-200 hover:opacity-100 hover:stroke-primary"
               />
             ))
           )}
@@ -187,10 +186,8 @@ export function HierarchicalTree({ tasks, edges }: HierarchicalTreeProps) {
                   width={NODE_WIDTH}
                   height={NODE_HEIGHT}
                   rx="8"
-                  fill="hsl(var(--card))"
-                  stroke="hsl(var(--border))"
+                  className="fill-card stroke-border transition-all duration-200"
                   strokeWidth={isHovered ? "3" : "1"}
-                  className="transition-all duration-200"
                   opacity={isHovered ? 1 : 0.9}
                 />
 
@@ -208,7 +205,7 @@ export function HierarchicalTree({ tasks, edges }: HierarchicalTreeProps) {
                   y="20"
                   fontSize="12"
                   fontWeight="500"
-                  fill="hsl(var(--foreground))"
+                  className="fill-foreground"
                 >
                   {node.task.id}
                 </text>
@@ -220,15 +217,14 @@ export function HierarchicalTree({ tasks, edges }: HierarchicalTreeProps) {
                   width="28"
                   height="18"
                   rx="4"
-                  fill="hsl(var(--muted))"
-                  stroke="hsl(var(--border))"
+                  className="fill-muted stroke-border"
                 />
                 <text
                   x={NODE_WIDTH - 21}
                   y="20"
                   fontSize="10"
                   textAnchor="middle"
-                  fill="hsl(var(--foreground))"
+                  className="fill-foreground"
                   fontWeight="500"
                 >
                   {node.task.size}
@@ -236,7 +232,7 @@ export function HierarchicalTree({ tasks, edges }: HierarchicalTreeProps) {
 
                 {/* Spec text */}
                 <foreignObject x="10" y="35" width={NODE_WIDTH - 20} height="45">
-                  <div className="text-sm leading-tight line-clamp-2 px-1">
+                  <div className="text-sm text-foreground leading-tight line-clamp-2 px-1">
                     {node.task.spec}
                   </div>
                 </foreignObject>
@@ -246,7 +242,7 @@ export function HierarchicalTree({ tasks, edges }: HierarchicalTreeProps) {
                   x="10"
                   y="95"
                   fontSize="11"
-                  fill="hsl(var(--muted-foreground))"
+                  className="fill-muted-foreground"
                 >
                   {statusLabel}
                 </text>
@@ -255,7 +251,7 @@ export function HierarchicalTree({ tasks, edges }: HierarchicalTreeProps) {
                   y="95"
                   fontSize="11"
                   textAnchor="end"
-                  fill="hsl(var(--muted-foreground))"
+                  className="fill-muted-foreground"
                   fontFamily="monospace"
                 >
                   {node.task.attempts}/{node.task.maxAttempts}
@@ -267,7 +263,7 @@ export function HierarchicalTree({ tasks, edges }: HierarchicalTreeProps) {
                     x="10"
                     y="110"
                     fontSize="10"
-                    fill="hsl(var(--muted-foreground))"
+                    className="fill-muted-foreground"
                     fontFamily="monospace"
                   >
                     {node.task.telemetry.tokens.toLocaleString()} tokens · ${node.task.telemetry.cost.toFixed(4)}
@@ -283,15 +279,14 @@ export function HierarchicalTree({ tasks, edges }: HierarchicalTreeProps) {
                       width={NODE_WIDTH + 20}
                       height="25"
                       rx="4"
-                      fill="hsl(var(--popover))"
-                      stroke="hsl(var(--border))"
+                      className="fill-popover stroke-border"
                     />
                     <text
                       x={NODE_WIDTH / 2}
                       y={NODE_HEIGHT + 20}
                       fontSize="10"
                       textAnchor="middle"
-                      fill="hsl(var(--popover-foreground))"
+                      className="fill-popover-foreground"
                     >
                       Model: {node.task.workerModel}
                     </text>
