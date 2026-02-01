@@ -249,6 +249,10 @@ def create_app(
     async def start_epic(request: StartEpicRequest):
         """Start execution of an epic's children.
 
+        Starts the orchestrator in a background thread so it doesn't block
+        the HTTP response. The orchestrator will run indefinitely, spawning
+        workers for ready tasks until all tasks are complete.
+
         Args:
             request: Request containing epic_id
 
@@ -257,11 +261,29 @@ def create_app(
         """
         logger.info(f"Epic start requested for epic_id={request.epic_id}")
         try:
-            # Instantiate and start the BeadOrchestrator
+            # Instantiate the BeadOrchestrator
             logger.info(f"Starting BeadOrchestrator for epic_id={request.epic_id}")
             orchestrator = BeadOrchestrator(request.epic_id)
-            orchestrator.start()
-            logger.info(f"BeadOrchestrator started successfully for epic_id={request.epic_id}")
+
+            # Start orchestrator in background thread
+            # This allows the HTTP response to return immediately
+            def run_orchestrator():
+                """Run orchestrator in background thread."""
+                try:
+                    logger.info(f"BeadOrchestrator thread started for epic_id={request.epic_id}")
+                    orchestrator.start()
+                    logger.info(f"BeadOrchestrator completed for epic_id={request.epic_id}")
+                except Exception as e:
+                    logger.error(f"BeadOrchestrator error for epic_id={request.epic_id}: {str(e)}", exc_info=True)
+
+            thread = threading.Thread(
+                target=run_orchestrator,
+                name=f"BeadOrchestrator-{request.epic_id}",
+                daemon=True  # Daemon thread won't prevent server shutdown
+            )
+            thread.start()
+
+            logger.info(f"BeadOrchestrator thread started successfully for epic_id={request.epic_id}")
 
             return JSONResponse(
                 content={

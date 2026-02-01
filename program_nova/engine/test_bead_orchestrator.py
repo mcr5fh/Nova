@@ -350,3 +350,159 @@ class TestBeadOrchestrator:
         assert metrics["token_usage"]["cache_creation_tokens"] == 1000
         assert abs(metrics["cost_usd"] - 0.01485) < 1e-10
         assert metrics["duration_seconds"] == 120
+
+    @patch("program_nova.engine.bead_orchestrator.Worker")
+    @patch("program_nova.engine.bead_orchestrator.time")
+    def test_start_spawns_workers_for_ready_tasks(
+        self, mock_time, mock_worker_class, mock_subprocess_run
+    ):
+        """Test that start() spawns workers for ready tasks."""
+        # Mock time.time for duration tracking
+        mock_time.time.return_value = 1000.0
+        mock_time.sleep = lambda x: None  # Skip actual sleeping
+
+        # Mock get_ready_tasks to return 2 tasks on first call, then empty
+        ready_tasks_responses = [
+            [{"id": "Nova-gyd.1"}, {"id": "Nova-gyd.3"}],  # First call: 2 ready tasks
+            [],  # Second call: no more tasks
+        ]
+
+        # Mock bd show responses for both tasks
+        bead_responses = [
+            [{"id": "Nova-gyd.1", "title": "Task 1", "description": "First task", "status": "open"}],
+            [{"id": "Nova-gyd.3", "title": "Task 3", "description": "Third task", "status": "open"}],
+        ]
+
+        # Setup mock responses in order
+        mock_subprocess_run.side_effect = [
+            # First iteration: get_ready_tasks call
+            Mock(stdout=json.dumps(ready_tasks_responses[0])),
+            # bd update for Nova-gyd.1
+            Mock(returncode=0),
+            # bd show for Nova-gyd.1
+            Mock(stdout=json.dumps(bead_responses[0])),
+            # bd update for Nova-gyd.3
+            Mock(returncode=0),
+            # bd show for Nova-gyd.3
+            Mock(stdout=json.dumps(bead_responses[1])),
+            # Workers complete, so complete_task is called twice
+            # bd comments add for Nova-gyd.1
+            Mock(returncode=0),
+            # bd close for Nova-gyd.1
+            Mock(returncode=0),
+            # bd comments add for Nova-gyd.3
+            Mock(returncode=0),
+            # bd close for Nova-gyd.3
+            Mock(returncode=0),
+            # Second iteration: get_ready_tasks returns empty
+            Mock(stdout=json.dumps(ready_tasks_responses[1])),
+        ]
+
+        # Mock Worker instances
+        mock_worker1 = Mock()
+        mock_worker1.is_alive.return_value = False  # Worker completed
+        mock_worker1.wait.return_value = 0
+        mock_worker1.get_token_usage.return_value = {
+            "input_tokens": 100,
+            "output_tokens": 50,
+            "cache_read_tokens": 0,
+            "cache_creation_tokens": 0,
+        }
+
+        mock_worker2 = Mock()
+        mock_worker2.is_alive.return_value = False
+        mock_worker2.wait.return_value = 0
+        mock_worker2.get_token_usage.return_value = {
+            "input_tokens": 100,
+            "output_tokens": 50,
+            "cache_read_tokens": 0,
+            "cache_creation_tokens": 0,
+        }
+
+        mock_worker_class.side_effect = [mock_worker1, mock_worker2]
+
+        # Create orchestrator and run
+        orch = BeadOrchestrator("Nova-gyd", max_workers=2)
+        orch.start(check_interval=0.1, max_iterations=2)
+
+        # Verify workers were created for both tasks
+        assert mock_worker_class.call_count == 2
+        mock_worker_class.assert_any_call(
+            task_id="Nova-gyd.1",
+            task_description="First task"
+        )
+        mock_worker_class.assert_any_call(
+            task_id="Nova-gyd.3",
+            task_description="Third task"
+        )
+
+        # Verify workers were started
+        mock_worker1.start.assert_called_once()
+        mock_worker2.start.assert_called_once()
+
+    @patch("program_nova.engine.bead_orchestrator.Worker")
+    @patch("program_nova.engine.bead_orchestrator.time")
+    def test_start_respects_max_workers_limit(
+        self, mock_time, mock_worker_class, mock_subprocess_run
+    ):
+        """Test that start() respects max_workers limit."""
+        # Mock time
+        mock_time.time.return_value = 1000.0
+        mock_time.sleep = lambda x: None
+
+        # Mock get_ready_tasks to return 3 tasks initially
+        ready_tasks_response = [
+            {"id": "Nova-gyd.1"},
+            {"id": "Nova-gyd.2"},
+            {"id": "Nova-gyd.3"}
+        ]
+
+        # Mock bd show for first 2 tasks (max_workers=2)
+        bead_responses = [
+            [{"id": "Nova-gyd.1", "title": "Task 1", "description": "First", "status": "open"}],
+            [{"id": "Nova-gyd.2", "title": "Task 2", "description": "Second", "status": "open"}],
+        ]
+
+        mock_subprocess_run.side_effect = [
+            # get_ready_tasks
+            Mock(stdout=json.dumps(ready_tasks_response)),
+            # bd update for task 1
+            Mock(returncode=0),
+            # bd show for task 1
+            Mock(stdout=json.dumps(bead_responses[0])),
+            # bd update for task 2
+            Mock(returncode=0),
+            # bd show for task 2
+            Mock(stdout=json.dumps(bead_responses[1])),
+            # Workers complete, so complete_task is called twice
+            # bd comments add for task 1
+            Mock(returncode=0),
+            # bd close for task 1
+            Mock(returncode=0),
+            # bd comments add for task 2
+            Mock(returncode=0),
+            # bd close for task 2
+            Mock(returncode=0),
+            # Second iteration: get_ready_tasks returns empty
+            Mock(stdout="[]"),
+        ]
+
+        # Mock workers
+        mock_worker1 = Mock()
+        mock_worker1.is_alive.return_value = False
+        mock_worker1.wait.return_value = 0
+        mock_worker1.get_token_usage.return_value = {"input_tokens": 100, "output_tokens": 50, "cache_read_tokens": 0, "cache_creation_tokens": 0}
+
+        mock_worker2 = Mock()
+        mock_worker2.is_alive.return_value = False
+        mock_worker2.wait.return_value = 0
+        mock_worker2.get_token_usage.return_value = {"input_tokens": 100, "output_tokens": 50, "cache_read_tokens": 0, "cache_creation_tokens": 0}
+
+        mock_worker_class.side_effect = [mock_worker1, mock_worker2]
+
+        # Create orchestrator with max_workers=2
+        orch = BeadOrchestrator("Nova-gyd", max_workers=2)
+        orch.start(check_interval=0.1, max_iterations=2)
+
+        # Should only start 2 workers even though 3 tasks were ready
+        assert mock_worker_class.call_count == 2
