@@ -1167,10 +1167,24 @@ function buildDependencyGraph(taskDefinitions, taskStates) {
 }
 
 function renderDependencyGraphSVG(graph) {
+    console.log('[renderDependencyGraphSVG] Starting SVG render');
+    console.log('[renderDependencyGraphSVG] Graph:', graph);
+
     const container = document.getElementById('dependency-graph-container');
+    console.log('[renderDependencyGraphSVG] Container element:', container);
+
+    if (!container) {
+        console.error('[renderDependencyGraphSVG] Container not found!');
+        return;
+    }
+
     container.innerHTML = '';
 
     const { levels, depths, edges, taskDefinitions, taskStates } = graph;
+
+    console.log('[renderDependencyGraphSVG] Levels:', levels);
+    console.log('[renderDependencyGraphSVG] Number of levels:', Object.keys(levels).length);
+    console.log('[renderDependencyGraphSVG] Number of edges:', edges.length);
 
     // Layout constants
     const NODE_WIDTH = 200;
@@ -1183,8 +1197,13 @@ function renderDependencyGraphSVG(graph) {
     const maxLevel = Math.max(...Object.keys(levels).map(Number));
     const maxNodesInLevel = Math.max(...Object.values(levels).map(arr => arr.length));
 
+    console.log('[renderDependencyGraphSVG] maxLevel:', maxLevel);
+    console.log('[renderDependencyGraphSVG] maxNodesInLevel:', maxNodesInLevel);
+
     const width = Math.max(1200, (maxLevel + 1) * LEVEL_SPACING + MARGIN * 2);
     const height = Math.max(600, maxNodesInLevel * (NODE_HEIGHT + NODE_SPACING) + MARGIN * 2);
+
+    console.log('[renderDependencyGraphSVG] SVG dimensions:', width, 'x', height);
 
     // Create SVG
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -1353,8 +1372,12 @@ function renderDependencyGraphSVG(graph) {
 
     svg.appendChild(nodesGroup);
 
+    console.log('[renderDependencyGraphSVG] SVG created with', nodesGroup.children.length, 'nodes');
+    console.log('[renderDependencyGraphSVG] SVG element:', svg);
+
     // Add to container
     container.appendChild(svg);
+    console.log('[renderDependencyGraphSVG] SVG appended to container');
 
     // Add legend
     const legend = document.createElement('div');
@@ -1377,4 +1400,6 @@ function renderDependencyGraphSVG(graph) {
         </div>
     `;
     container.appendChild(legend);
+    console.log('[renderDependencyGraphSVG] Legend appended to container');
+    console.log('[renderDependencyGraphSVG] Render complete! Container now has', container.children.length, 'children');
 }
