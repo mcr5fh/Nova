@@ -324,7 +324,7 @@ class TestMainLoop:
             }
 
             # Mark task as completed when worker starts
-            def start_side_effect(cmd):
+            def start_side_effect(cmd, cwd=None):
                 state_mgr = StateManager(temp_state_file)
                 state_mgr.complete_task(
                     task_id,

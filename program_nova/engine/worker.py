@@ -62,12 +62,13 @@ class Worker:
             "cache_creation_tokens": 0,
         }
 
-    def start(self, command: List[str]) -> None:
+    def start(self, command: List[str], cwd: Optional[str] = None) -> None:
         """
         Spawn the worker subprocess and begin capturing output to logs.
 
         Args:
             command: Command and arguments to execute (e.g., ["claude", "code", ...])
+            cwd: Working directory for the subprocess (default: current directory)
 
         Side effects:
             - Creates log file at self.log_path
@@ -87,6 +88,7 @@ class Worker:
             stderr=subprocess.STDOUT,  # Merge stderr into stdout
             text=True,
             bufsize=1,  # Line buffered
+            cwd=cwd,  # Set working directory for the subprocess
         )
 
         self.pid = self.process.pid

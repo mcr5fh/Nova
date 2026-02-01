@@ -142,8 +142,9 @@ class Orchestrator:
             started_at=started_at,
         )
 
-        # Start the worker
-        worker.start(command)
+        # Start the worker in the current working directory
+        # This ensures workers run in the project directory where nova was invoked
+        worker.start(command, cwd=str(Path.cwd()))
 
         # Update state with PID
         self.state_mgr.update_task(task_id, pid=worker.pid)
