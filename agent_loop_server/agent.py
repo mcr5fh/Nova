@@ -130,6 +130,10 @@ class AgentLoopRunner:
                                     result_value,
                                     ensure_ascii=True,
                                 )
+                            self._add_tool_result(
+                                tool_name=tool_name,
+                                result=result_value or "",
+                            )
                             await self._emit_event(ToolResultEvent(
                                 tool_name=tool_name,
                                 result=result_value or "",
