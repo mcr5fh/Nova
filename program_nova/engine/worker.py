@@ -9,8 +9,8 @@ Responsibilities:
 - Report completion status and metrics
 """
 
+import json
 import os
-import re
 import subprocess
 import signal
 from enum import Enum
@@ -195,19 +195,23 @@ class Worker:
 
     def _parse_token_usage_from_log(self) -> None:
         """
-        Parse token usage from log file and accumulate counts.
+        Parse token usage from Claude Code JSON output in log file.
 
-        Looks for lines matching pattern:
-        "Token usage: input=1234, output=567, cache_read=890, cache_creation=123"
+        Claude Code with --output-format json outputs a JSON object containing:
+        {
+          "usage": {
+            "input_tokens": 123,
+            "output_tokens": 456,
+            "cache_read_input_tokens": 789,
+            "cache_creation_input_tokens": 12
+          },
+          "modelUsage": { ... }
+        }
 
-        Updates self._token_usage with accumulated totals.
+        Updates self._token_usage with accumulated totals from all JSON responses.
         """
         if not self.log_path.exists():
             return
-
-        # Pattern to match token usage reports
-        # Example: "Token usage: input=1234, output=567, cache_read=890, cache_creation=123"
-        pattern = r"Token usage: input=(\d+), output=(\d+), cache_read=(\d+), cache_creation=(\d+)"
 
         # Reset counters
         totals = {
@@ -217,16 +221,41 @@ class Worker:
             "cache_creation_tokens": 0,
         }
 
-        # Read log file and accumulate token counts
+        # Read log file and parse JSON output
         try:
             with open(self.log_path, "r") as f:
-                for line in f:
-                    match = re.search(pattern, line)
-                    if match:
-                        totals["input_tokens"] += int(match.group(1))
-                        totals["output_tokens"] += int(match.group(2))
-                        totals["cache_read_tokens"] += int(match.group(3))
-                        totals["cache_creation_tokens"] += int(match.group(4))
+                content = f.read()
+
+                # Claude Code outputs JSON on a single line
+                # Try to parse each line as JSON
+                for line in content.splitlines():
+                    if not line.strip():
+                        continue
+
+                    try:
+                        data = json.loads(line)
+
+                        # Extract from 'usage' field if present
+                        if "usage" in data:
+                            usage = data["usage"]
+                            totals["input_tokens"] += usage.get("input_tokens", 0)
+                            totals["output_tokens"] += usage.get("output_tokens", 0)
+                            totals["cache_read_tokens"] += usage.get("cache_read_input_tokens", 0)
+                            totals["cache_creation_tokens"] += usage.get("cache_creation_input_tokens", 0)
+
+                        # Alternatively, extract from modelUsage (more detailed)
+                        # This provides per-model breakdown if using multiple models
+                        elif "modelUsage" in data:
+                            for _, model_usage in data["modelUsage"].items():
+                                totals["input_tokens"] += model_usage.get("inputTokens", 0)
+                                totals["output_tokens"] += model_usage.get("outputTokens", 0)
+                                totals["cache_read_tokens"] += model_usage.get("cacheReadInputTokens", 0)
+                                totals["cache_creation_tokens"] += model_usage.get("cacheCreationInputTokens", 0)
+
+                    except json.JSONDecodeError:
+                        # Skip non-JSON lines (e.g., error messages, partial output)
+                        continue
+
         except IOError:
             # If we can't read the log, keep existing token counts
             pass

@@ -132,11 +132,15 @@ class Orchestrator:
 
         # Build command for worker to spawn Claude Code agent
         # Add permission bypass flag so workers don't prompt for file creation
+        # Use JSON output format to capture token usage and other metrics
         command = [
             "claude",
             "--model",
             "sonnet",
             "--dangerously-skip-permissions",
+            "--print",  # Non-interactive mode (required for JSON output)
+            "--output-format",
+            "json",  # JSON output includes token usage and cost
             task_description,
         ]
 
