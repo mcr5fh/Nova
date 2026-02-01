@@ -7,8 +7,8 @@ You are tasked with translating solution architect specifications into detailed 
 When this command is invoked:
 
 1. **Check if a solution spec path was provided**:
-   - If path provided (e.g., `/create-plan specs/solutions/web-voice-planner.md`), read that spec
-   - If just a feature name provided (e.g., `/create-plan web-voice-planner`), look in `specs/solutions/`
+   - If path provided (e.g., `/create-plan specs/projects/web-voice-planner/solution.md`), read that spec
+   - If just a feature name provided (e.g., `/create-plan web-voice-planner`), look in `specs/projects/{slug}/solution.md`
 
 2. **If no spec provided**, respond with:
 
@@ -18,7 +18,7 @@ I'll help you create a detailed implementation plan from a solution spec.
 **Which solution spec should I translate?**
 
 Available specs:
-[List files from specs/solutions/]
+[List directories from specs/projects/ that contain solution.md]
 
 Provide the spec name or path.
 ```
@@ -115,14 +115,14 @@ Once aligned on approach:
 
 After structure approval:
 
-1. **Write the plan** to `specs/plans/<feature>-plan.md`
-   - Create `specs/plans/` directory if it doesn't exist
+1. **Write the plan** to `specs/projects/<slug>/full-spec.md`
+   - Create `specs/projects/<slug>/` directory if it doesn't exist
 2. **Use this template structure**:
 
 ```markdown
 # [Feature Name] Implementation Plan
 
-> Generated from: `specs/solutions/<feature>.md`
+> Generated from: `specs/projects/<slug>/solution.md`
 
 ## Overview
 
@@ -209,7 +209,7 @@ After plan approval, create these issues:
 
 ## References
 
-- Solution spec: `specs/solutions/<feature>.md`
+- Solution spec: `specs/projects/<slug>/solution.md`
 - Similar implementation: `[file:line]`
 ```
 
@@ -218,7 +218,7 @@ After plan approval, create these issues:
 1. **Present the draft plan location**:
    ```
    I've created the implementation plan at:
-   `specs/plans/<feature>-plan.md`
+   `specs/projects/<slug>/full-spec.md`
 
    Please review it and let me know:
    - Are the phases properly scoped?
@@ -291,7 +291,7 @@ This project uses:
 User: /create-plan web-voice-planner
 Assistant: Let me read that solution spec...
 
-[Reads specs/solutions/web-voice-planner.md fully]
+[Reads specs/projects/web-voice-planner/solution.md fully]
 
 I've read the solution spec for Web Voice Planner.
 

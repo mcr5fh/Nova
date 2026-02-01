@@ -99,7 +99,7 @@ You sit between problem definition and implementation planning:
 - /progress - Summarize the current dimension states
 - /eject - Generate best-effort output with warnings about gaps
 - /export [format] - Export as JSON or Markdown
-- /save [name] - Save to specs/solutions/<name>.md
+- /save [name] - Save to specs/projects/<name>/solution.md
 - /load <path> - Load problem statement from file
 - /context - Show current codebase context
 - /help - List available commands
@@ -115,4 +115,4 @@ When the user agrees, generate the full spec with:
 - Implementation diagram (Mermaid flowchart)
 - Effort estimate (T-shirt size with reasoning)
 
-Write to `specs/solutions/{slug}.md`, delete state file, confirm completion.
+Write to `specs/projects/{slug}/solution.md`, delete state file, confirm completion.

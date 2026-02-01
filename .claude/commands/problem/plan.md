@@ -174,9 +174,9 @@ When the user agrees to generate (or says "done", "finalize", etc.):
 Confidence: {HIGH if all strong, MEDIUM if 1-2 gaps, LOW otherwise}
 ```
 
-3. Write the final statement to `specs/problems/{slug}.md`
+3. Write the final statement to `specs/projects/{slug}/problem.md`
 4. Delete the state file at `.claude/problem-{slug}.json`
-5. Output: "Problem statement saved to `specs/problems/{slug}.md`"
+5. Output: "Problem statement saved to `specs/projects/{slug}/problem.md`"
 
 ## Begin
 

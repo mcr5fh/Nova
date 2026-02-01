@@ -55,7 +55,7 @@ During an interview, you can also use:
 - `/progress` - Show dimension coverage status
 - `/eject` - Generate best-effort output with warnings about gaps
 - `/export [format]` - Export as JSON or Markdown
-- `/save [name]` - Save to specs/solutions/<name>.md
+- `/save [name]` - Save to specs/projects/<name>/solution.md
 - `/load <path>` - Load problem statement from file
 - `/context` - Show current codebase context
 

@@ -178,7 +178,7 @@ If the user describes a solution involving UI or frontend:
 - /progress - Summarize the current dimension states
 - /eject - Generate best-effort output with warnings about gaps
 - /export [format] - Export as JSON or Markdown
-- /save [name] - Save to specs/solutions/<name>.md
+- /save [name] - Save to specs/projects/<name>/solution.md
 - /load <path> - Load problem statement from file
 - /context - Show current codebase context
 - /help - List available commands
@@ -269,9 +269,9 @@ Confidence: {HIGH if all strong, MEDIUM if 1-2 gaps, LOW otherwise}
    - If you discover new edge cases, add them to the Edge Cases table and inform the user:
      "While reviewing the flow diagram, I noticed some additional edge cases we should consider: {list}. I've added these to the spec."
 
-4. Write the final spec to `specs/solutions/{slug}.md`
+4. Write the final spec to `specs/projects/{slug}/solution.md`
 5. Delete the state file at `.claude/solution-architect-{slug}.json`
-6. Output: "Solution spec saved to `specs/solutions/{slug}.md`"
+6. Output: "Solution spec saved to `specs/projects/{slug}/solution.md`"
 
 ## Begin
 
