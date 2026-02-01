@@ -32,8 +32,12 @@ function ErrorState({ error }: { error: Error }) {
 
 function NoDataState() {
   return (
-    <div className="flex items-center justify-center min-h-[200px]">
-      <div className="text-text-secondary">No data available. Select an epic in Bead mode or start a cascade run.</div>
+    <div className="flex flex-col items-center justify-center min-h-[300px] text-center">
+      <div className="text-6xl mb-4">📊</div>
+      <h2 className="text-xl font-semibold text-text-primary mb-2">No Data Available</h2>
+      <p className="text-text-secondary max-w-md">
+        No cascade run is active. Start a cascade run or switch to Bead mode and select an epic to view dashboard data.
+      </p>
     </div>
   );
 }
@@ -45,7 +49,12 @@ export function ViewRouter({ status, isLoading, error }: ViewRouterProps) {
     return <LoadingState />;
   }
 
+  // Treat 404 (no cascade run) as "no data" rather than an error
   if (error) {
+    const is404 = error.message.includes('404') || error.message.includes('not found');
+    if (is404) {
+      return <NoDataState />;
+    }
     return <ErrorState error={error} />;
   }
 

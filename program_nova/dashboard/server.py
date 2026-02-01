@@ -311,6 +311,9 @@ def create_app(
             epics = json.loads(result.stdout)
             logger.info(f"Epic list returned {len(epics)} epics")
             return epics
+        except FileNotFoundError:
+            logger.warning("bd CLI not found - returning empty epic list")
+            return []
         except subprocess.CalledProcessError as e:
             logger.error(f"Error listing epics: {e.stderr}", exc_info=True)
             raise HTTPException(

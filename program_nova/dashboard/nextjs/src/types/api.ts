@@ -51,8 +51,8 @@ export interface StatusResponse {
   tasks: Record<string, Task>;
   rollups: Rollups;
   hierarchy: Hierarchy;
-  milestones: Milestone[];
-  all_tasks_completed: boolean;
+  milestones?: Milestone[];
+  all_tasks_completed?: boolean;
   task_definitions: Record<string, TaskDefinition>;
 }
 
@@ -65,9 +65,15 @@ export interface Milestone {
 export interface Epic {
   id: string;
   title: string;
-  type: string;
+  description?: string;
   status: string;
-  priority?: string;
+  priority?: number;
+  issue_type: string;
+  created_at?: string;
+  created_by?: string;
+  updated_at?: string;
+  dependency_count?: number;
+  dependent_count?: number;
 }
 
 export interface TaskLogs {
