@@ -7,14 +7,17 @@ NO STATIC FILE SERVING (separate Vite dev server).
 
 import os
 import asyncio
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from typing import Set
+from typing import Set, List, Dict, Any
+from pydantic import BaseModel
 from dotenv import load_dotenv
 
 from .agent import AgentLoopRunner
 from .events import UserMessageEvent, ErrorEvent
+from .baml_client import b
+from .baml_client.types import Message, MessageRole
 
 # Load environment variables
 load_dotenv()
@@ -60,12 +63,29 @@ class ConnectionManager:
             agent = AgentLoopRunner(
                 working_dir=".",
                 on_event=on_event,
+                session_id=session_id,
             )
             self.session_agents[session_id] = agent
+        else:
+            agent.on_event = on_event
         return agent
 
 
 manager = ConnectionManager()
+
+
+# Request/Response models for diagram generation
+class DiagramGenerateRequest(BaseModel):
+    """Request body for diagram generation."""
+    messages: List[Dict[str, str]]  # List of {role: str, content: str}
+    context: str
+
+
+class DiagramGenerateResponse(BaseModel):
+    """Response body for diagram generation."""
+    flow: str
+    erd: str
+    system_arch: str
 
 
 @asynccontextmanager
@@ -175,3 +195,65 @@ async def get_config():
         "max_iterations": int(os.getenv("MAX_AGENT_ITERATIONS", 10)),
         "working_dir": os.getcwd()
     }
+
+
+@app.post("/api/diagram/generate", response_model=DiagramGenerateResponse)
+async def generate_diagrams(request: DiagramGenerateRequest):
+    """Generate Mermaid diagrams based on conversation context.
+
+    Accepts a list of messages and context string, returns three types of diagrams:
+    - flow: Flowchart showing process flow
+    - erd: Entity Relationship Diagram showing data models
+    - system_arch: System architecture diagram showing components
+
+    Args:
+        request: DiagramGenerateRequest with messages and context
+
+    Returns:
+        DiagramGenerateResponse with three Mermaid diagram strings
+
+    Raises:
+        HTTPException: If diagram generation fails
+    """
+    try:
+        # Convert request messages to BAML Message objects
+        baml_messages = []
+        for msg in request.messages:
+            role_str = msg.get("role", "").lower()
+            content = msg.get("content", "")
+
+            # Map role string to MessageRole enum
+            if role_str == "user":
+                role = MessageRole.User
+            elif role_str == "assistant":
+                role = MessageRole.Assistant
+            else:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid message role: {role_str}. Must be 'user' or 'assistant'"
+                )
+
+            baml_messages.append(Message(role=role, content=content))
+
+        # Call BAML function to generate diagrams
+        result = await b.GenerateMermaidDiagrams(
+            messages=baml_messages,
+            context=request.context
+        )
+
+        # Return the generated diagrams
+        return DiagramGenerateResponse(
+            flow=result.flow,
+            erd=result.erd,
+            system_arch=result.system_arch
+        )
+
+    except HTTPException:
+        # Re-raise HTTP exceptions as-is
+        raise
+    except Exception as e:
+        # Catch all other exceptions and return 500
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to generate diagrams: {str(e)}"
+        )
