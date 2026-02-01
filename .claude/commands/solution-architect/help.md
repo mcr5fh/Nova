@@ -64,6 +64,7 @@ During an interview, you can also use:
 - Start with a clear problem statement (use `/problem:plan` first if needed)
 - Be specific about WHO uses the solution and WHAT value they get
 - Explicitly define what's in scope and out of scope
-- Think about how you'll measure success
+- Define success with measurable targets — "response under 200ms" not "make it faster"
+- For architectural decisions (auth, payments, caching), clarify which approach you're considering early
 - Consider technical constraints and integrations
 - Identify edge cases and failure modes

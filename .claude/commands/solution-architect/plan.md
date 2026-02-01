@@ -110,6 +110,7 @@ Bad example: "It's successful if people like it"
 - What behavior change indicates success?
 - What could you measure or observe to validate it's working?
 - What would convince you to keep using this vs abandoning it?
+- If this involves performance or optimization, what specific targets are you aiming for? (e.g., "response under 200ms" not "make it faster")
 
 ### Technical Constraints (threshold: partial)
 **Goal:** Clear understanding of technical boundaries and integration points
@@ -117,12 +118,20 @@ Bad example: "It's successful if people like it"
 Good example: "Must integrate with existing PostgreSQL database, use React for frontend to match current stack, respect rate limits on third-party API"
 Bad example: "We'll figure out the tech later"
 
+**Common architectural decisions to surface:**
+- Authentication/authorization (OAuth vs JWT vs session-based, integration with existing auth)
+- Payment processing (provider choice, PCI compliance, webhook handling)
+- Caching strategy (Redis vs in-memory vs CDN — multiple valid approaches need clarification)
+
+When the solution touches any of these areas, proactively ask which approach the user is considering and what constraints limit the options.
+
 **Probe questions:**
 - What existing systems or technology must this integrate with?
 - Are there specific languages, frameworks, or tools that must be used?
 - What technical limitations or constraints exist (performance, security, compliance)?
 - Are there any APIs, databases, or services this must connect to?
 - What deployment environment will this run in?
+- Are there areas where multiple valid approaches exist? Which are you leaning toward and why?
 
 ### Edge Cases (threshold: partial)
 **Goal:** Identified edge cases with clear handling strategies
