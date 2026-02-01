@@ -9,13 +9,25 @@ import (
 )
 
 func TestTrackSession(t *testing.T) {
-	// Create a temporary directory for test output
+	// Create a temporary directory for test output and change to it
+	// so GetTraceDir() uses the fallback path (not in git repo)
 	homeDir := t.TempDir()
+	tempWorkDir := t.TempDir()
 
 	// Override home directory for this test
 	originalHome := os.Getenv("HOME")
 	os.Setenv("HOME", homeDir)
 	defer os.Setenv("HOME", originalHome)
+
+	// Change to non-git directory
+	originalDir, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(tempWorkDir); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chdir(originalDir)
 
 	// Create test input
 	input := map[string]interface{}{
@@ -47,8 +59,8 @@ func TestTrackSession(t *testing.T) {
 		t.Fatalf("command failed: %v", err)
 	}
 
-	// Verify output file was created
-	registryPath := filepath.Join(homeDir, ".claude", "traces", "sessions.jsonl")
+	// Verify output file was created (using fallback path since not in git repo)
+	registryPath := filepath.Join(homeDir, ".nova", "local", "default", "traces", "sessions.jsonl")
 	if _, err := os.Stat(registryPath); os.IsNotExist(err) {
 		t.Fatalf("sessions.jsonl was not created at %s", registryPath)
 	}

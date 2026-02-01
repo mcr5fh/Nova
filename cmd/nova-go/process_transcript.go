@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/mattruiters/nova/internal/paths"
 	"github.com/mattruiters/nova/internal/storage"
 	"github.com/mattruiters/nova/internal/transcript"
 	"github.com/spf13/cobra"
@@ -42,11 +43,10 @@ func runProcessTranscript(cmd *cobra.Command, args []string) error {
 	}
 
 	// Write traces to storage
-	homeDir, err := os.UserHomeDir()
+	tracesDir, err := paths.GetTraceDir()
 	if err != nil {
-		return fmt.Errorf("get home dir: %w", err)
+		return fmt.Errorf("get trace dir: %w", err)
 	}
-	tracesDir := filepath.Join(homeDir, ".claude", "traces")
 
 	writer, err := storage.NewWriter(tracesDir)
 	if err != nil {
@@ -93,11 +93,11 @@ func runProcessTranscript(cmd *cobra.Command, args []string) error {
 }
 
 func updateSessionEndTime(sessionID string) error {
-	homeDir, err := os.UserHomeDir()
+	tracesDir, err := paths.GetTraceDir()
 	if err != nil {
-		return fmt.Errorf("get home dir: %w", err)
+		return fmt.Errorf("get trace dir: %w", err)
 	}
-	registryPath := filepath.Join(homeDir, ".claude", "traces", "sessions.jsonl")
+	registryPath := filepath.Join(tracesDir, "sessions.jsonl")
 
 	// Append a session update entry
 	file, err := os.OpenFile(registryPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)

@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/mattruiters/nova/internal/paths"
 	"github.com/spf13/cobra"
 )
 
@@ -43,11 +44,11 @@ func runTrackSession(cmd *cobra.Command, args []string) error {
 	}
 
 	// Write to sessions registry
-	homeDir, err := os.UserHomeDir()
+	tracesDir, err := paths.GetTraceDir()
 	if err != nil {
-		return fmt.Errorf("get home dir: %w", err)
+		return fmt.Errorf("get trace dir: %w", err)
 	}
-	registryPath := filepath.Join(homeDir, ".claude", "traces", "sessions.jsonl")
+	registryPath := filepath.Join(tracesDir, "sessions.jsonl")
 
 	// Ensure directory exists
 	if err := os.MkdirAll(filepath.Dir(registryPath), 0755); err != nil {
