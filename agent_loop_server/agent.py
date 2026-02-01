@@ -1,17 +1,21 @@
-"""Agent loop orchestration using BAML.
+"""Agent loop orchestration using Claude Agent SDK.
 
 Implements agent to satisfy test_agent.py.
 WITH STREAMING SUPPORT AND COMPLETE IMPLEMENTATION.
 FULLY ASYNC - no thread pool, no queue, just clean async/await.
 """
 
-import os
+import json
 from typing import Optional, Dict, Any, Callable, Awaitable
 from pathlib import Path
-
-# BAML imports (generated code)
-from agent_loop_server.baml_client import b
-from agent_loop_server.baml_client.types import Message, MessageRole, AgentResponseType
+from claude_agent_sdk.types import (
+    AssistantMessage,
+    TextBlock,
+    ToolUseBlock,
+    ToolResultBlock,
+    ThinkingBlock,
+    ResultMessage,
+)
 
 from .tools import ToolExecutor
 from .events import (
@@ -19,34 +23,31 @@ from .events import (
     ToolResultEvent,
     AgentThinkingEvent,
     AgentMessageEvent,
-    ErrorEvent,
 )
 
 
 class AgentLoopRunner:
-    """Runs the BAML agent loop with tool execution and streaming."""
+    """Runs the SDK agent loop with tool execution and streaming."""
 
     def __init__(
         self,
         working_dir: str = ".",
         on_event: Optional[Callable[[Any], Awaitable[None]]] = None,
-        direct_to_claude: Optional[bool] = None
+        direct_to_claude: Optional[bool] = None,
     ):
         """Initialize agent loop.
 
         Args:
             working_dir: Directory where agent operates
             on_event: Async callback for streaming events
+            direct_to_claude: Deprecated; calls always go through the SDK
         """
         self.working_dir = Path(working_dir).resolve()
         self.conversation_history: list[Dict[str, str]] = []
         self.tool_executor = ToolExecutor(working_dir=str(self.working_dir))
         self.on_event = on_event
-        if direct_to_claude is None:
-            direct_to_claude = os.getenv("AGENT_DIRECT_TO_CLAUDE", "").lower() in {
-                "1", "true", "yes", "on"
-            }
-        self.direct_to_claude = True
+        # For compatibility, keep the parameter but always route via SDK.
+        self.direct_to_claude = True if direct_to_claude is None else True
 
     async def _emit_event(self, event):
         """Emit event via async callback.
@@ -81,7 +82,7 @@ class AgentLoopRunner:
     async def run(self, user_message: str, max_iterations: int = 10) -> str:
         """Run agent loop for a user message.
 
-        Fully async - awaits BAML calls and emits events directly.
+        Fully async - streams SDK calls and emits events directly.
 
         Args:
             user_message: User's input message
@@ -94,117 +95,64 @@ class AgentLoopRunner:
         self._add_user_message(user_message)
         raw_user_message = user_message
 
-        if self.direct_to_claude:
-            await self._emit_event(ToolCallEvent(
-                tool_name="AgentTool",
-                tool_args=raw_user_message
-            ))
-            result = self.tool_executor.execute("AgentTool", raw_user_message)
-            success = not result.startswith("Error:")
-            await self._emit_event(ToolResultEvent(
-                tool_name="AgentTool",
-                result=result,
-                success=success
-            ))
-            self._add_assistant_message(result)
-            await self._emit_event(AgentMessageEvent(message=result))
-            return result
-
-        # Agent loop
-        for iteration in range(max_iterations):
-            try:
-                # Convert history to BAML Message format
-                messages = [
-                    Message(
-                        role=MessageRole(msg["role"].capitalize()),
-                        content=msg["content"]
-                    )
-                    for msg in self.conversation_history
-                ]
-
-                # Call BAML agent (AWAIT the async call)
-                response = await b.AgentLoop(
-                    messages=messages,
-                    working_dir=str(self.working_dir)
-                )
-
-                # Check agent action
-                if response.type == AgentResponseType.Done:
-                    # Agent is done, return final message
-                    final_message = response.message or "Task complete"
-                    self._add_assistant_message(final_message)
-
-                    await self._emit_event(AgentMessageEvent(
-                        message=final_message
-                    ))
-
-                    return final_message
-
-                elif response.type == AgentResponseType.ToolCall:
-                    # Agent wants to use a tool
-                    if not response.tool_call:
-                        error_msg = "Error: Agent requested tool use but didn't specify tool"
-                        await self._emit_event(ErrorEvent(error=error_msg))
-                        return error_msg
-
-                    tool_name = response.tool_call.tool.value
-                    tool_args = response.tool_call.args
-                    if tool_name == "AgentTool":
-                        # Bypass BAML tool args and send raw user input directly.
-                        tool_args = raw_user_message
-
-                    # Emit tool call event
-                    await self._emit_event(ToolCallEvent(
-                        tool_name=tool_name,
-                        tool_args=tool_args
-                    ))
-
-                    # Execute tool
-                    try:
-                        result = self.tool_executor.execute(tool_name, tool_args)
-                        success = not result.startswith("Error:")
-                        await self._emit_event(ToolResultEvent(
+        tool_payload = json.dumps({
+            "message": raw_user_message,
+            "history": self.conversation_history,
+        })
+        # await self._emit_event(ToolCallEvent(
+        #     tool_name="AgentTool",
+        #     tool_args="",
+        # ))
+        tool_use_names: Dict[str, str] = {}
+        response_chunks: list[str] = []
+        success = True
+        try:
+            async for message in self.tool_executor.execute_stream(
+                "AgentTool",
+                tool_payload,
+            ):
+                if isinstance(message, AssistantMessage):
+                    for block in message.content:
+                        if isinstance(block, ToolUseBlock):
+                            tool_use_names[block.id] = block.name
+                            await self._emit_event(ToolCallEvent(
+                                tool_name=block.name,
+                                tool_args=json.dumps(block.input),
+                            ))
+                        elif isinstance(block, ToolResultBlock):
+                            tool_name = tool_use_names.get(
+                                block.tool_use_id,
+                                "unknown",
+                            )
+                            result_value = block.content
+                            if not isinstance(result_value, str):
+                                result_value = json.dumps(
+                                    result_value,
+                                    ensure_ascii=True,
+                                )
+                            await self._emit_event(ToolResultEvent(
                                 tool_name=tool_name,
-                                result=result,
-                                success=success
+                                result=result_value or "",
+                                success=not bool(block.is_error),
                             ))
-                        if tool_name == "AgentTool":
-                            # Send Claude output straight to user; don't re-run BAML.
-                            self._add_assistant_message(result)
-                            await self._emit_event(AgentMessageEvent(
-                                message="User request: " + result
+                        elif isinstance(block, TextBlock):
+                            response_chunks.append(block.text)
+                        elif isinstance(block, ThinkingBlock):
+                            await self._emit_event(AgentThinkingEvent(
+                                reasoning=block.thinking,
                             ))
-                            return result
-                        else:
-                            # Emit tool result event
-                            print(f"Tool result for {tool_name}: {result}")
+                elif isinstance(message, ResultMessage) and message.result:
+                    response_chunks.append(message.result)
+        except Exception as e:
+            success = False
+            response_chunks.append(f"Error: {str(e)}")
 
-                        # Add tool result to history
-                        self._add_tool_result(tool_name, result)
-
-                    except Exception as e:
-                        error_result = f"Error executing tool: {str(e)}"
-                        await self._emit_event(ToolResultEvent(
-                            tool_name=tool_name,
-                            result=error_result,
-                            success=False
-                        ))
-                        self._add_tool_result(tool_name, error_result)
-
-                else:
-                    error_msg = f"Error: Unknown agent response type '{response.type}'"
-                    await self._emit_event(ErrorEvent(error=error_msg))
-                    return error_msg
-
-            except Exception as e:
-                error_msg = f"Error in agent loop: {str(e)}"
-                await self._emit_event(ErrorEvent(error=error_msg))
-                return error_msg
-
-        # Max iterations reached
-        final_msg = (
-            f"Agent stopped after {max_iterations} iterations. "
-            "The task may be too complex or unclear."
-        )
-        await self._emit_event(AgentMessageEvent(message=final_msg))
-        return final_msg
+        result = "".join(response_chunks).strip() or "No output from claude"
+        # await self._emit_event(ToolResultEvent(
+        #     tool_name="AgentTool",
+        #     result=result,
+        #     success=success and not result.startswith("Error:"),
+        # ))
+        self._add_assistant_message(result)
+        await self._emit_event(AgentMessageEvent(message=result))
+        return result

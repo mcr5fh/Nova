@@ -1,11 +1,13 @@
 """Tool execution for agent.
 
-Simplified to single AgentTool that proxies to claude CLI.
+Simplified to single AgentTool that uses Claude Agent SDK.
 """
 
 import json
-import subprocess
-from typing import Dict, Callable
+from typing import Dict, Callable, List, Optional, AsyncIterator, Any
+
+from claude_agent_sdk import query, ClaudeAgentOptions
+from claude_agent_sdk.types import Message, AssistantMessage, TextBlock, ResultMessage
 
 
 class ToolExecutor:
@@ -24,7 +26,7 @@ class ToolExecutor:
             "AgentTool": self._agent_tool,
         }
 
-    def execute(self, tool_name: str, args_json: str) -> str:
+    async def execute(self, tool_name: str, args_json: str) -> str:
         """Execute a tool and return result.
 
         Args:
@@ -34,28 +36,20 @@ class ToolExecutor:
         Returns:
             Tool execution result as string
         """
-        # Parse arguments
+        response_chunks: List[str] = []
         try:
-            args = json.loads(args_json)
-        except json.JSONDecodeError:
-            # Fallback: treat raw string as the message argument
-            if isinstance(args_json, str) and args_json.strip():
-                args = {"message": args_json}
-            else:
-                return "Error: Invalid JSON in args: empty or unparsable"
-
-        # Get tool handler
-        handler = self._tools.get(tool_name)
-        if not handler:
-            return f"Error: Unknown tool '{tool_name}'"
-
-        # Execute tool with error handling
-        try:
-            return handler(**args)
-        except TypeError as e:
-            return f"Error: Invalid arguments for {tool_name}: {str(e)}"
+            async for message in self.execute_stream(tool_name, args_json):
+                if isinstance(message, AssistantMessage):
+                    for block in message.content:
+                        if isinstance(block, TextBlock):
+                            response_chunks.append(block.text)
+                if isinstance(message, ResultMessage) and message.result:
+                    response_chunks.append(message.result)
         except Exception as e:
             return f"Error executing {tool_name}: {str(e)}"
+
+        final_text = "".join(response_chunks).strip()
+        return final_text or "No output from claude"
 
     def get_tool_descriptions(self) -> str:
         """Get formatted descriptions of all available tools.
@@ -64,47 +58,88 @@ class ToolExecutor:
             Formatted string describing all tools
         """
         return """
-- AgentTool(message: str) -> str
-  Proxy to claude CLI to execute arbitrary tasks.
-  Sends message to 'claude -p <message>' and returns output.
-  Example: {"message": "List all Python files in current directory"}
+- AgentTool(message: str, history?: list[dict]) -> str
+  Proxy to Claude Agent SDK to execute arbitrary tasks.
+  Sends message and optional history to the SDK and returns output.
+  Example: {"message": "List all Python files", "history": [{"role":"user","content":"Hi"}]}
 """.strip()
 
-    def _agent_tool(self, message: str) -> str:
-        """Execute claude CLI with provided message.
-
-        Args:
-            message: Message/prompt to send to claude CLI
-
-        Returns:
-            Claude CLI output or error message
-        """
-        if not message:
-            return "Error: message parameter is required"
+    async def execute_stream(
+        self,
+        tool_name: str,
+        args_json: str
+    ) -> AsyncIterator[Message]:
+        """Execute a tool and yield SDK messages as they arrive."""
+        args = self._parse_args(args_json)
+        handler = self._tools.get(tool_name)
+        if not handler:
+            raise ValueError(f"Error: Unknown tool '{tool_name}'")
 
         try:
-            print(f"Executing claude CLI with message: {message}")
-            # Execute claude CLI with -p flag for prompt
-            result = subprocess.run(
-                ["claude", "--dangerously-skip-permissions", "--model", "haiku", "-p", message],
-                cwd=self.working_dir,
-                capture_output=True,
-                text=True,
-                timeout=300
+            async for message in handler(**args):
+                yield message
+        except TypeError as e:
+            raise ValueError(
+                f"Error: Invalid arguments for {tool_name}: {str(e)}"
+            ) from e
+
+    def _parse_args(self, args_json: str) -> Dict[str, Any]:
+        """Parse tool arguments with legacy fallback behavior."""
+        try:
+            return json.loads(args_json)
+        except json.JSONDecodeError:
+            if isinstance(args_json, str) and args_json.strip():
+                return {"message": args_json}
+            raise ValueError("Error: Invalid JSON in args: empty or unparsable")
+
+    async def _agent_tool(
+        self,
+        message: str,
+        history: Optional[List[Dict[str, str]]] = None
+    ) -> AsyncIterator[Message]:
+        """Execute Claude Agent SDK with provided message.
+
+        Args:
+            message: Message/prompt to send to SDK
+            history: Prior conversation history for context
+
+        Returns:
+            Async iterator of SDK messages
+        """
+        if not message:
+            raise ValueError("Error: message parameter is required")
+
+        prompt = message
+        if history:
+            trimmed_history = history
+            last_entry = history[-1] if history else None
+            if (
+                last_entry
+                and last_entry.get("role") == "user"
+                and last_entry.get("content") == message
+            ):
+                trimmed_history = history[:-1]
+
+            history_lines = []
+            for entry in trimmed_history:
+                role = entry.get("role", "unknown").capitalize()
+                content = entry.get("content", "")
+                history_lines.append(f"{role}: {content}")
+            prompt = (
+                "Conversation history:\n"
+                + "\n".join(history_lines)
+                + "\n\nCurrent user message:\n"
+                + message
             )
 
-            print(f"Claude CLI result: {result.stdout}")
-            # Check for errors
-            if result.returncode != 0:
-                error_output = result.stderr.strip() or "Unknown error"
-                return f"Error: Claude CLI failed: {error_output}"
+        options = ClaudeAgentOptions(
+            cwd=self.working_dir,
+            tools={"type": "preset", "preset": "claude_code"},
+            system_prompt={"type": "preset", "preset": "claude_code"},
+            permission_mode="bypassPermissions",
+            model="haiku",
+            setting_sources=["project", "local"],
+        )
 
-            # Return stdout
-            return result.stdout.strip() or "No output from claude"
-
-        except subprocess.TimeoutExpired:
-            return "Error: Claude command timed out after 60 seconds"
-        except FileNotFoundError:
-            return "Error: claude CLI not found on system (install via npm i -g @anthropics/claude-code)"
-        except Exception as e:
-            return f"Error running claude: {str(e)}"
+        async for message_obj in query(prompt=prompt, options=options):
+            yield message_obj
