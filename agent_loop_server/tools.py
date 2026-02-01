@@ -81,7 +81,7 @@ class ToolExecutor:
         try:
             # Execute claude CLI with -p flag for prompt
             result = subprocess.run(
-                ["claude", "-p", message],
+                ["claude", "--dangerously-skip-permissions", "-p", message],
                 cwd=self.working_dir,
                 capture_output=True,
                 text=True,
