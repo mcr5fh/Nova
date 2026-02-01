@@ -9,16 +9,18 @@ export function TaskTree() {
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Task Tree</h2>
           <p className="text-muted-foreground">
-            Visualize task hierarchy and dependencies
+            Visualize task hierarchy and dependencies with multiple views
           </p>
         </div>
 
         <Card>
           <CardHeader>
             <CardTitle>Task Graph</CardTitle>
-            <CardDescription>Interactive task tree visualization with React Flow</CardDescription>
+            <CardDescription>
+              Interactive task visualizations - switch between tree, network, and timeline views
+            </CardDescription>
           </CardHeader>
-          <CardContent className="h-[600px]">
+          <CardContent className="h-[650px]">
             <TaskGraph tasks={mockTasks} edges={mockEdges} />
           </CardContent>
         </Card>
