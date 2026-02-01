@@ -51,6 +51,7 @@ htmlcov/
 # program nova
 cascade_state.json
 example_state.json
+.nova/
 
 # tracking
 .beads/
