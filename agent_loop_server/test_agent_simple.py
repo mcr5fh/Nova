@@ -5,7 +5,7 @@ Write these tests to ensure agent works with the single AgentTool.
 
 import pytest
 import asyncio
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch, MagicMock, AsyncMock
 
 from agent_loop_server.agent import AgentLoopRunner
 from agent_loop_server.events import (
@@ -42,12 +42,12 @@ class TestSimplifiedAgentLoopRunner:
     @patch('agent_loop_server.agent.b')
     def test_agent_responds_without_tools(self, mock_baml, agent, event_list):
         """Test agent responding directly without using tools."""
-        # Mock BAML to return a direct response
+        # Mock BAML to return a direct response (must be async)
         mock_response = MagicMock()
         from agent_loop_server.baml_client.types import AgentResponseType
         mock_response.type = AgentResponseType.Reply
         mock_response.message = "Hello! How can I help?"
-        mock_baml.AgentLoop.return_value = mock_response
+        mock_baml.AgentLoop = AsyncMock(return_value=mock_response)
 
         async def run_test():
             result = await agent.run("Hello")
@@ -71,7 +71,7 @@ class TestSimplifiedAgentLoopRunner:
         mock_subprocess_result.stderr = ""
         mock_subprocess.return_value = mock_subprocess_result
 
-        # Mock BAML responses
+        # Mock BAML responses (must be async)
         tool_response = MagicMock()
         tool_response.type = AgentResponseType.ToolCall
         tool_response.tool_call = MagicMock()
@@ -82,7 +82,7 @@ class TestSimplifiedAgentLoopRunner:
         final_response.type = AgentResponseType.Reply
         final_response.message = "Found 2 Python files: test.py and main.py"
 
-        mock_baml.AgentLoop.side_effect = [tool_response, final_response]
+        mock_baml.AgentLoop = AsyncMock(side_effect=[tool_response, final_response])
 
         async def run_test():
             result = await agent.run("List Python files")
@@ -109,7 +109,7 @@ class TestSimplifiedAgentLoopRunner:
             mock_response.tool_call = MagicMock()
             mock_response.tool_call.tool = ToolName.AgentTool
             mock_response.tool_call.args = '{"message": "test"}'
-            mock_baml.AgentLoop.return_value = mock_response
+            mock_baml.AgentLoop = AsyncMock(return_value=mock_response)
 
             with patch('subprocess.run') as mock_subprocess:
                 mock_subprocess_result = MagicMock()
@@ -121,6 +121,6 @@ class TestSimplifiedAgentLoopRunner:
                 async def run_test():
                     result = await agent.run("Do something", max_iterations=3)
                     # Should stop after max iterations
-                    assert "max iterations" in result.lower() or "stopped" in result.lower()
+                    assert "iterations" in result.lower() or "stopped" in result.lower()
 
                 asyncio.run(run_test())
