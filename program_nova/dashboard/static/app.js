@@ -250,9 +250,6 @@ function renderL0View() {
         document.getElementById('progress-bar-fill').style.width = `${percentage}%`;
         document.getElementById('progress-text').textContent = `${completedCount} / ${totalCount} tasks (${percentage}%)`;
 
-        // Render milestones
-        renderMilestones(milestones);
-
         // Render tree view (wrapped in try-catch to prevent breaking the rest of the page)
         try {
             renderTreeView();

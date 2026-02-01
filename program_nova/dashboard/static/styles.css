@@ -626,6 +626,7 @@ body {
     border-radius: var(--radius-lg);
     padding: var(--spacing-lg);
     margin-top: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
 }
 
 .tree-node {
