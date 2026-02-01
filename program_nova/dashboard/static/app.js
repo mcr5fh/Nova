@@ -126,26 +126,56 @@ async function startPolling() {
 
 async function fetchStatus() {
     try {
+        console.log('[fetchStatus] Fetching status from API');
+
         const response = await fetch(`${API_BASE}/api/status`);
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
         }
 
         const data = await response.json();
+
+        console.log('[fetchStatus] Received data from API:', {
+            hasProject: !!data.project,
+            hasTasks: !!data.tasks,
+            hasRollups: !!data.rollups,
+            hasHierarchy: !!data.hierarchy,
+            hasMilestones: !!data.milestones,
+            taskCount: data.tasks ? Object.keys(data.tasks).length : 0,
+            hierarchyKeys: data.hierarchy ? Object.keys(data.hierarchy) : [],
+            rollupsStructure: data.rollups ? {
+                hasL0: !!data.rollups.l0_rollup,
+                hasL1: !!data.rollups.l1_rollups,
+                hasL2: !!data.rollups.l2_rollups,
+                l1Keys: data.rollups.l1_rollups ? Object.keys(data.rollups.l1_rollups) : [],
+                l2Keys: data.rollups.l2_rollups ? Object.keys(data.rollups.l2_rollups) : []
+            } : null
+        });
+
         appState.data = data;
 
         // Update the current view
-        renderCurrentView();
+        try {
+            renderCurrentView();
+        } catch (renderError) {
+            console.error('[fetchStatus] Error in renderCurrentView:', renderError);
+            // Don't update status indicator to 'error' if the data fetch succeeded
+            // The error is in rendering, not in the connection
+        }
 
         // Update header stats
-        updateHeaderStats(data);
+        try {
+            updateHeaderStats(data);
+        } catch (statsError) {
+            console.error('[fetchStatus] Error in updateHeaderStats:', statsError);
+        }
 
         // Check if all tasks are complete - stop polling if so
         if (data.all_tasks_completed) {
             if (appState.pollInterval) {
                 clearInterval(appState.pollInterval);
                 appState.pollInterval = null;
-                console.log('All tasks complete - polling stopped');
+                console.log('[fetchStatus] All tasks complete - polling stopped');
                 updateStatusIndicator('completed');
             }
         } else {
@@ -153,7 +183,8 @@ async function fetchStatus() {
             updateStatusIndicator('connected');
         }
     } catch (error) {
-        console.error('Error fetching status:', error);
+        console.error('[fetchStatus] Error fetching status:', error);
+        console.error('[fetchStatus] Stack trace:', error.stack);
         updateStatusIndicator('error');
     }
 }
@@ -202,167 +233,226 @@ function renderCurrentView() {
 }
 
 function renderL0View() {
-    const { rollups, hierarchy, milestones } = appState.data;
+    console.log('[renderL0View] Starting L0 view render');
 
-    // Update progress bar
-    const allTaskIds = getAllTaskIds(hierarchy);
-    const completedCount = allTaskIds.filter(id => {
-        const task = appState.data.tasks[id];
-        return task && task.status === 'completed';
-    }).length;
-    const totalCount = allTaskIds.length;
-    const percentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+    try {
+        const { rollups, hierarchy, milestones } = appState.data;
 
-    document.getElementById('progress-bar-fill').style.width = `${percentage}%`;
-    document.getElementById('progress-text').textContent = `${completedCount} / ${totalCount} tasks (${percentage}%)`;
-
-    // Render milestones
-    renderMilestones(milestones);
-
-    // Render tree view
-    renderTreeView();
-
-    // Render L1 branches
-    const branchesGrid = document.getElementById('branches-grid');
-    branchesGrid.innerHTML = '';
-
-    for (const [l1, groups] of Object.entries(hierarchy)) {
-        const rollup = rollups.l1_rollups[l1];
-        const taskIds = getAllTaskIdsForL1(hierarchy[l1]);
-        const taskCount = taskIds.length;
-        const completedTaskCount = taskIds.filter(id => {
+        // Update progress bar
+        const allTaskIds = getAllTaskIds(hierarchy);
+        const completedCount = allTaskIds.filter(id => {
             const task = appState.data.tasks[id];
             return task && task.status === 'completed';
         }).length;
+        const totalCount = allTaskIds.length;
+        const percentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
-        const card = createCard({
-            title: l1,
-            status: rollup.status,
-            metrics: [
-                { label: 'Progress', value: `${completedTaskCount} / ${taskCount}` },
-                { label: 'Duration', value: formatDuration(rollup.duration_seconds) },
-                { label: 'Tokens', value: formatNumber(getTotalTokens(rollup.token_usage)) },
-                { label: 'Cost', value: formatCost(rollup.cost_usd) }
-            ],
-            onClick: () => showView('l1', l1)
-        });
+        document.getElementById('progress-bar-fill').style.width = `${percentage}%`;
+        document.getElementById('progress-text').textContent = `${completedCount} / ${totalCount} tasks (${percentage}%)`;
 
-        branchesGrid.appendChild(card);
+        // Render milestones
+        renderMilestones(milestones);
+
+        // Render tree view (wrapped in try-catch to prevent breaking the rest of the page)
+        try {
+            renderTreeView();
+        } catch (error) {
+            console.error('[renderL0View] Error in renderTreeView, but continuing with rest of page:', error);
+        }
+
+        // Render L1 branches
+        const branchesGrid = document.getElementById('branches-grid');
+        branchesGrid.innerHTML = '';
+
+        for (const [l1, groups] of Object.entries(hierarchy)) {
+            const rollup = rollups.l1_rollups[l1];
+            const taskIds = getAllTaskIdsForL1(hierarchy[l1]);
+            const taskCount = taskIds.length;
+            const completedTaskCount = taskIds.filter(id => {
+                const task = appState.data.tasks[id];
+                return task && task.status === 'completed';
+            }).length;
+
+            const card = createCard({
+                title: l1,
+                status: rollup.status,
+                metrics: [
+                    { label: 'Progress', value: `${completedTaskCount} / ${taskCount}` },
+                    { label: 'Duration', value: formatDuration(rollup.duration_seconds) },
+                    { label: 'Tokens', value: formatNumber(getTotalTokens(rollup.token_usage)) },
+                    { label: 'Cost', value: formatCost(rollup.cost_usd) }
+                ],
+                onClick: () => showView('l1', l1)
+            });
+
+            branchesGrid.appendChild(card);
+        }
+
+        console.log('[renderL0View] L0 view render completed');
+    } catch (error) {
+        console.error('[renderL0View] Error rendering L0 view:', error);
+        throw error;
     }
 }
 
 function renderL1View(l1) {
-    const { rollups, hierarchy } = appState.data;
+    console.log(`[renderL1View] Rendering L1 view for: ${l1}`);
 
-    document.getElementById('l1-title').textContent = l1;
+    try {
+        const { rollups, hierarchy } = appState.data;
 
-    // Show branch stats
-    const rollup = rollups.l1_rollups[l1];
-    const statsHtml = `
-        <div class="metric">
-            <span class="metric-label">Status</span>
-            <span class="metric-value">${formatStatus(rollup.status)}</span>
-        </div>
-        <div class="metric">
-            <span class="metric-label">Duration</span>
-            <span class="metric-value">${formatDuration(rollup.duration_seconds)}</span>
-        </div>
-        <div class="metric">
-            <span class="metric-label">Tokens</span>
-            <span class="metric-value">${formatNumber(getTotalTokens(rollup.token_usage))}</span>
-        </div>
-        <div class="metric">
-            <span class="metric-label">Cost</span>
-            <span class="metric-value">${formatCost(rollup.cost_usd)}</span>
-        </div>
-    `;
-    document.getElementById('l1-stats').innerHTML = statsHtml;
+        // Defensive checks
+        if (!rollups || !rollups.l1_rollups || !rollups.l1_rollups[l1]) {
+            console.error(`[renderL1View] Missing rollup data for L1: ${l1}`);
+            throw new Error(`Missing rollup data for L1: ${l1}`);
+        }
 
-    // Render L2 groups
-    const groupsGrid = document.getElementById('groups-grid');
-    groupsGrid.innerHTML = '';
+        if (!hierarchy || !hierarchy[l1]) {
+            console.error(`[renderL1View] Missing hierarchy data for L1: ${l1}`);
+            throw new Error(`Missing hierarchy data for L1: ${l1}`);
+        }
 
-    for (const [l2, taskIds] of Object.entries(hierarchy[l1])) {
-        const rollup = rollups.l2_rollups[l1][l2];
-        const completedTaskCount = taskIds.filter(id => {
-            const task = appState.data.tasks[id];
-            return task && task.status === 'completed';
-        }).length;
+        document.getElementById('l1-title').textContent = l1;
 
-        const card = createCard({
-            title: l2,
-            status: rollup.status,
-            metrics: [
-                { label: 'Progress', value: `${completedTaskCount} / ${taskIds.length}` },
-                { label: 'Duration', value: formatDuration(rollup.duration_seconds) },
-                { label: 'Tokens', value: formatNumber(getTotalTokens(rollup.token_usage)) },
-                { label: 'Cost', value: formatCost(rollup.cost_usd) }
-            ],
-            onClick: () => showView('l2', l1, l2)
-        });
+        // Show branch stats
+        const rollup = rollups.l1_rollups[l1];
+        const statsHtml = `
+            <div class="metric">
+                <span class="metric-label">Status</span>
+                <span class="metric-value">${formatStatus(rollup.status)}</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Duration</span>
+                <span class="metric-value">${formatDuration(rollup.duration_seconds)}</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Tokens</span>
+                <span class="metric-value">${formatNumber(getTotalTokens(rollup.token_usage))}</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Cost</span>
+                <span class="metric-value">${formatCost(rollup.cost_usd)}</span>
+            </div>
+        `;
+        document.getElementById('l1-stats').innerHTML = statsHtml;
 
-        groupsGrid.appendChild(card);
+        // Render L2 groups
+        const groupsGrid = document.getElementById('groups-grid');
+        groupsGrid.innerHTML = '';
+
+        for (const [l2, taskIds] of Object.entries(hierarchy[l1])) {
+            // Defensive check for L2 rollup
+            if (!rollups.l2_rollups || !rollups.l2_rollups[l1] || !rollups.l2_rollups[l1][l2]) {
+                console.error(`[renderL1View] Missing rollup data for L2: ${l1}/${l2}`);
+                continue;
+            }
+
+            const rollup = rollups.l2_rollups[l1][l2];
+            const completedTaskCount = taskIds.filter(id => {
+                const task = appState.data.tasks[id];
+                return task && task.status === 'completed';
+            }).length;
+
+            const card = createCard({
+                title: l2,
+                status: rollup.status,
+                metrics: [
+                    { label: 'Progress', value: `${completedTaskCount} / ${taskIds.length}` },
+                    { label: 'Duration', value: formatDuration(rollup.duration_seconds) },
+                    { label: 'Tokens', value: formatNumber(getTotalTokens(rollup.token_usage)) },
+                    { label: 'Cost', value: formatCost(rollup.cost_usd) }
+                ],
+                onClick: () => showView('l2', l1, l2)
+            });
+
+            groupsGrid.appendChild(card);
+        }
+
+        console.log(`[renderL1View] L1 view render completed for: ${l1}`);
+    } catch (error) {
+        console.error('[renderL1View] Error rendering L1 view:', error);
+        throw error;
     }
 }
 
 function renderL2View(l1, l2) {
-    const { rollups, hierarchy } = appState.data;
+    console.log(`[renderL2View] Rendering L2 view for: ${l1}/${l2}`);
 
-    document.getElementById('l2-title').textContent = l2;
+    try {
+        const { rollups, hierarchy } = appState.data;
 
-    // Show group stats
-    const rollup = rollups.l2_rollups[l1][l2];
-    const statsHtml = `
-        <div class="metric">
-            <span class="metric-label">Status</span>
-            <span class="metric-value">${formatStatus(rollup.status)}</span>
-        </div>
-        <div class="metric">
-            <span class="metric-label">Duration</span>
-            <span class="metric-value">${formatDuration(rollup.duration_seconds)}</span>
-        </div>
-        <div class="metric">
-            <span class="metric-label">Tokens</span>
-            <span class="metric-value">${formatNumber(getTotalTokens(rollup.token_usage))}</span>
-        </div>
-        <div class="metric">
-            <span class="metric-label">Cost</span>
-            <span class="metric-value">${formatCost(rollup.cost_usd)}</span>
-        </div>
-    `;
-    document.getElementById('l2-stats').innerHTML = statsHtml;
+        // Defensive checks
+        if (!rollups || !rollups.l2_rollups || !rollups.l2_rollups[l1] || !rollups.l2_rollups[l1][l2]) {
+            console.error(`[renderL2View] Missing rollup data for L2: ${l1}/${l2}`);
+            throw new Error(`Missing rollup data for L2: ${l1}/${l2}`);
+        }
 
-    // Render tasks table
-    const taskIds = hierarchy[l1][l2];
-    const tbody = document.getElementById('tasks-table-body');
-    tbody.innerHTML = '';
+        if (!hierarchy || !hierarchy[l1] || !hierarchy[l1][l2]) {
+            console.error(`[renderL2View] Missing hierarchy data for L2: ${l1}/${l2}`);
+            throw new Error(`Missing hierarchy data for L2: ${l1}/${l2}`);
+        }
 
-    for (const taskId of taskIds) {
-        const task = appState.data.tasks[taskId] || {};
-        const tr = document.createElement('tr');
-        tr.onclick = () => showView('l3', l1, l2, taskId);
+        document.getElementById('l2-title').textContent = l2;
 
-        const duration = task.status === 'in_progress'
-            ? computeLiveDuration(task.started_at)
-            : (task.duration_seconds || 0);
-
-        const totalTokens = getTotalTokens(task.token_usage || {});
-        const cost = computeCost(task.token_usage || {});
-
-        tr.innerHTML = `
-            <td class="task-id">${taskId}</td>
-            <td>${task.name || taskId}</td>
-            <td>
-                <span class="status-icon ${task.status || 'pending'}">
-                    ${formatStatus(task.status || 'pending')}
-                </span>
-            </td>
-            <td>${formatDuration(duration)}</td>
-            <td>${formatNumber(totalTokens)}</td>
-            <td>${formatCost(cost)}</td>
+        // Show group stats
+        const rollup = rollups.l2_rollups[l1][l2];
+        const statsHtml = `
+            <div class="metric">
+                <span class="metric-label">Status</span>
+                <span class="metric-value">${formatStatus(rollup.status)}</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Duration</span>
+                <span class="metric-value">${formatDuration(rollup.duration_seconds)}</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Tokens</span>
+                <span class="metric-value">${formatNumber(getTotalTokens(rollup.token_usage))}</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Cost</span>
+                <span class="metric-value">${formatCost(rollup.cost_usd)}</span>
+            </div>
         `;
+        document.getElementById('l2-stats').innerHTML = statsHtml;
 
-        tbody.appendChild(tr);
+        // Render tasks table
+        const taskIds = hierarchy[l1][l2];
+        const tbody = document.getElementById('tasks-table-body');
+        tbody.innerHTML = '';
+
+        for (const taskId of taskIds) {
+            const task = appState.data.tasks[taskId] || {};
+            const tr = document.createElement('tr');
+            tr.onclick = () => showView('l3', l1, l2, taskId);
+
+            const duration = task.status === 'in_progress'
+                ? computeLiveDuration(task.started_at)
+                : (task.duration_seconds || 0);
+
+            const totalTokens = getTotalTokens(task.token_usage || {});
+            const cost = computeCost(task.token_usage || {});
+
+            tr.innerHTML = `
+                <td class="task-id">${taskId}</td>
+                <td>${task.name || taskId}</td>
+                <td>
+                    <span class="status-icon ${task.status || 'pending'}">
+                        ${formatStatus(task.status || 'pending')}
+                    </span>
+                </td>
+                <td>${formatDuration(duration)}</td>
+                <td>${formatNumber(totalTokens)}</td>
+                <td>${formatCost(cost)}</td>
+            `;
+
+            tbody.appendChild(tr);
+        }
+
+        console.log(`[renderL2View] L2 view render completed for: ${l1}/${l2}`);
+    } catch (error) {
+        console.error('[renderL2View] Error rendering L2 view:', error);
+        throw error;
     }
 }
 
@@ -427,7 +517,8 @@ function renderL3View(taskId) {
 function renderMilestones(milestones) {
     const listElement = document.getElementById('milestones-list');
 
-    if (!milestones || milestones.length === 0) {
+    // Check if milestones is actually an array before iterating
+    if (!milestones || !Array.isArray(milestones) || milestones.length === 0) {
         listElement.innerHTML = '<p class="empty-state">No milestones reached yet</p>';
         return;
     }
@@ -472,18 +563,52 @@ function createCard({ title, status, metrics, onClick }) {
 
 // Utility Functions
 function updateHeaderStats(data) {
-    const { rollups } = data;
-    const l0 = rollups.l0_rollup;
+    console.log('[updateHeaderStats] Updating header stats');
 
-    const allTaskIds = getAllTaskIds(data.hierarchy);
-    const completedCount = allTaskIds.filter(id => {
-        const task = data.tasks[id];
-        return task && task.status === 'completed';
-    }).length;
+    try {
+        // Defensive checks
+        if (!data) {
+            console.error('[updateHeaderStats] data is undefined');
+            return;
+        }
 
-    document.getElementById('project-progress').textContent = `${completedCount} / ${allTaskIds.length}`;
-    document.getElementById('project-duration').textContent = formatDuration(l0.duration_seconds);
-    document.getElementById('project-cost').textContent = formatCost(l0.cost_usd);
+        if (!data.rollups) {
+            console.error('[updateHeaderStats] rollups is undefined');
+            return;
+        }
+
+        if (!data.rollups.l0_rollup) {
+            console.error('[updateHeaderStats] l0_rollup is undefined');
+            return;
+        }
+
+        if (!data.hierarchy) {
+            console.error('[updateHeaderStats] hierarchy is undefined');
+            return;
+        }
+
+        if (!data.tasks) {
+            console.error('[updateHeaderStats] tasks is undefined');
+            return;
+        }
+
+        const { rollups } = data;
+        const l0 = rollups.l0_rollup;
+
+        const allTaskIds = getAllTaskIds(data.hierarchy);
+        const completedCount = allTaskIds.filter(id => {
+            const task = data.tasks[id];
+            return task && task.status === 'completed';
+        }).length;
+
+        document.getElementById('project-progress').textContent = `${completedCount} / ${allTaskIds.length}`;
+        document.getElementById('project-duration').textContent = formatDuration(l0.duration_seconds);
+        document.getElementById('project-cost').textContent = formatCost(l0.cost_usd);
+
+        console.log('[updateHeaderStats] Header stats updated successfully');
+    } catch (error) {
+        console.error('[updateHeaderStats] Error updating header stats:', error);
+    }
 }
 
 function updateStatusIndicator(status) {
@@ -607,142 +732,250 @@ function formatTimestamp(timestamp) {
 
 // Tree View Functions
 function renderTreeView() {
-    const { hierarchy, rollups, tasks } = appState.data;
-    const container = document.getElementById('tree-container');
-    container.innerHTML = '';
+    console.log('[renderTreeView] Starting tree view render');
 
-    // Create tree structure for each L1 branch
-    for (const [l1Name, l2Groups] of Object.entries(hierarchy)) {
-        const l1Node = createTreeNode({
-            label: l1Name,
-            level: 0,
-            status: computeL1Status(l1Name, l2Groups, tasks),
-            meta: {
-                duration: rollups.l1_rollups[l1Name].duration_seconds,
-                cost: rollups.l1_rollups[l1Name].cost_usd
-            },
-            onClick: () => showView('l1', l1Name)
-        });
-
-        // Add L2 children
-        const l2Container = document.createElement('div');
-        l2Container.className = 'tree-node-children';
-
-        for (const [l2Name, taskIds] of Object.entries(l2Groups)) {
-            const l2Node = createTreeNode({
-                label: l2Name,
-                level: 1,
-                status: computeL2Status(taskIds, tasks),
-                meta: {
-                    duration: rollups.l2_rollups[l1Name][l2Name].duration_seconds,
-                    cost: rollups.l2_rollups[l1Name][l2Name].cost_usd
-                },
-                onClick: () => showView('l2', l1Name, l2Name)
-            });
-
-            // Add task children
-            const taskContainer = document.createElement('div');
-            taskContainer.className = 'tree-node-children';
-
-            for (const taskId of taskIds) {
-                const task = tasks[taskId] || {};
-                const taskNode = createTreeNode({
-                    label: `${taskId}: ${task.name || taskId}`,
-                    level: 2,
-                    status: task.status || 'pending',
-                    meta: {
-                        duration: task.status === 'in_progress'
-                            ? computeLiveDuration(task.started_at)
-                            : (task.duration_seconds || 0),
-                        cost: computeCost(task.token_usage || {})
-                    },
-                    onClick: () => showView('l3', l1Name, l2Name, taskId),
-                    isLeaf: true
-                });
-
-                taskContainer.appendChild(taskNode);
-            }
-
-            l2Node.appendChild(taskContainer);
-            l2Container.appendChild(l2Node);
+    try {
+        // Defensive checks for data structure
+        if (!appState.data) {
+            console.error('[renderTreeView] appState.data is undefined');
+            throw new Error('appState.data is undefined');
         }
 
-        l1Node.appendChild(l2Container);
-        container.appendChild(l1Node);
+        const { hierarchy, rollups, tasks } = appState.data;
+
+        // Log the data structure
+        console.log('[renderTreeView] Data structure:', {
+            hasHierarchy: !!hierarchy,
+            hasRollups: !!rollups,
+            hasTasks: !!tasks,
+            hierarchyKeys: hierarchy ? Object.keys(hierarchy) : [],
+            rollupsKeys: rollups ? Object.keys(rollups) : []
+        });
+
+        // Check if required data exists
+        if (!hierarchy) {
+            console.error('[renderTreeView] hierarchy is undefined');
+            throw new Error('hierarchy is undefined');
+        }
+
+        if (!rollups) {
+            console.error('[renderTreeView] rollups is undefined');
+            throw new Error('rollups is undefined');
+        }
+
+        if (!rollups.l1_rollups) {
+            console.error('[renderTreeView] rollups.l1_rollups is undefined');
+            throw new Error('rollups.l1_rollups is undefined');
+        }
+
+        if (!rollups.l2_rollups) {
+            console.error('[renderTreeView] rollups.l2_rollups is undefined');
+            throw new Error('rollups.l2_rollups is undefined');
+        }
+
+        if (!tasks) {
+            console.error('[renderTreeView] tasks is undefined');
+            throw new Error('tasks is undefined');
+        }
+
+        const container = document.getElementById('tree-container');
+        if (!container) {
+            console.error('[renderTreeView] tree-container element not found');
+            throw new Error('tree-container element not found');
+        }
+
+        container.innerHTML = '';
+
+        // Create tree structure for each L1 branch
+        for (const [l1Name, l2Groups] of Object.entries(hierarchy)) {
+            console.log(`[renderTreeView] Processing L1: ${l1Name}`);
+
+            // Check if L1 rollup exists
+            if (!rollups.l1_rollups[l1Name]) {
+                console.error(`[renderTreeView] Missing L1 rollup for: ${l1Name}`);
+                console.log('[renderTreeView] Available L1 rollups:', Object.keys(rollups.l1_rollups));
+                continue; // Skip this L1 instead of crashing
+            }
+
+            const l1Node = createTreeNode({
+                label: l1Name,
+                level: 0,
+                status: computeL1Status(l1Name, l2Groups, tasks),
+                meta: {
+                    duration: rollups.l1_rollups[l1Name].duration_seconds,
+                    cost: rollups.l1_rollups[l1Name].cost_usd
+                },
+                onClick: () => showView('l1', l1Name)
+            });
+
+            // Add L2 children
+            const l2Container = document.createElement('div');
+            l2Container.className = 'tree-node-children';
+
+            for (const [l2Name, taskIds] of Object.entries(l2Groups)) {
+                console.log(`[renderTreeView] Processing L2: ${l1Name}/${l2Name}`);
+
+                // Check if L2 rollup exists
+                if (!rollups.l2_rollups[l1Name]) {
+                    console.error(`[renderTreeView] Missing L2 rollup container for L1: ${l1Name}`);
+                    continue;
+                }
+
+                if (!rollups.l2_rollups[l1Name][l2Name]) {
+                    console.error(`[renderTreeView] Missing L2 rollup for: ${l1Name}/${l2Name}`);
+                    console.log(`[renderTreeView] Available L2 rollups for ${l1Name}:`, Object.keys(rollups.l2_rollups[l1Name]));
+                    continue; // Skip this L2 instead of crashing
+                }
+
+                const l2Node = createTreeNode({
+                    label: l2Name,
+                    level: 1,
+                    status: computeL2Status(taskIds, tasks),
+                    meta: {
+                        duration: rollups.l2_rollups[l1Name][l2Name].duration_seconds,
+                        cost: rollups.l2_rollups[l1Name][l2Name].cost_usd
+                    },
+                    onClick: () => showView('l2', l1Name, l2Name)
+                });
+
+                // Add task children
+                const taskContainer = document.createElement('div');
+                taskContainer.className = 'tree-node-children';
+
+                for (const taskId of taskIds) {
+                    console.log(`[renderTreeView] Processing task: ${taskId}`);
+
+                    const task = tasks[taskId] || {};
+                    const taskNode = createTreeNode({
+                        label: `${taskId}: ${task.name || taskId}`,
+                        level: 2,
+                        status: task.status || 'pending',
+                        meta: {
+                            duration: task.status === 'in_progress'
+                                ? computeLiveDuration(task.started_at)
+                                : (task.duration_seconds || 0),
+                            cost: computeCost(task.token_usage || {})
+                        },
+                        onClick: () => showView('l3', l1Name, l2Name, taskId),
+                        isLeaf: true
+                    });
+
+                    taskContainer.appendChild(taskNode);
+                }
+
+                l2Node.appendChild(taskContainer);
+                l2Container.appendChild(l2Node);
+            }
+
+            l1Node.appendChild(l2Container);
+            container.appendChild(l1Node);
+        }
+
+        console.log('[renderTreeView] Tree view render completed successfully');
+    } catch (error) {
+        console.error('[renderTreeView] Error rendering tree view:', error);
+        console.error('[renderTreeView] Stack trace:', error.stack);
+
+        // Display error in the tree container instead of crashing
+        const container = document.getElementById('tree-container');
+        if (container) {
+            container.innerHTML = `
+                <div class="error-message" style="padding: 1rem; color: #dc3545; background: #f8d7da; border-radius: 4px; margin: 1rem 0;">
+                    <strong>Error rendering tree view:</strong><br>
+                    ${error.message}<br>
+                    <small>Check browser console for details</small>
+                </div>
+            `;
+        }
+
+        // Re-throw the error so it can be caught by the caller if needed
+        throw error;
     }
 }
 
 function createTreeNode({ label, level, status, meta, onClick, isLeaf = false }) {
-    const node = document.createElement('div');
-    node.className = `tree-node level-${level}`;
+    try {
+        const node = document.createElement('div');
+        node.className = `tree-node level-${level}`;
 
-    const header = document.createElement('div');
-    header.className = 'tree-node-header';
+        const header = document.createElement('div');
+        header.className = 'tree-node-header';
 
-    // Toggle arrow (only for non-leaf nodes)
-    if (!isLeaf) {
-        const toggle = document.createElement('span');
-        toggle.className = 'tree-node-toggle expanded';
-        toggle.textContent = '▶';
-        header.appendChild(toggle);
+        // Toggle arrow (only for non-leaf nodes)
+        if (!isLeaf) {
+            const toggle = document.createElement('span');
+            toggle.className = 'tree-node-toggle expanded';
+            toggle.textContent = '▶';
+            header.appendChild(toggle);
 
-        toggle.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const children = node.querySelector('.tree-node-children');
-            if (children) {
-                children.classList.toggle('collapsed');
-                toggle.classList.toggle('expanded');
+            toggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const children = node.querySelector('.tree-node-children');
+                if (children) {
+                    children.classList.toggle('collapsed');
+                    toggle.classList.toggle('expanded');
+                }
+            });
+        } else {
+            // Spacer for leaf nodes
+            const spacer = document.createElement('span');
+            spacer.style.width = '1rem';
+            header.appendChild(spacer);
+        }
+
+        // Status indicator
+        const statusIndicator = document.createElement('div');
+        statusIndicator.className = `tree-node-status ${status || 'pending'}`;
+        header.appendChild(statusIndicator);
+
+        // Label
+        const labelElement = document.createElement('span');
+        labelElement.className = 'tree-node-label';
+        labelElement.textContent = label || 'Unnamed';
+        header.appendChild(labelElement);
+
+        // Metadata
+        const metaContainer = document.createElement('div');
+        metaContainer.className = 'tree-node-meta';
+
+        // Defensive checks for meta object
+        if (meta) {
+            if (meta.duration !== undefined && meta.duration !== null) {
+                const durationItem = document.createElement('span');
+                durationItem.className = 'tree-node-meta-item';
+                durationItem.innerHTML = `<span>⏱</span><span>${formatDuration(meta.duration)}</span>`;
+                metaContainer.appendChild(durationItem);
             }
-        });
-    } else {
-        // Spacer for leaf nodes
-        const spacer = document.createElement('span');
-        spacer.style.width = '1rem';
-        header.appendChild(spacer);
-    }
 
-    // Status indicator
-    const statusIndicator = document.createElement('div');
-    statusIndicator.className = `tree-node-status ${status}`;
-    header.appendChild(statusIndicator);
-
-    // Label
-    const labelElement = document.createElement('span');
-    labelElement.className = 'tree-node-label';
-    labelElement.textContent = label;
-    header.appendChild(labelElement);
-
-    // Metadata
-    const metaContainer = document.createElement('div');
-    metaContainer.className = 'tree-node-meta';
-
-    if (meta.duration !== undefined) {
-        const durationItem = document.createElement('span');
-        durationItem.className = 'tree-node-meta-item';
-        durationItem.innerHTML = `<span>⏱</span><span>${formatDuration(meta.duration)}</span>`;
-        metaContainer.appendChild(durationItem);
-    }
-
-    if (meta.cost !== undefined) {
-        const costItem = document.createElement('span');
-        costItem.className = 'tree-node-meta-item';
-        costItem.innerHTML = `<span>💰</span><span>${formatCost(meta.cost)}</span>`;
-        metaContainer.appendChild(costItem);
-    }
-
-    header.appendChild(metaContainer);
-
-    // Click handler (but not for toggle)
-    if (onClick) {
-        header.addEventListener('click', (e) => {
-            if (!e.target.classList.contains('tree-node-toggle')) {
-                onClick();
+            if (meta.cost !== undefined && meta.cost !== null) {
+                const costItem = document.createElement('span');
+                costItem.className = 'tree-node-meta-item';
+                costItem.innerHTML = `<span>💰</span><span>${formatCost(meta.cost)}</span>`;
+                metaContainer.appendChild(costItem);
             }
-        });
-    }
+        }
 
-    node.appendChild(header);
-    return node;
+        header.appendChild(metaContainer);
+
+        // Click handler (but not for toggle)
+        if (onClick) {
+            header.addEventListener('click', (e) => {
+                if (!e.target.classList.contains('tree-node-toggle')) {
+                    onClick();
+                }
+            });
+        }
+
+        node.appendChild(header);
+        return node;
+    } catch (error) {
+        console.error('[createTreeNode] Error creating tree node:', error, { label, level, status, meta });
+        // Return a minimal error node
+        const errorNode = document.createElement('div');
+        errorNode.className = 'tree-node error';
+        errorNode.textContent = `Error creating node: ${label}`;
+        return errorNode;
+    }
 }
 
 function computeL1Status(l1Name, l2Groups, tasks) {
