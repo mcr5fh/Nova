@@ -1,0 +1,45 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Sora:wght@400;500;600;700&display=swap');
+
+@theme {
+  --color-bg-0: #f6f7f8;
+  --color-bg-1: #eef1f3;
+  --color-card: #ffffff;
+  --color-text-0: #0f172a;
+  --color-text-1: #334155;
+  --color-text-2: #64748b;
+  --color-border: #e2e8f0;
+  --color-accent: #14b8a6;
+  --color-accent-2: #0ea5a4;
+
+  --color-status-green: #22c55e;
+  --color-status-amber: #f59e0b;
+  --color-status-red: #ef4444;
+  --color-status-gray: #94a3b8;
+
+  --font-family-sans: Sora, ui-sans-serif, system-ui;
+  --font-family-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular";
+
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.06), 0 8px 24px rgba(15, 23, 42, 0.08);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--color-bg-0);
+  color: var(--color-text-0);
+  font-family: var(--font-family-sans);
+  min-height: 100vh;
+  font-feature-settings: "kern" 1, "liga" 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-family-sans);
+  letter-spacing: -0.01em;
+}
