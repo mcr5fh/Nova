@@ -11,6 +11,9 @@ import type {
   ToolResultEvent,
   AgentThinkingEvent,
   ErrorEvent,
+  VoiceStateEvent,
+  TranscriptEvent,
+  VoiceResponseEvent,
   ServerEvent,
 } from './chat';
 
@@ -21,6 +24,9 @@ import {
   isToolResultEvent,
   isAgentThinkingEvent,
   isErrorEvent,
+  isVoiceStateEvent,
+  isTranscriptEvent,
+  isVoiceResponseEvent,
 } from './chat';
 
 describe('Chat Types - Type Guards', () => {
@@ -189,6 +195,129 @@ describe('Chat Types - Type Guards', () => {
     });
   });
 
+  describe('isVoiceStateEvent', () => {
+    it('should return true for valid voice state event', () => {
+      const event: ServerEvent = {
+        type: 'voice_state',
+        state: 'listening',
+      };
+      expect(isVoiceStateEvent(event)).toBe(true);
+    });
+
+    it('should return false for other event types', () => {
+      const event: ServerEvent = {
+        type: 'agent_message',
+        message: 'Hello',
+      };
+      expect(isVoiceStateEvent(event)).toBe(false);
+    });
+
+    it('should narrow type correctly', () => {
+      const event: ServerEvent = {
+        type: 'voice_state',
+        state: 'speaking',
+      };
+
+      if (isVoiceStateEvent(event)) {
+        expect(event.state).toBe('speaking');
+      }
+    });
+
+    it('should handle all voice states', () => {
+      const states: Array<'listening' | 'processing' | 'speaking' | 'idle'> = [
+        'listening',
+        'processing',
+        'speaking',
+        'idle',
+      ];
+
+      states.forEach((state) => {
+        const event: ServerEvent = {
+          type: 'voice_state',
+          state,
+        };
+        expect(isVoiceStateEvent(event)).toBe(true);
+        if (isVoiceStateEvent(event)) {
+          expect(event.state).toBe(state);
+        }
+      });
+    });
+  });
+
+  describe('isTranscriptEvent', () => {
+    it('should return true for valid transcript event', () => {
+      const event: ServerEvent = {
+        type: 'transcript',
+        text: 'Hello world',
+        is_final: true,
+      };
+      expect(isTranscriptEvent(event)).toBe(true);
+    });
+
+    it('should return false for other event types', () => {
+      const event: ServerEvent = {
+        type: 'agent_message',
+        message: 'Hello',
+      };
+      expect(isTranscriptEvent(event)).toBe(false);
+    });
+
+    it('should narrow type correctly for final transcript', () => {
+      const event: ServerEvent = {
+        type: 'transcript',
+        text: 'This is final',
+        is_final: true,
+      };
+
+      if (isTranscriptEvent(event)) {
+        expect(event.text).toBe('This is final');
+        expect(event.is_final).toBe(true);
+      }
+    });
+
+    it('should narrow type correctly for interim transcript', () => {
+      const event: ServerEvent = {
+        type: 'transcript',
+        text: 'This is interim',
+        is_final: false,
+      };
+
+      if (isTranscriptEvent(event)) {
+        expect(event.text).toBe('This is interim');
+        expect(event.is_final).toBe(false);
+      }
+    });
+  });
+
+  describe('isVoiceResponseEvent', () => {
+    it('should return true for valid voice response event', () => {
+      const event: ServerEvent = {
+        type: 'voice_response',
+        text: 'Agent response',
+      };
+      expect(isVoiceResponseEvent(event)).toBe(true);
+    });
+
+    it('should return false for other event types', () => {
+      const event: ServerEvent = {
+        type: 'agent_message',
+        message: 'Hello',
+      };
+      expect(isVoiceResponseEvent(event)).toBe(false);
+    });
+
+    it('should narrow type correctly', () => {
+      const event: ServerEvent = {
+        type: 'voice_response',
+        text: 'This is the agent speaking',
+      };
+
+      if (isVoiceResponseEvent(event)) {
+        expect(event.text).toBe('This is the agent speaking');
+      }
+    });
+  });
+
   describe('Type Guard Coverage', () => {
     it('should handle all ServerEvent types', () => {
       const events: ServerEvent[] = [
@@ -198,6 +327,9 @@ describe('Chat Types - Type Guards', () => {
         { type: 'tool_result', tool_name: 'Tool', result: 'Result', success: true },
         { type: 'agent_thinking', reasoning: 'Thinking' },
         { type: 'error', error: 'Error' },
+        { type: 'voice_state', state: 'listening' },
+        { type: 'transcript', text: 'Hello', is_final: true },
+        { type: 'voice_response', text: 'Response' },
       ];
 
       events.forEach((event) => {
@@ -207,7 +339,10 @@ describe('Chat Types - Type Guards', () => {
           isToolCallEvent(event) ||
           isToolResultEvent(event) ||
           isAgentThinkingEvent(event) ||
-          isErrorEvent(event);
+          isErrorEvent(event) ||
+          isVoiceStateEvent(event) ||
+          isTranscriptEvent(event) ||
+          isVoiceResponseEvent(event);
 
         expect(isRecognized).toBe(true);
       });
@@ -315,5 +450,79 @@ describe('Chat Types - Type Structure', () => {
 
     expect(event.type).toBe('error');
     expect(event.error).toBe('WebSocket connection lost');
+  });
+
+  it('should create valid VoiceStateEvent with listening state', () => {
+    const event: VoiceStateEvent = {
+      type: 'voice_state',
+      state: 'listening',
+    };
+
+    expect(event.type).toBe('voice_state');
+    expect(event.state).toBe('listening');
+  });
+
+  it('should create valid VoiceStateEvent with processing state', () => {
+    const event: VoiceStateEvent = {
+      type: 'voice_state',
+      state: 'processing',
+    };
+
+    expect(event.type).toBe('voice_state');
+    expect(event.state).toBe('processing');
+  });
+
+  it('should create valid VoiceStateEvent with speaking state', () => {
+    const event: VoiceStateEvent = {
+      type: 'voice_state',
+      state: 'speaking',
+    };
+
+    expect(event.type).toBe('voice_state');
+    expect(event.state).toBe('speaking');
+  });
+
+  it('should create valid VoiceStateEvent with idle state', () => {
+    const event: VoiceStateEvent = {
+      type: 'voice_state',
+      state: 'idle',
+    };
+
+    expect(event.type).toBe('voice_state');
+    expect(event.state).toBe('idle');
+  });
+
+  it('should create valid TranscriptEvent with final transcript', () => {
+    const event: TranscriptEvent = {
+      type: 'transcript',
+      text: 'This is the final transcript',
+      is_final: true,
+    };
+
+    expect(event.type).toBe('transcript');
+    expect(event.text).toBe('This is the final transcript');
+    expect(event.is_final).toBe(true);
+  });
+
+  it('should create valid TranscriptEvent with interim transcript', () => {
+    const event: TranscriptEvent = {
+      type: 'transcript',
+      text: 'This is an interim transcript',
+      is_final: false,
+    };
+
+    expect(event.type).toBe('transcript');
+    expect(event.text).toBe('This is an interim transcript');
+    expect(event.is_final).toBe(false);
+  });
+
+  it('should create valid VoiceResponseEvent', () => {
+    const event: VoiceResponseEvent = {
+      type: 'voice_response',
+      text: 'Hello, how can I help you?',
+    };
+
+    expect(event.type).toBe('voice_response');
+    expect(event.text).toBe('Hello, how can I help you?');
   });
 });

@@ -11,6 +11,9 @@ from agent_loop_server.events import (
     ErrorEvent,
     UserMessageEvent,
     AgentMessageEvent,
+    VoiceStateEvent,
+    TranscriptEvent,
+    VoiceResponseEvent,
 )
 
 
@@ -140,10 +143,13 @@ class TestEventSchemas:
             ErrorEvent().type,
             UserMessageEvent().type,
             AgentMessageEvent().type,
+            VoiceStateEvent().type,
+            TranscriptEvent().type,
+            VoiceResponseEvent().type,
         }
 
-        # Should have 6 unique types
-        assert len(types) == 6
+        # Should have 9 unique types
+        assert len(types) == 9
 
         # Check specific types
         assert "tool_call" in types
@@ -152,3 +158,75 @@ class TestEventSchemas:
         assert "error" in types
         assert "user_message" in types
         assert "agent_message" in types
+        assert "voice_state" in types
+        assert "transcript" in types
+        assert "voice_response" in types
+
+    def test_voice_state_event_schema(self):
+        """Test VoiceStateEvent has correct fields and serializes."""
+        event = VoiceStateEvent(state="listening")
+
+        assert event.type == "voice_state"
+        assert event.state == "listening"
+
+        # Test serialization
+        data = event.to_dict()
+        assert data["type"] == "voice_state"
+        assert data["state"] == "listening"
+
+    def test_voice_state_event_states(self):
+        """Test VoiceStateEvent with different states."""
+        states = ["listening", "processing", "speaking", "idle"]
+
+        for state in states:
+            event = VoiceStateEvent(state=state)
+            assert event.state == state
+            data = event.to_dict()
+            assert data["state"] == state
+
+    def test_transcript_event_schema(self):
+        """Test TranscriptEvent has correct fields and serializes."""
+        event = TranscriptEvent(
+            text="Hello, how are you?",
+            is_final=True
+        )
+
+        assert event.type == "transcript"
+        assert event.text == "Hello, how are you?"
+        assert event.is_final is True
+
+        # Test serialization
+        data = event.to_dict()
+        assert data["type"] == "transcript"
+        assert data["text"] == "Hello, how are you?"
+        assert data["is_final"] is True
+
+    def test_transcript_event_interim(self):
+        """Test TranscriptEvent with interim transcript."""
+        event = TranscriptEvent(
+            text="Hello...",
+            is_final=False
+        )
+
+        assert event.is_final is False
+        data = event.to_dict()
+        assert data["is_final"] is False
+
+    def test_transcript_event_defaults(self):
+        """Test TranscriptEvent has sensible defaults."""
+        event = TranscriptEvent(text="test")
+        assert event.is_final is False  # Default should be False
+
+    def test_voice_response_event_schema(self):
+        """Test VoiceResponseEvent has correct fields and serializes."""
+        event = VoiceResponseEvent(
+            text="I can help you with that."
+        )
+
+        assert event.type == "voice_response"
+        assert event.text == "I can help you with that."
+
+        # Test serialization
+        data = event.to_dict()
+        assert data["type"] == "voice_response"
+        assert data["text"] == "I can help you with that."

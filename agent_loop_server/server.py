@@ -162,6 +162,68 @@ async def websocket_endpoint(websocket: WebSocket):
         manager.disconnect(websocket)
 
 
+@app.websocket("/ws/voice")
+async def voice_websocket_endpoint(websocket: WebSocket):
+    """WebSocket endpoint for voice chat with Pipecat.
+
+    This endpoint is designed to integrate with Pipecat framework for voice
+    streaming with STT (Deepgram), LLM (Anthropic), and TTS (ElevenLabs).
+
+    Currently implements basic WebSocket connection and control messages.
+    Full Pipecat integration requires API keys for:
+    - DEEPGRAM_API_KEY (Speech-to-Text)
+    - ELEVENLABS_API_KEY (Text-to-Speech)
+    - ANTHROPIC_API_KEY (LLM - may already be configured)
+    """
+    await manager.connect(websocket)
+
+    try:
+        # Send initial ready state
+        await manager.broadcast({
+            "type": "voice_state",
+            "state": "idle"
+        })
+
+        while True:
+            # Receive message from client
+            data = await websocket.receive_json()
+            message_type = data.get("type")
+
+            if message_type == "start":
+                # Client requests to start voice session
+                await manager.broadcast({
+                    "type": "voice_state",
+                    "state": "listening"
+                })
+
+            elif message_type == "stop":
+                # Client requests to stop voice session
+                await manager.broadcast({
+                    "type": "voice_state",
+                    "state": "idle"
+                })
+                # Close connection gracefully
+                break
+
+            else:
+                # Unknown message type
+                await manager.broadcast({
+                    "type": "error",
+                    "error": f"Unknown voice message type: {message_type}"
+                })
+
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+        print("Voice client disconnected")
+    except Exception as e:
+        print(f"Voice WebSocket error: {e}")
+        await manager.broadcast({
+            "type": "error",
+            "error": f"Voice error: {str(e)}"
+        })
+        manager.disconnect(websocket)
+
+
 @app.get("/api/health")
 async def health_check():
     """Health check endpoint."""

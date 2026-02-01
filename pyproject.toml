@@ -3,7 +3,7 @@ name = "program-nova"
 version = "0.1.0"
 description = "Program Nova - Execution Engine + Dashboard for hierarchical task execution"
 readme = "program_nova/README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.10,<3.14"
 license = {text = "MIT"}
 authors = [
     {name = "Eric Magliarditi"}
@@ -11,6 +11,7 @@ authors = [
 
 dependencies = [
     "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
     "fastapi>=0.104.0",
     "uvicorn>=0.24.0",
     "pyyaml>=6.0.1",
@@ -20,6 +21,10 @@ dependencies = [
     "websockets>=12.0",
     "weave>=0.52.25",
     "claude-agent-sdk>=0.1.27",
+    "pipecat-ai[websocket,silero]>=0.0.45",
+    "deepgram-sdk>=3.0.0,<4.0",
+    "elevenlabs>=1.0.0",
+    "anthropic>=0.20.0",
 ]
 
 [build-system]

@@ -72,6 +72,31 @@ export interface ErrorEvent {
 }
 
 /**
+ * Voice pipeline state change
+ */
+export interface VoiceStateEvent {
+  type: "voice_state";
+  state: "listening" | "processing" | "speaking" | "idle";
+}
+
+/**
+ * Real-time transcript of user speech
+ */
+export interface TranscriptEvent {
+  type: "transcript";
+  text: string;
+  is_final: boolean;
+}
+
+/**
+ * Agent voice response with text
+ */
+export interface VoiceResponseEvent {
+  type: "voice_response";
+  text: string;
+}
+
+/**
  * Union type of all possible server-to-client events
  */
 export type ServerEvent =
@@ -80,7 +105,10 @@ export type ServerEvent =
   | ToolCallEvent
   | ToolResultEvent
   | AgentThinkingEvent
-  | ErrorEvent;
+  | ErrorEvent
+  | VoiceStateEvent
+  | TranscriptEvent
+  | VoiceResponseEvent;
 
 /**
  * Union type of all possible client-to-server messages
@@ -131,4 +159,25 @@ export function isAgentThinkingEvent(event: ServerEvent): event is AgentThinking
  */
 export function isErrorEvent(event: ServerEvent): event is ErrorEvent {
   return event.type === "error";
+}
+
+/**
+ * Type guard to check if an event is a VoiceStateEvent
+ */
+export function isVoiceStateEvent(event: ServerEvent): event is VoiceStateEvent {
+  return event.type === "voice_state";
+}
+
+/**
+ * Type guard to check if an event is a TranscriptEvent
+ */
+export function isTranscriptEvent(event: ServerEvent): event is TranscriptEvent {
+  return event.type === "transcript";
+}
+
+/**
+ * Type guard to check if an event is a VoiceResponseEvent
+ */
+export function isVoiceResponseEvent(event: ServerEvent): event is VoiceResponseEvent {
+  return event.type === "voice_response";
 }

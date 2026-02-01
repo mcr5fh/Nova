@@ -123,4 +123,50 @@ describe('ChatInput', () => {
     expect(textarea).toHaveValue('First line\nSecond line');
     expect(mockOnSend).not.toHaveBeenCalled();
   });
+
+  it('renders mode toggle buttons', () => {
+    const mockOnSend = jest.fn();
+    render(<ChatInput onSend={mockOnSend} disabled={false} />);
+
+    expect(screen.getByRole('button', { name: /text mode/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /voice mode/i })).toBeInTheDocument();
+  });
+
+  it('defaults to text mode', () => {
+    const mockOnSend = jest.fn();
+    render(<ChatInput onSend={mockOnSend} disabled={false} />);
+
+    // Text input should be visible by default
+    expect(screen.getByPlaceholderText(/type a message/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /send/i })).toBeInTheDocument();
+  });
+
+  it('switches to voice mode when voice button clicked', async () => {
+    const mockOnSend = jest.fn();
+    render(<ChatInput onSend={mockOnSend} disabled={false} />);
+
+    const voiceButton = screen.getByRole('button', { name: /voice mode/i });
+    fireEvent.click(voiceButton);
+
+    // Text input should be hidden
+    expect(screen.queryByPlaceholderText(/type a message/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /send/i })).not.toBeInTheDocument();
+  });
+
+  it('switches back to text mode when text button clicked', async () => {
+    const mockOnSend = jest.fn();
+    render(<ChatInput onSend={mockOnSend} disabled={false} />);
+
+    // Switch to voice mode
+    const voiceButton = screen.getByRole('button', { name: /voice mode/i });
+    fireEvent.click(voiceButton);
+
+    // Switch back to text mode
+    const textButton = screen.getByRole('button', { name: /text mode/i });
+    fireEvent.click(textButton);
+
+    // Text input should be visible again
+    expect(screen.getByPlaceholderText(/type a message/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /send/i })).toBeInTheDocument();
+  });
 });
