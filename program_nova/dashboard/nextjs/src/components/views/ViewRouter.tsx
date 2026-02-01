@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useNavigation } from '@/context';
 import { L0ProjectView } from './L0ProjectView';
 import { L1BranchView } from './L1BranchView';
@@ -44,8 +45,14 @@ function NoDataState() {
 
 export function ViewRouter({ status, isLoading, error }: ViewRouterProps) {
   const { currentView, selectedL1, selectedL2, selectedTaskId } = useNavigation();
+  const [mounted, setMounted] = useState(false);
 
-  if (isLoading) {
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Show loading state during SSR and initial mount to prevent hydration mismatch
+  if (!mounted || isLoading) {
     return <LoadingState />;
   }
 

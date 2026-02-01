@@ -1,6 +1,6 @@
 // Enums for type safety
 enum MessageRole {
-  User
+  User 
   Assistant
 }
 
@@ -9,7 +9,9 @@ enum ToolName {
 }
 
 enum AgentResponseType {
-  Reply
+  Reply @description(#"
+    DEPRECRATED: never use this, always use ToolCall
+  "#)
   ToolCall
 }
 
@@ -55,10 +57,6 @@ function AgentLoop(
     3. When task is complete, use type="Reply" with your message
     4. Use AgentTool to delegate complex tasks to claude CLI
 
-    Conversation history:
-    {% for msg in messages %}
-    {{ msg.role }}: {{ msg.content }}
-    {% endfor %}
 
     What do you want to do next? Think step by step.
 
