@@ -27,8 +27,8 @@ class LlmResponseParser:
     def AgentLoop(
         self, llm_response: str, baml_options: BamlCallOptions = {},
     ) -> types.AgentResponse:
-        result = self.__options.merge_options(baml_options).parse_response(function_name="AgentLoop", llm_response=llm_response, mode="request")
-        return typing.cast(types.AgentResponse, result)
+        __result__ = self.__options.merge_options(baml_options).parse_response(function_name="AgentLoop", llm_response=llm_response, mode="request")
+        return typing.cast(types.AgentResponse, __result__)
 
     
 
@@ -41,7 +41,7 @@ class LlmStreamParser:
     def AgentLoop(
         self, llm_response: str, baml_options: BamlCallOptions = {},
     ) -> stream_types.AgentResponse:
-        result = self.__options.merge_options(baml_options).parse_response(function_name="AgentLoop", llm_response=llm_response, mode="stream")
-        return typing.cast(stream_types.AgentResponse, result)
+        __result__ = self.__options.merge_options(baml_options).parse_response(function_name="AgentLoop", llm_response=llm_response, mode="stream")
+        return typing.cast(stream_types.AgentResponse, __result__)
 
     

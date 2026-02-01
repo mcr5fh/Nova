@@ -39,8 +39,10 @@ class BamlAsyncClient:
     def with_options(self,
         tb: typing.Optional[type_builder.TypeBuilder] = None,
         client_registry: typing.Optional[baml_py.baml_py.ClientRegistry] = None,
+        client: typing.Optional[str] = None,
         collector: typing.Optional[typing.Union[baml_py.baml_py.Collector, typing.List[baml_py.baml_py.Collector]]] = None,
         env: typing.Optional[typing.Dict[str, typing.Optional[str]]] = None,
+        tags: typing.Optional[typing.Dict[str, str]] = None,
         on_tick: typing.Optional[typing.Callable[[str, baml_py.baml_py.FunctionLog], None]] = None,
     ) -> "BamlAsyncClient":
         options: BamlCallOptions = {}
@@ -48,10 +50,14 @@ class BamlAsyncClient:
             options["tb"] = tb
         if client_registry is not None:
             options["client_registry"] = client_registry
+        if client is not None:
+            options["client"] = client
         if collector is not None:
             options["collector"] = collector
         if env is not None:
             options["env"] = env
+        if tags is not None:
+            options["tags"] = tags
         if on_tick is not None:
             options["on_tick"] = on_tick
         return BamlAsyncClient(self.__options.merge_options(options))
@@ -75,22 +81,22 @@ class BamlAsyncClient:
     @property
     def parse_stream(self):
       return self.__llm_stream_parser
-    
+
     async def AgentLoop(self, messages: typing.List["types.Message"],working_dir: str,
         baml_options: BamlCallOptions = {},
     ) -> types.AgentResponse:
         # Check if on_tick is provided
         if 'on_tick' in baml_options:
             # Use streaming internally when on_tick is provided
-            stream = self.stream.AgentLoop(messages=messages,working_dir=working_dir,
+            __stream__ = self.stream.AgentLoop(messages=messages,working_dir=working_dir,
                 baml_options=baml_options)
-            return await stream.get_final_response()
+            return await __stream__.get_final_response()
         else:
             # Original non-streaming code
-            result = await self.__options.merge_options(baml_options).call_function_async(function_name="AgentLoop", args={
+            __result__ = await self.__options.merge_options(baml_options).call_function_async(function_name="AgentLoop", args={
                 "messages": messages,"working_dir": working_dir,
             })
-            return typing.cast(types.AgentResponse, result.cast_to(types, types, stream_types, False, __runtime__))
+            return typing.cast(types.AgentResponse, __result__.cast_to(types, types, stream_types, False, __runtime__))
     
 
 
@@ -103,14 +109,14 @@ class BamlStreamClient:
     def AgentLoop(self, messages: typing.List["types.Message"],working_dir: str,
         baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlStream[stream_types.AgentResponse, types.AgentResponse]:
-        ctx, result = self.__options.merge_options(baml_options).create_async_stream(function_name="AgentLoop", args={
+        __ctx__, __result__ = self.__options.merge_options(baml_options).create_async_stream(function_name="AgentLoop", args={
             "messages": messages,"working_dir": working_dir,
         })
         return baml_py.BamlStream[stream_types.AgentResponse, types.AgentResponse](
-          result,
+          __result__,
           lambda x: typing.cast(stream_types.AgentResponse, x.cast_to(types, types, stream_types, True, __runtime__)),
           lambda x: typing.cast(types.AgentResponse, x.cast_to(types, types, stream_types, False, __runtime__)),
-          ctx,
+          __ctx__,
         )
     
 
@@ -123,10 +129,10 @@ class BamlHttpRequestClient:
     async def AgentLoop(self, messages: typing.List["types.Message"],working_dir: str,
         baml_options: BamlCallOptions = {},
     ) -> baml_py.baml_py.HTTPRequest:
-        result = await self.__options.merge_options(baml_options).create_http_request_async(function_name="AgentLoop", args={
+        __result__ = await self.__options.merge_options(baml_options).create_http_request_async(function_name="AgentLoop", args={
             "messages": messages,"working_dir": working_dir,
         }, mode="request")
-        return result
+        return __result__
     
 
 class BamlHttpStreamRequestClient:
@@ -138,10 +144,10 @@ class BamlHttpStreamRequestClient:
     async def AgentLoop(self, messages: typing.List["types.Message"],working_dir: str,
         baml_options: BamlCallOptions = {},
     ) -> baml_py.baml_py.HTTPRequest:
-        result = await self.__options.merge_options(baml_options).create_http_request_async(function_name="AgentLoop", args={
+        __result__ = await self.__options.merge_options(baml_options).create_http_request_async(function_name="AgentLoop", args={
             "messages": messages,"working_dir": working_dir,
         }, mode="stream")
-        return result
+        return __result__
     
 
 b = BamlAsyncClient(DoNotUseDirectlyCallManager({}))
