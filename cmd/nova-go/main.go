@@ -4,8 +4,14 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
 )
+
+func init() {
+	// Load .env file if it exists (silently ignore if not found)
+	_ = godotenv.Load()
+}
 
 func main() {
 	if err := newRootCommand().Execute(); err != nil {
@@ -22,7 +28,6 @@ func newRootCommand() *cobra.Command {
 captures session lifecycle events and parses transcripts for structured analysis.`,
 	}
 
-	cmd.AddCommand(newTrackSessionCommand())      // SessionStart hook
 	cmd.AddCommand(newProcessTranscriptCommand()) // SessionEnd hook
 	cmd.AddCommand(newOrchestrateCommand())       // Task orchestrator
 	return cmd

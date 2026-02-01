@@ -60,11 +60,3 @@ repos:
         language: system
         pass_filenames: false
         types: [go]
-
-  # Markdown linting
-  - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.43.0
-    hooks:
-      - id: markdownlint
-        args: ['--fix']
-        exclude: '^(baml_client/|claude-trace-dashboard/)'

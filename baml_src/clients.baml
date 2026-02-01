@@ -6,7 +6,6 @@ client<llm> GPT5 {
   options {
     model "gpt-5"
     api_key env.OPENAI_API_KEY
-    temperature 0.0
     reasoning_effort "low"
     max_completion_tokens 4096
   }
@@ -18,7 +17,6 @@ client<llm> GPT5Mini {
   options {
     model "gpt-5-mini"
     api_key env.OPENAI_API_KEY
-    temperature 0.0
     reasoning_effort "minimal"
     max_completion_tokens 2048
   }

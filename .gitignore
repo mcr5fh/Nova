@@ -51,3 +51,7 @@ next-env.d.ts
 cmd/nova-go/nova-go
 .vite/
 line_count_report.txt
+
+# Session debugging
+.claude/session-events.log
+.debug/

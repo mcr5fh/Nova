@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/mattruiters/nova/internal/paths"
@@ -30,9 +29,16 @@ func runProcessTranscript(cmd *cobra.Command, args []string) error {
 
 	sessionID, _ := input["session_id"].(string)
 	transcriptPath, _ := input["transcript_path"].(string)
+	reason, _ := input["reason"].(string)
 
 	if sessionID == "" || transcriptPath == "" {
 		return fmt.Errorf("missing required fields: session_id=%q, transcript_path=%q", sessionID, transcriptPath)
+	}
+
+	// Only process human sessions
+	if reason != "prompt_input_exit" {
+		fmt.Fprintf(os.Stderr, "Skipping automated session %s (reason=%s)\n", sessionID, reason)
+		return nil
 	}
 
 	// Parse transcript and generate traces
@@ -42,18 +48,49 @@ func runProcessTranscript(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("parse transcript: %w", err)
 	}
 
+	// Calculate session duration from traces
+	var startedAt, endedAt time.Time
+	var duration int
+	if len(traces) > 0 {
+		var err error
+		startedAt, err = time.Parse(time.RFC3339, traces[0].Timestamp)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "failed to parse start timestamp: %v\n", err)
+		}
+		endedAt, err = time.Parse(time.RFC3339, traces[len(traces)-1].Timestamp)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "failed to parse end timestamp: %v\n", err)
+		}
+		if !startedAt.IsZero() && !endedAt.IsZero() {
+			duration = int(endedAt.Sub(startedAt).Seconds())
+		}
+	}
+
 	// Write traces to storage
 	tracesDir, err := paths.GetTraceDir()
 	if err != nil {
 		return fmt.Errorf("get trace dir: %w", err)
 	}
 
-	writer, err := storage.NewWriter(tracesDir)
+	writer, err := storage.NewWriter(tracesDir, sessionID)
 	if err != nil {
 		return fmt.Errorf("create writer: %w", err)
 	}
 	defer func() { _ = writer.Close() }()
 
+	// Write session metadata as first line
+	metadata := map[string]interface{}{
+		"session_id":       sessionID,
+		"user_type":        "human",
+		"duration_seconds": duration,
+		"started_at":       startedAt.Format(time.RFC3339),
+		"ended_at":         endedAt.Format(time.RFC3339),
+	}
+	if err := writer.Write(metadata); err != nil {
+		return fmt.Errorf("write metadata: %w", err)
+	}
+
+	// Write traces
 	for _, trace := range traces {
 		// Convert TraceEvent to map for storage writer
 		traceMap := map[string]interface{}{
@@ -82,38 +119,7 @@ func runProcessTranscript(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// Update sessions registry with end time
-	if err := updateSessionEndTime(sessionID); err != nil {
-		fmt.Fprintf(os.Stderr, "update session end time error: %v\n", err)
-	}
-
 	fmt.Fprintf(os.Stderr, "Generated %d traces from session %s\n", len(traces), sessionID)
-
-	return nil
-}
-
-func updateSessionEndTime(sessionID string) error {
-	tracesDir, err := paths.GetTraceDir()
-	if err != nil {
-		return fmt.Errorf("get trace dir: %w", err)
-	}
-	registryPath := filepath.Join(tracesDir, "sessions.jsonl")
-
-	// Append a session update entry
-	file, err := os.OpenFile(registryPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		return fmt.Errorf("open registry: %w", err)
-	}
-	defer file.Close()
-
-	entry := map[string]interface{}{
-		"session_id": sessionID,
-		"ended_at":   time.Now().Format(time.RFC3339),
-	}
-
-	if err := json.NewEncoder(file).Encode(entry); err != nil {
-		return fmt.Errorf("write entry: %w", err)
-	}
 
 	return nil
 }

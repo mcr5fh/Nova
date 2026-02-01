@@ -12,9 +12,10 @@ import (
 func TestWriter_Write(t *testing.T) {
 	// Create temp directory for testing
 	tmpDir := t.TempDir()
+	sessionID := "test-session-123"
 
 	// Create writer with custom trace directory
-	writer, err := NewWriter(tmpDir)
+	writer, err := NewWriter(tmpDir, sessionID)
 	if err != nil {
 		t.Fatalf("Failed to create writer: %v", err)
 	}
@@ -31,13 +32,16 @@ func TestWriter_Write(t *testing.T) {
 		t.Fatalf("Failed to write trace: %v", err)
 	}
 
-	// Verify file was created with today's date
-	today := time.Now().Format("2006-01-02")
-	expectedFile := filepath.Join(tmpDir, "traces-"+today+".jsonl")
-
-	if _, err := os.Stat(expectedFile); os.IsNotExist(err) {
-		t.Fatalf("Expected file %s does not exist", expectedFile)
+	// Verify file was created with session ID (pattern: session-{epoch}-{uuid}.jsonl)
+	files, err := filepath.Glob(filepath.Join(tmpDir, "session-*-"+sessionID+".jsonl"))
+	if err != nil {
+		t.Fatalf("Failed to glob files: %v", err)
 	}
+	if len(files) != 1 {
+		t.Fatalf("Expected 1 file, found %d", len(files))
+	}
+
+	expectedFile := files[0]
 
 	// Verify content
 	content, err := os.ReadFile(expectedFile)
@@ -66,7 +70,7 @@ func TestWriter_CreateDirectoryIfMissing(t *testing.T) {
 	}
 
 	// Create writer - should create the directory
-	writer, err := NewWriter(traceDir)
+	writer, err := NewWriter(traceDir, "test-session")
 	if err != nil {
 		t.Fatalf("Failed to create writer: %v", err)
 	}
@@ -78,51 +82,13 @@ func TestWriter_CreateDirectoryIfMissing(t *testing.T) {
 	}
 }
 
-func TestWriter_DailyRotation(t *testing.T) {
-	tmpDir := t.TempDir()
-
-	writer, err := NewWriter(tmpDir)
-	if err != nil {
-		t.Fatalf("Failed to create writer: %v", err)
-	}
-	defer writer.Close()
-
-	// Write first entry
-	testData1 := map[string]interface{}{"entry": 1}
-	if err := writer.Write(testData1); err != nil {
-		t.Fatalf("Failed to write first entry: %v", err)
-	}
-
-	// Verify current file exists
-	today := time.Now().Format("2006-01-02")
-	currentFile := filepath.Join(tmpDir, "traces-"+today+".jsonl")
-
-	info1, err := os.Stat(currentFile)
-	if err != nil {
-		t.Fatalf("Failed to stat current file: %v", err)
-	}
-
-	// Write second entry
-	testData2 := map[string]interface{}{"entry": 2}
-	if err := writer.Write(testData2); err != nil {
-		t.Fatalf("Failed to write second entry: %v", err)
-	}
-
-	// Verify file was appended (size increased)
-	info2, err := os.Stat(currentFile)
-	if err != nil {
-		t.Fatalf("Failed to stat current file after second write: %v", err)
-	}
-
-	if info2.Size() <= info1.Size() {
-		t.Errorf("File should have grown after second write")
-	}
-}
+// TestWriter_DailyRotation removed - no longer relevant with per-session files
 
 func TestWriter_MultipleEntries(t *testing.T) {
 	tmpDir := t.TempDir()
+	sessionID := "test-session-multi"
 
-	writer, err := NewWriter(tmpDir)
+	writer, err := NewWriter(tmpDir, sessionID)
 	if err != nil {
 		t.Fatalf("Failed to create writer: %v", err)
 	}
@@ -136,11 +102,16 @@ func TestWriter_MultipleEntries(t *testing.T) {
 		}
 	}
 
-	// Read and verify all entries
-	today := time.Now().Format("2006-01-02")
-	filePath := filepath.Join(tmpDir, "traces-"+today+".jsonl")
+	// Read and verify all entries (pattern: session-{epoch}-{uuid}.jsonl)
+	files, err := filepath.Glob(filepath.Join(tmpDir, "session-*-"+sessionID+".jsonl"))
+	if err != nil {
+		t.Fatalf("Failed to glob files: %v", err)
+	}
+	if len(files) != 1 {
+		t.Fatalf("Expected 1 file, found %d", len(files))
+	}
 
-	content, err := os.ReadFile(filePath)
+	content, err := os.ReadFile(files[0])
 	if err != nil {
 		t.Fatalf("Failed to read file: %v", err)
 	}
@@ -157,5 +128,59 @@ func TestWriter_MultipleEntries(t *testing.T) {
 
 	if lines != 3 {
 		t.Errorf("Expected 3 lines, got %d", lines)
+	}
+}
+
+func TestWriter_SessionIsolation(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Create two writers for different sessions
+	session1 := "session-aaa"
+	session2 := "session-bbb"
+
+	writer1, err := NewWriter(tmpDir, session1)
+	if err != nil {
+		t.Fatalf("Failed to create writer1: %v", err)
+	}
+	defer writer1.Close()
+
+	writer2, err := NewWriter(tmpDir, session2)
+	if err != nil {
+		t.Fatalf("Failed to create writer2: %v", err)
+	}
+	defer writer2.Close()
+
+	// Write to both sessions
+	if err := writer1.Write(map[string]interface{}{"session": 1}); err != nil {
+		t.Fatalf("Failed to write to session1: %v", err)
+	}
+
+	if err := writer2.Write(map[string]interface{}{"session": 2}); err != nil {
+		t.Fatalf("Failed to write to session2: %v", err)
+	}
+
+	// Verify separate files exist (pattern: session-{epoch}-{uuid}.jsonl)
+	files1, err := filepath.Glob(filepath.Join(tmpDir, "session-*-"+session1+".jsonl"))
+	if err != nil {
+		t.Fatalf("Failed to glob session1 files: %v", err)
+	}
+	if len(files1) != 1 {
+		t.Fatalf("Session 1 file does not exist")
+	}
+
+	files2, err := filepath.Glob(filepath.Join(tmpDir, "session-*-"+session2+".jsonl"))
+	if err != nil {
+		t.Fatalf("Failed to glob session2 files: %v", err)
+	}
+	if len(files2) != 1 {
+		t.Fatalf("Session 2 file does not exist")
+	}
+
+	// Verify files are different
+	content1, _ := os.ReadFile(files1[0])
+	content2, _ := os.ReadFile(files2[0])
+
+	if string(content1) == string(content2) {
+		t.Error("Session files should contain different data")
 	}
 }

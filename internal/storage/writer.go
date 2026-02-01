@@ -9,39 +9,38 @@ import (
 	"time"
 )
 
-// Writer handles appending trace data to daily JSONL files
+// Writer handles appending trace data to per-session JSONL files
 type Writer struct {
-	traceDir    string
-	currentDate string
-	file        *os.File
-	mu          sync.Mutex
+	traceDir  string
+	sessionID string // Track which session this writer is for
+	file      *os.File
+	mu        sync.Mutex
 }
 
-// NewWriter creates a new trace writer that writes to the specified directory
-func NewWriter(traceDir string) (*Writer, error) {
+// NewWriter creates a new trace writer that writes to the specified directory for a given session
+func NewWriter(traceDir string, sessionID string) (*Writer, error) {
 	// Create directory if it doesn't exist
 	if err := os.MkdirAll(traceDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create trace directory: %w", err)
 	}
 
 	w := &Writer{
-		traceDir: traceDir,
+		traceDir:  traceDir,
+		sessionID: sessionID,
 	}
 
 	return w, nil
 }
 
-// Write appends a trace entry to the current day's JSONL file
+// Write appends a trace entry to the session's JSONL file
 func (w *Writer) Write(data interface{}) error {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
-	today := time.Now().Format("2006-01-02")
-
-	// Check if we need to rotate to a new file
-	if w.file == nil || w.currentDate != today {
-		if err := w.rotateFile(today); err != nil {
-			return fmt.Errorf("failed to rotate file: %w", err)
+	// Open file if not already open
+	if w.file == nil {
+		if err := w.openSessionFile(); err != nil {
+			return fmt.Errorf("failed to open session file: %w", err)
 		}
 	}
 
@@ -54,17 +53,11 @@ func (w *Writer) Write(data interface{}) error {
 	return nil
 }
 
-// rotateFile closes the current file (if any) and opens a new file for the given date
-func (w *Writer) rotateFile(date string) error {
-	// Close existing file if open
-	if w.file != nil {
-		if err := w.file.Close(); err != nil {
-			return fmt.Errorf("failed to close existing file: %w", err)
-		}
-	}
-
-	// Open new file for today
-	filename := fmt.Sprintf("traces-%s.jsonl", date)
+// openSessionFile opens the session-specific trace file
+func (w *Writer) openSessionFile() error {
+	// Session file: session-{epoch}-{uuid}.jsonl
+	epoch := time.Now().Unix()
+	filename := fmt.Sprintf("session-%d-%s.jsonl", epoch, w.sessionID)
 	filePath := filepath.Join(w.traceDir, filename)
 
 	file, err := os.OpenFile(filePath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
@@ -73,7 +66,6 @@ func (w *Writer) rotateFile(date string) error {
 	}
 
 	w.file = file
-	w.currentDate = date
 
 	return nil
 }
