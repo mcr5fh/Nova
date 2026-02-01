@@ -57,3 +57,5 @@ example_state.json
 .thevillage/
 
 logs/
+
+*.db
