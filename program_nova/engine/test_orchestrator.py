@@ -384,3 +384,45 @@ class TestConcurrency:
         # Should not exceed max_workers
         assert max_concurrent <= orchestrator.max_workers
         assert len(orchestrator.active_workers) <= orchestrator.max_workers
+
+
+class TestDirectExecution:
+    """Test that orchestrator.py can be executed as a module."""
+
+    def test_orchestrator_module_execution(self, tmp_path):
+        """Test that orchestrator.py can be run as a module without import errors."""
+        import subprocess
+        import sys
+
+        # Create a minimal CASCADE.md for testing
+        cascade_content = """# Test Project
+
+## L1: Application
+
+### L2: Foundation
+| Task ID | Task Name | What Changes | Depends On |
+|---------|-----------|--------------|------------|
+| F1 | Core Types | Define base types | - |
+"""
+        cascade_file = tmp_path / "CASCADE.md"
+        cascade_file.write_text(cascade_content)
+
+        # Get the project root directory (parent of program_nova)
+        project_root = Path(__file__).parent.parent.parent
+
+        # Run orchestrator.py as a module with --help to verify imports work
+        result = subprocess.run(
+            [sys.executable, "-m", "program_nova.engine.orchestrator", "--help"],
+            cwd=str(project_root),
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+
+        # Should not have import errors
+        assert "ImportError" not in result.stderr, f"ImportError found: {result.stderr}"
+        assert "ModuleNotFoundError" not in result.stderr, f"ModuleNotFoundError found: {result.stderr}"
+        assert "attempted relative import" not in result.stderr, f"Relative import error found: {result.stderr}"
+        # Should show help text and exit successfully
+        assert result.returncode == 0, f"Non-zero exit code: {result.returncode}, stderr: {result.stderr}"
+        assert "usage:" in result.stdout.lower(), f"Usage text not found in: {result.stdout}"
