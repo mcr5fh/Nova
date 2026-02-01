@@ -181,14 +181,16 @@ export function HierarchicalTree({ tasks, edges }: HierarchicalTreeProps) {
                 onMouseLeave={() => setHoveredTask(null)}
                 className="cursor-pointer"
               >
-                {/* Background */}
+                {/* Background with glass effect */}
                 <rect
                   width={NODE_WIDTH}
                   height={NODE_HEIGHT}
                   rx="8"
-                  className="fill-card stroke-border transition-all duration-200"
-                  strokeWidth={isHovered ? "3" : "1"}
-                  opacity={isHovered ? 1 : 0.9}
+                  fill="oklch(from var(--card) l c h / 0.8)"
+                  stroke="oklch(from var(--border) l c h / 0.6)"
+                  strokeWidth={isHovered ? "3" : "1.5"}
+                  className="transition-all duration-200"
+                  opacity={isHovered ? 1 : 0.92}
                 />
 
                 {/* Status indicator */}
@@ -199,50 +201,53 @@ export function HierarchicalTree({ tasks, edges }: HierarchicalTreeProps) {
                   className={statusColor.replace('bg-', 'fill-')}
                 />
 
-                {/* Task ID */}
+                {/* Task ID with better contrast */}
                 <text
                   x="30"
                   y="20"
                   fontSize="12"
-                  fontWeight="500"
-                  className="fill-foreground"
+                  fontWeight="600"
+                  fill="hsl(var(--foreground))"
                 >
                   {node.task.id}
                 </text>
 
-                {/* Size badge */}
+                {/* Size badge with better contrast */}
                 <rect
                   x={NODE_WIDTH - 35}
                   y="8"
                   width="28"
                   height="18"
                   rx="4"
-                  className="fill-muted stroke-border"
+                  fill="oklch(from var(--muted) l c h / 0.7)"
+                  stroke="oklch(from var(--border) l c h / 0.4)"
+                  strokeWidth="1"
                 />
                 <text
                   x={NODE_WIDTH - 21}
                   y="20"
                   fontSize="10"
                   textAnchor="middle"
-                  className="fill-foreground"
-                  fontWeight="500"
+                  fill="hsl(var(--foreground))"
+                  fontWeight="600"
                 >
                   {node.task.size}
                 </text>
 
-                {/* Spec text */}
+                {/* Spec text with improved readability */}
                 <foreignObject x="10" y="35" width={NODE_WIDTH - 20} height="45">
-                  <div className="text-sm text-foreground leading-tight line-clamp-2 px-1">
+                  <div className="text-sm text-foreground leading-tight line-clamp-2 px-1 font-medium">
                     {node.task.spec}
                   </div>
                 </foreignObject>
 
-                {/* Status and attempts */}
+                {/* Status and attempts with better contrast */}
                 <text
                   x="10"
                   y="95"
                   fontSize="11"
-                  className="fill-muted-foreground"
+                  fill="hsl(var(--muted-foreground))"
+                  fontWeight="500"
                 >
                   {statusLabel}
                 </text>
@@ -251,26 +256,27 @@ export function HierarchicalTree({ tasks, edges }: HierarchicalTreeProps) {
                   y="95"
                   fontSize="11"
                   textAnchor="end"
-                  className="fill-muted-foreground"
+                  fill="hsl(var(--muted-foreground))"
                   fontFamily="monospace"
+                  fontWeight="500"
                 >
                   {node.task.attempts}/{node.task.maxAttempts}
                 </text>
 
-                {/* Telemetry (if available) */}
+                {/* Telemetry with improved visibility */}
                 {node.task.telemetry && (
                   <text
                     x="10"
                     y="110"
                     fontSize="10"
-                    className="fill-muted-foreground"
+                    fill="hsl(var(--muted-foreground))"
                     fontFamily="monospace"
                   >
                     {node.task.telemetry.tokens.toLocaleString()} tokens · ${node.task.telemetry.cost.toFixed(4)}
                   </text>
                 )}
 
-                {/* Hover tooltip */}
+                {/* Hover tooltip with glass effect */}
                 {isHovered && node.task.workerModel && (
                   <g>
                     <rect
@@ -279,14 +285,17 @@ export function HierarchicalTree({ tasks, edges }: HierarchicalTreeProps) {
                       width={NODE_WIDTH + 20}
                       height="25"
                       rx="4"
-                      className="fill-popover stroke-border"
+                      fill="oklch(from var(--popover) l c h / 0.95)"
+                      stroke="oklch(from var(--border) l c h / 0.6)"
+                      strokeWidth="1.5"
                     />
                     <text
                       x={NODE_WIDTH / 2}
                       y={NODE_HEIGHT + 20}
                       fontSize="10"
                       textAnchor="middle"
-                      className="fill-popover-foreground"
+                      fill="hsl(var(--popover-foreground))"
+                      fontWeight="500"
                     >
                       Model: {node.task.workerModel}
                     </text>

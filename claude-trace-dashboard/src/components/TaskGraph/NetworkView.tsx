@@ -187,13 +187,13 @@ export function NetworkView({ tasks, edges }: NetworkViewProps) {
                   className="transition-all duration-200"
                 />
 
-                {/* Node background */}
+                {/* Node background with glass effect */}
                 <circle
                   cx={node.x}
                   cy={node.y}
                   r={NODE_RADIUS}
-                  fill="hsl(var(--card))"
-                  stroke="hsl(var(--border))"
+                  fill="oklch(from var(--card) l c h / 0.85)"
+                  stroke="oklch(from var(--border) l c h / 0.6)"
                   strokeWidth={isHovered ? "3" : "2"}
                   className="transition-all duration-200"
                 />
@@ -209,86 +209,88 @@ export function NetworkView({ tasks, edges }: NetworkViewProps) {
                   opacity={0.6}
                 />
 
-                {/* Task size */}
+                {/* Task size with better contrast */}
                 <text
                   x={node.x}
                   y={node.y - 5}
                   fontSize="20"
                   fontWeight="700"
                   textAnchor="middle"
-                  className="fill-foreground"
+                  fill="hsl(var(--foreground))"
                 >
                   {node.task.size}
                 </text>
 
-                {/* Task ID */}
+                {/* Task ID with better visibility */}
                 <text
                   x={node.x}
                   y={node.y + 10}
                   fontSize="10"
                   textAnchor="middle"
-                  className="fill-muted-foreground"
-                  fontWeight="500"
+                  fill="hsl(var(--foreground))"
+                  fontWeight="600"
                 >
                   {node.task.id}
                 </text>
 
-                {/* Attempts indicator */}
+                {/* Attempts indicator with improved contrast */}
                 <text
                   x={node.x}
                   y={node.y + 22}
                   fontSize="9"
                   textAnchor="middle"
-                  className="fill-muted-foreground"
+                  fill="hsl(var(--muted-foreground))"
                   fontFamily="monospace"
+                  fontWeight="500"
                 >
                   {node.task.attempts}/{node.task.maxAttempts}
                 </text>
 
-                {/* Hover tooltip */}
+                {/* Hover tooltip with glass effect */}
                 {isHovered && (
                   <g>
-                    {/* Tooltip background */}
+                    {/* Tooltip background with glass effect */}
                     <rect
                       x={node.x - 120}
                       y={node.y - NODE_RADIUS - 70}
                       width="240"
                       height="60"
                       rx="6"
-                      fill="hsl(var(--popover))"
-                      stroke="hsl(var(--border))"
+                      fill="oklch(from var(--popover) l c h / 0.95)"
+                      stroke="oklch(from var(--border) l c h / 0.6)"
                       strokeWidth="1.5"
                     />
 
-                    {/* Spec */}
+                    {/* Spec with better readability */}
                     <foreignObject
                       x={node.x - 110}
                       y={node.y - NODE_RADIUS - 65}
                       width="220"
                       height="35"
                     >
-                      <div className="text-xs text-foreground leading-tight line-clamp-2 font-medium">
+                      <div className="text-xs text-foreground leading-tight line-clamp-2 font-semibold">
                         {node.task.spec}
                       </div>
                     </foreignObject>
 
-                    {/* Status */}
+                    {/* Status with improved visibility */}
                     <text
                       x={node.x - 110}
                       y={node.y - NODE_RADIUS - 22}
                       fontSize="10"
-                      className="fill-muted-foreground"
+                      fill="hsl(var(--muted-foreground))"
+                      fontWeight="500"
                     >
                       Status: {statusLabel}
                     </text>
 
-                    {/* Model */}
+                    {/* Model with better contrast */}
                     {node.task.workerModel && (
                       <text
                         x={node.x - 110}
                         y={node.y - NODE_RADIUS - 10}
                         fontSize="9"
-                        className="fill-muted-foreground"
+                        fill="hsl(var(--muted-foreground))"
                         fontFamily="monospace"
                       >
                         {node.task.workerModel}
@@ -301,10 +303,10 @@ export function NetworkView({ tasks, edges }: NetworkViewProps) {
           })}
         </g>
 
-        {/* Legend */}
+        {/* Legend with glass effect */}
         <g transform="translate(20, 20)">
-          <rect width="180" height="160" rx="4" fill="hsl(var(--card))" stroke="hsl(var(--border))" opacity="0.9" />
-          <text x="10" y="20" fontSize="12" fontWeight="600" className="fill-foreground">
+          <rect width="180" height="160" rx="4" fill="oklch(from var(--card) l c h / 0.85)" stroke="oklch(from var(--border) l c h / 0.6)" strokeWidth="1.5" opacity="0.95" />
+          <text x="10" y="20" fontSize="12" fontWeight="600" fill="hsl(var(--foreground))">
             Status Clusters
           </text>
           {[
@@ -318,7 +320,7 @@ export function NetworkView({ tasks, edges }: NetworkViewProps) {
           ].map((item, i) => (
             <g key={item.status} transform={`translate(10, ${40 + i * 18})`}>
               <circle cx="6" cy="-3" r="5" fill={getClusterColor(item.status)} />
-              <text x="18" y="0" fontSize="11" className="fill-foreground">
+              <text x="18" y="0" fontSize="11" fill="hsl(var(--foreground))" fontWeight="500">
                 {item.label}
               </text>
             </g>

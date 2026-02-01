@@ -230,16 +230,17 @@ export function TimelineFlow({ tasks, edges }: TimelineFlowProps) {
                 onMouseLeave={() => setHoveredTask(null)}
                 className="cursor-pointer"
               >
-                {/* Node background */}
+                {/* Node background with glass effect */}
                 <rect
                   width={node.width}
                   height={NODE_HEIGHT}
                   rx="8"
-                  fill="hsl(var(--card))"
-                  stroke="hsl(var(--border))"
+                  fill="oklch(from var(--card) l c h / 0.8)"
+                  stroke="oklch(from var(--border) l c h / 0.6)"
                   strokeWidth={isHovered ? "3" : "1.5"}
                   className="transition-all duration-200"
-                  opacity={isHovered ? 1 : 0.95}
+                  opacity={isHovered ? 1 : 0.92}
+                  style={{ backdropFilter: 'blur(8px)' }}
                 />
 
                 {/* Status bar on left */}
@@ -250,50 +251,54 @@ export function TimelineFlow({ tasks, edges }: TimelineFlowProps) {
                   className={statusColor}
                 />
 
-                {/* Task ID */}
+                {/* Task ID with better contrast */}
                 <text
                   x="15"
                   y="20"
                   fontSize="11"
                   fontWeight="600"
-                  className="fill-foreground"
+                  fill="hsl(var(--foreground))"
+                  style={{ paintOrder: 'stroke', stroke: 'hsl(var(--background))', strokeWidth: '0.5px', strokeOpacity: 0.3 }}
                 >
                   {node.task.id}
                 </text>
 
-                {/* Size badge */}
+                {/* Size badge with better contrast */}
                 <rect
                   x={node.width - 30}
                   y="8"
                   width="22"
                   height="16"
                   rx="3"
-                  fill="hsl(var(--muted))"
+                  fill="oklch(from var(--muted) l c h / 0.7)"
+                  stroke="oklch(from var(--border) l c h / 0.4)"
+                  strokeWidth="1"
                 />
                 <text
                   x={node.width - 19}
                   y="19"
                   fontSize="9"
                   textAnchor="middle"
-                  className="fill-foreground"
+                  fill="hsl(var(--foreground))"
                   fontWeight="600"
                 >
                   {node.task.size}
                 </text>
 
-                {/* Spec text */}
+                {/* Spec text with improved readability */}
                 <foreignObject x="15" y="28" width={node.width - 30} height="28">
-                  <div className="text-xs text-foreground leading-tight line-clamp-2">
+                  <div className="text-xs text-foreground leading-tight line-clamp-2 font-medium">
                     {node.task.spec}
                   </div>
                 </foreignObject>
 
-                {/* Status and attempts */}
+                {/* Status and attempts with better contrast */}
                 <text
                   x="15"
                   y={NODE_HEIGHT - 10}
                   fontSize="10"
-                  className="fill-muted-foreground"
+                  fill="hsl(var(--muted-foreground))"
+                  fontWeight="500"
                 >
                   {statusLabel}
                 </text>
@@ -302,13 +307,14 @@ export function TimelineFlow({ tasks, edges }: TimelineFlowProps) {
                   y={NODE_HEIGHT - 10}
                   fontSize="10"
                   textAnchor="end"
-                  className="fill-muted-foreground"
+                  fill="hsl(var(--muted-foreground))"
                   fontFamily="monospace"
+                  fontWeight="500"
                 >
                   {node.task.attempts}/{node.task.maxAttempts}
                 </text>
 
-                {/* Hover tooltip */}
+                {/* Hover tooltip with glass effect */}
                 {isHovered && (
                   <g>
                     <rect
@@ -317,8 +323,9 @@ export function TimelineFlow({ tasks, edges }: TimelineFlowProps) {
                       width={node.width + 10}
                       height="40"
                       rx="4"
-                      fill="hsl(var(--popover))"
-                      stroke="hsl(var(--border))"
+                      fill="oklch(from var(--popover) l c h / 0.95)"
+                      stroke="oklch(from var(--border) l c h / 0.6)"
+                      strokeWidth="1.5"
                     />
 
                     {node.task.workerModel && (
@@ -326,7 +333,8 @@ export function TimelineFlow({ tasks, edges }: TimelineFlowProps) {
                         x="5"
                         y={NODE_HEIGHT + 20}
                         fontSize="10"
-                        className="fill-popover-foreground"
+                        fill="hsl(var(--popover-foreground))"
+                        fontWeight="500"
                       >
                         Model: {node.task.workerModel}
                       </text>
@@ -337,7 +345,7 @@ export function TimelineFlow({ tasks, edges }: TimelineFlowProps) {
                         x="5"
                         y={NODE_HEIGHT + 35}
                         fontSize="9"
-                        className="fill-muted-foreground"
+                        fill="hsl(var(--muted-foreground))"
                         fontFamily="monospace"
                       >
                         {node.task.telemetry.tokens.toLocaleString()} tokens · $
