@@ -255,20 +255,23 @@ def run() -> int:
     # Find python3 executable
     python_exe = sys.executable
 
-    # Start orchestrator process
+    # Get the path to the program_nova package
+    program_nova_path = Path(__file__).parent
+
+    # Start orchestrator process - execute script directly
+    orchestrator_script = program_nova_path / "engine" / "orchestrator.py"
     orchestrator_cmd = [
         python_exe,
-        "-m",
-        "program_nova.engine.orchestrator",
+        str(orchestrator_script),
         "--cascade-file", "./CASCADE.md",
         "--state-file", "./cascade_state.json",
     ]
 
-    # Start dashboard process
+    # Start dashboard process - execute script directly
+    dashboard_script = program_nova_path / "dashboard" / "server.py"
     dashboard_cmd = [
         python_exe,
-        "-m",
-        "program_nova.dashboard.server",
+        str(dashboard_script),
         "--host", "0.0.0.0",
         "--port", "8000",
         "--state-file", "./cascade_state.json",

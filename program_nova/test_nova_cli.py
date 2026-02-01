@@ -237,13 +237,25 @@ class TestNovaCLI:
             # Verify both processes were started
             assert mock_popen.call_count == 2
 
-            # Verify orchestrator was started
+            # Verify orchestrator was started with direct script path (not -m flag)
             orch_call = mock_popen.call_args_list[0]
-            assert 'program_nova.engine.orchestrator' in ' '.join(orch_call[0][0])
+            orch_args = orch_call[0][0]
+            assert orch_args[0] == sys.executable
+            # Should NOT contain '-m' flag
+            assert '-m' not in orch_args
+            # Should end with orchestrator.py
+            assert orch_args[1].endswith('orchestrator.py')
+            assert 'program_nova/engine/orchestrator.py' in orch_args[1] or 'program_nova\\engine\\orchestrator.py' in orch_args[1]
 
-            # Verify dashboard was started
+            # Verify dashboard was started with direct script path (not -m flag)
             dash_call = mock_popen.call_args_list[1]
-            assert 'program_nova.dashboard.server' in ' '.join(dash_call[0][0])
+            dash_args = dash_call[0][0]
+            assert dash_args[0] == sys.executable
+            # Should NOT contain '-m' flag
+            assert '-m' not in dash_args
+            # Should end with server.py
+            assert dash_args[1].endswith('server.py')
+            assert 'program_nova/dashboard/server.py' in dash_args[1] or 'program_nova\\dashboard\\server.py' in dash_args[1]
 
             # Verify processes were terminated
             mock_orch.terminate.assert_called_once()
