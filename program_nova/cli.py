@@ -284,22 +284,10 @@ def run() -> int:
     try:
         # Start both processes
         print("Starting orchestrator...")
-        orchestrator_process = subprocess.Popen(
-            orchestrator_cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            bufsize=1,
-        )
+        orchestrator_process = subprocess.Popen(orchestrator_cmd)
 
         print("Starting dashboard on http://0.0.0.0:8000...")
-        dashboard_process = subprocess.Popen(
-            dashboard_cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            bufsize=1,
-        )
+        dashboard_process = subprocess.Popen(dashboard_cmd)
 
         print()
         print("Both services started successfully!")

@@ -291,6 +291,55 @@ class TestNovaCLI:
         finally:
             os.chdir(original_cwd)
 
+    @patch('program_nova.cli.subprocess.Popen')
+    def test_run_does_not_capture_subprocess_output(self, mock_popen, tmp_path):
+        """Test that nova run does NOT capture stdout/stderr (allows real-time output)."""
+        original_cwd = Path.cwd()
+        try:
+            import os
+            os.chdir(tmp_path)
+
+            # Create CASCADE.md
+            cascade_file = tmp_path / "CASCADE.md"
+            cascade_file.write_text(cli.CASCADE_TEMPLATE)
+
+            # Mock the Popen processes
+            mock_orch = Mock()
+            mock_orch.poll.return_value = None
+            mock_dash = Mock()
+            mock_dash.poll.return_value = None
+
+            mock_popen.side_effect = [mock_orch, mock_dash]
+
+            # Simulate KeyboardInterrupt to exit the monitoring loop
+            with patch('program_nova.cli.time.sleep', side_effect=KeyboardInterrupt):
+                with patch('sys.argv', ['nova', 'run']):
+                    cli.main()
+
+            # Verify both Popen calls
+            assert mock_popen.call_count == 2
+
+            # Check orchestrator Popen call - stdout/stderr should NOT be PIPE
+            orch_call = mock_popen.call_args_list[0]
+            orch_kwargs = orch_call[1]
+            assert orch_kwargs.get('stdout') != subprocess.PIPE, \
+                "Orchestrator stdout should not be captured (should be None or not set)"
+            assert orch_kwargs.get('stderr') != subprocess.PIPE and \
+                   orch_kwargs.get('stderr') != subprocess.STDOUT, \
+                "Orchestrator stderr should not be captured or redirected"
+
+            # Check dashboard Popen call - stdout/stderr should NOT be PIPE
+            dash_call = mock_popen.call_args_list[1]
+            dash_kwargs = dash_call[1]
+            assert dash_kwargs.get('stdout') != subprocess.PIPE, \
+                "Dashboard stdout should not be captured (should be None or not set)"
+            assert dash_kwargs.get('stderr') != subprocess.PIPE and \
+                   dash_kwargs.get('stderr') != subprocess.STDOUT, \
+                "Dashboard stderr should not be captured or redirected"
+
+        finally:
+            os.chdir(original_cwd)
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
