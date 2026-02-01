@@ -730,3 +730,211 @@ body {
     background-color: var(--bg-secondary);
     border: 1px solid var(--accent);
 }
+
+/* View Tabs */
+.view-tabs {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-lg);
+    border-bottom: 2px solid var(--border-color);
+}
+
+.view-tab {
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    transition: all 0.2s;
+}
+
+.view-tab:hover {
+    color: var(--text-primary);
+    background-color: var(--bg-tertiary);
+}
+
+.view-tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Dependency Graph */
+#dependency-graph-container {
+    min-height: 400px;
+    position: relative;
+    overflow: auto;
+}
+
+.dependency-graph {
+    width: 100%;
+    min-height: 400px;
+}
+
+.dep-node {
+    cursor: pointer;
+}
+
+.dep-node-rect {
+    fill: var(--bg-tertiary);
+    stroke: var(--border-color);
+    stroke-width: 2;
+    transition: all 0.2s;
+}
+
+.dep-node:hover .dep-node-rect {
+    stroke: var(--accent);
+    stroke-width: 3;
+}
+
+.dep-node-rect.pending {
+    fill: var(--bg-tertiary);
+    stroke: var(--status-failed);
+    stroke-width: 2;
+}
+
+.dep-node-rect.in_progress {
+    fill: rgba(245, 158, 11, 0.1);
+    stroke: var(--status-in-progress);
+    stroke-width: 3;
+}
+
+.dep-node-rect.completed {
+    fill: rgba(16, 185, 129, 0.1);
+    stroke: var(--status-completed);
+    stroke-width: 2;
+}
+
+.dep-node-text {
+    fill: var(--text-primary);
+    font-size: 14px;
+    font-weight: 600;
+    pointer-events: none;
+}
+
+.dep-node-subtext {
+    fill: var(--text-secondary);
+    font-size: 11px;
+    pointer-events: none;
+}
+
+.dep-node-meta {
+    fill: var(--text-secondary);
+    font-size: 10px;
+    pointer-events: none;
+}
+
+.dep-edge {
+    stroke: var(--border-color);
+    stroke-width: 2;
+    fill: none;
+    marker-end: url(#arrowhead);
+}
+
+.dep-edge.critical-path {
+    stroke: var(--accent);
+    stroke-width: 3;
+}
+
+.dep-arrowhead {
+    fill: var(--border-color);
+}
+
+.dep-level-label {
+    fill: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.graph-controls {
+    position: absolute;
+    top: var(--spacing-md);
+    right: var(--spacing-md);
+    display: flex;
+    gap: var(--spacing-sm);
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-sm);
+}
+
+.graph-control-btn {
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: all 0.2s;
+}
+
+.graph-control-btn:hover {
+    background-color: var(--bg-primary);
+    border-color: var(--accent);
+}
+
+.graph-legend {
+    position: absolute;
+    top: var(--spacing-md);
+    left: var(--spacing-md);
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+}
+
+.legend-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin-bottom: var(--spacing-sm);
+    color: var(--text-primary);
+}
+
+.legend-items {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.legend-color {
+    width: 1.5rem;
+    height: 1rem;
+    border-radius: var(--radius-sm);
+    border: 2px solid;
+}
+
+.legend-color.pending {
+    background-color: var(--bg-tertiary);
+    border-color: var(--status-failed);
+}
+
+.legend-color.in_progress {
+    background-color: rgba(245, 158, 11, 0.1);
+    border-color: var(--status-in-progress);
+}
+
+.legend-color.completed {
+    background-color: rgba(16, 185, 129, 0.1);
+    border-color: var(--status-completed);
+}

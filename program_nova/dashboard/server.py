@@ -117,6 +117,7 @@ def create_app(
                     "hierarchy": cascade_data["hierarchy"],
                     "milestones": triggered_milestones,
                     "all_tasks_completed": all_tasks_completed,
+                    "task_definitions": cascade_data["tasks"],  # Include task definitions with dependencies
                 }
             )
         except FileNotFoundError as e:

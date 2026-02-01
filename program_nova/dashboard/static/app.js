@@ -38,6 +38,39 @@ function setupEventListeners() {
             fetchTaskLogs(appState.selectedTaskId);
         }
     });
+
+    // View tabs
+    document.querySelectorAll('.view-tab').forEach(tab => {
+        tab.addEventListener('click', (e) => {
+            const viewType = e.target.dataset.view;
+            switchTab(viewType);
+        });
+    });
+}
+
+function switchTab(viewType) {
+    // Update tab buttons
+    document.querySelectorAll('.view-tab').forEach(tab => {
+        if (tab.dataset.view === viewType) {
+            tab.classList.add('active');
+        } else {
+            tab.classList.remove('active');
+        }
+    });
+
+    // Update tab content
+    document.querySelectorAll('.tab-content').forEach(content => {
+        if (content.id === `${viewType}-view`) {
+            content.classList.add('active');
+        } else {
+            content.classList.remove('active');
+        }
+    });
+
+    // Render the appropriate view
+    if (viewType === 'dependencies' && appState.data) {
+        renderDependencyView();
+    }
 }
 
 // Navigation
@@ -255,6 +288,16 @@ function renderL0View() {
             renderTreeView();
         } catch (error) {
             console.error('[renderL0View] Error in renderTreeView, but continuing with rest of page:', error);
+        }
+
+        // Render dependency view if that tab is active
+        const dependencyTab = document.querySelector('.tab-content#dependency-view');
+        if (dependencyTab && dependencyTab.classList.contains('active')) {
+            try {
+                renderDependencyView();
+            } catch (error) {
+                console.error('[renderL0View] Error in renderDependencyView, but continuing with rest of page:', error);
+            }
         }
 
         // Render L1 branches
@@ -1015,4 +1058,313 @@ function computeRollupStatus(taskIds, tasks) {
     } else {
         return 'pending';
     }
+}
+
+// Dependency Graph View Functions
+function renderDependencyView() {
+    console.log('[renderDependencyView] Starting dependency graph render');
+
+    try {
+        const { task_definitions, tasks } = appState.data;
+
+        if (!task_definitions) {
+            console.error('[renderDependencyView] task_definitions not available');
+            document.getElementById('dependency-graph-container').innerHTML =
+                '<p class="empty-state">Dependency information not available</p>';
+            return;
+        }
+
+        // Build dependency graph data structure
+        const graph = buildDependencyGraph(task_definitions, tasks);
+
+        // Render the graph
+        renderDependencyGraphSVG(graph);
+
+        console.log('[renderDependencyView] Dependency graph render completed');
+    } catch (error) {
+        console.error('[renderDependencyView] Error rendering dependency graph:', error);
+        document.getElementById('dependency-graph-container').innerHTML =
+            `<div class="error-message" style="padding: 1rem; color: #dc3545; background: #f8d7da; border-radius: 4px;">
+                <strong>Error rendering dependency graph:</strong><br>
+                ${error.message}
+            </div>`;
+    }
+}
+
+function buildDependencyGraph(taskDefinitions, taskStates) {
+    // Calculate depth for each task (topological level)
+    const depths = {};
+    const visited = new Set();
+
+    function calculateDepth(taskId) {
+        if (depths[taskId] !== undefined) {
+            return depths[taskId];
+        }
+
+        const task = taskDefinitions[taskId];
+        if (!task) {
+            depths[taskId] = 0;
+            return 0;
+        }
+
+        const dependencies = task.depends_on || [];
+        if (dependencies.length === 0) {
+            depths[taskId] = 0;
+            return 0;
+        }
+
+        const depthValues = dependencies.map(dep => calculateDepth(dep));
+        depths[taskId] = Math.max(...depthValues) + 1;
+        return depths[taskId];
+    }
+
+    // Calculate depths for all tasks
+    for (const taskId in taskDefinitions) {
+        calculateDepth(taskId);
+    }
+
+    // Group tasks by depth level
+    const levels = {};
+    for (const taskId in taskDefinitions) {
+        const depth = depths[taskId];
+        if (!levels[depth]) {
+            levels[depth] = [];
+        }
+        levels[depth].push(taskId);
+    }
+
+    // Build edges
+    const edges = [];
+    for (const taskId in taskDefinitions) {
+        const task = taskDefinitions[taskId];
+        const dependencies = task.depends_on || [];
+
+        for (const depId of dependencies) {
+            edges.push({
+                from: depId,
+                to: taskId
+            });
+        }
+    }
+
+    return {
+        levels,
+        depths,
+        edges,
+        taskDefinitions,
+        taskStates
+    };
+}
+
+function renderDependencyGraphSVG(graph) {
+    const container = document.getElementById('dependency-graph-container');
+    container.innerHTML = '';
+
+    const { levels, depths, edges, taskDefinitions, taskStates } = graph;
+
+    // Layout constants
+    const NODE_WIDTH = 200;
+    const NODE_HEIGHT = 80;
+    const LEVEL_SPACING = 200;
+    const NODE_SPACING = 30;
+    const MARGIN = 40;
+
+    // Calculate dimensions
+    const maxLevel = Math.max(...Object.keys(levels).map(Number));
+    const maxNodesInLevel = Math.max(...Object.values(levels).map(arr => arr.length));
+
+    const width = Math.max(1200, (maxLevel + 1) * LEVEL_SPACING + MARGIN * 2);
+    const height = Math.max(600, maxNodesInLevel * (NODE_HEIGHT + NODE_SPACING) + MARGIN * 2);
+
+    // Create SVG
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('class', 'dependency-graph');
+    svg.setAttribute('width', width);
+    svg.setAttribute('height', height);
+    svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+
+    // Add arrowhead marker
+    const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+    const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+    marker.setAttribute('id', 'arrowhead');
+    marker.setAttribute('markerWidth', '10');
+    marker.setAttribute('markerHeight', '10');
+    marker.setAttribute('refX', '9');
+    marker.setAttribute('refY', '3');
+    marker.setAttribute('orient', 'auto');
+
+    const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+    polygon.setAttribute('points', '0 0, 10 3, 0 6');
+    polygon.setAttribute('class', 'dep-arrowhead');
+
+    marker.appendChild(polygon);
+    defs.appendChild(marker);
+    svg.appendChild(defs);
+
+    // Calculate node positions
+    const nodePositions = {};
+
+    for (const [level, taskIds] of Object.entries(levels)) {
+        const levelNum = Number(level);
+        const x = MARGIN + levelNum * LEVEL_SPACING;
+        const totalHeight = taskIds.length * (NODE_HEIGHT + NODE_SPACING) - NODE_SPACING;
+        const startY = (height - totalHeight) / 2;
+
+        taskIds.forEach((taskId, index) => {
+            const y = startY + index * (NODE_HEIGHT + NODE_SPACING);
+            nodePositions[taskId] = { x, y, level: levelNum };
+        });
+    }
+
+    // Draw edges first (so they appear behind nodes)
+    const edgesGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    edgesGroup.setAttribute('class', 'edges');
+
+    for (const edge of edges) {
+        const fromPos = nodePositions[edge.from];
+        const toPos = nodePositions[edge.to];
+
+        if (!fromPos || !toPos) continue;
+
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+
+        // Calculate path points
+        const x1 = fromPos.x + NODE_WIDTH;
+        const y1 = fromPos.y + NODE_HEIGHT / 2;
+        const x2 = toPos.x;
+        const y2 = toPos.y + NODE_HEIGHT / 2;
+
+        // Create curved path
+        const midX = (x1 + x2) / 2;
+        const pathData = `M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}`;
+
+        path.setAttribute('d', pathData);
+        path.setAttribute('class', 'dep-edge');
+
+        edgesGroup.appendChild(path);
+    }
+
+    svg.appendChild(edgesGroup);
+
+    // Draw level labels
+    const labelsGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    labelsGroup.setAttribute('class', 'level-labels');
+
+    for (let level = 0; level <= maxLevel; level++) {
+        const x = MARGIN + level * LEVEL_SPACING;
+        const y = MARGIN - 10;
+
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', x);
+        text.setAttribute('y', y);
+        text.setAttribute('class', 'dep-level-label');
+        text.textContent = `Level ${level}`;
+
+        labelsGroup.appendChild(text);
+    }
+
+    svg.appendChild(labelsGroup);
+
+    // Draw nodes
+    const nodesGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    nodesGroup.setAttribute('class', 'nodes');
+
+    for (const [taskId, pos] of Object.entries(nodePositions)) {
+        const taskDef = taskDefinitions[taskId];
+        const taskState = taskStates[taskId] || {};
+        const status = taskState.status || 'pending';
+
+        const nodeGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        nodeGroup.setAttribute('class', 'dep-node');
+        nodeGroup.setAttribute('data-task-id', taskId);
+
+        // Node rectangle
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('x', pos.x);
+        rect.setAttribute('y', pos.y);
+        rect.setAttribute('width', NODE_WIDTH);
+        rect.setAttribute('height', NODE_HEIGHT);
+        rect.setAttribute('rx', 8);
+        rect.setAttribute('class', `dep-node-rect ${status}`);
+
+        nodeGroup.appendChild(rect);
+
+        // Task ID
+        const taskIdText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        taskIdText.setAttribute('x', pos.x + NODE_WIDTH / 2);
+        taskIdText.setAttribute('y', pos.y + 22);
+        taskIdText.setAttribute('text-anchor', 'middle');
+        taskIdText.setAttribute('class', 'dep-node-text');
+        taskIdText.textContent = taskId;
+
+        nodeGroup.appendChild(taskIdText);
+
+        // Task name (truncated)
+        const taskName = taskDef.name || '';
+        const truncatedName = taskName.length > 25 ? taskName.substring(0, 22) + '...' : taskName;
+
+        const nameText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        nameText.setAttribute('x', pos.x + NODE_WIDTH / 2);
+        nameText.setAttribute('y', pos.y + 40);
+        nameText.setAttribute('text-anchor', 'middle');
+        nameText.setAttribute('class', 'dep-node-subtext');
+        nameText.textContent = truncatedName;
+
+        nodeGroup.appendChild(nameText);
+
+        // Metadata (duration and cost)
+        if (taskState.duration_seconds !== undefined || taskState.cost_usd !== undefined) {
+            const duration = taskState.status === 'in_progress'
+                ? computeLiveDuration(taskState.started_at)
+                : (taskState.duration_seconds || 0);
+
+            const cost = computeCost(taskState.token_usage || {});
+
+            const metaText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            metaText.setAttribute('x', pos.x + NODE_WIDTH / 2);
+            metaText.setAttribute('y', pos.y + 58);
+            metaText.setAttribute('text-anchor', 'middle');
+            metaText.setAttribute('class', 'dep-node-meta');
+            metaText.textContent = `⏱ ${formatDuration(duration)} | 💰 ${formatCost(cost)}`;
+
+            nodeGroup.appendChild(metaText);
+        }
+
+        // Click handler - find the L1 and L2 for this task
+        const taskBranch = taskDef.branch;
+        const taskGroup = taskDef.group;
+
+        nodeGroup.addEventListener('click', () => {
+            showView('l3', taskBranch, taskGroup, taskId);
+        });
+
+        nodesGroup.appendChild(nodeGroup);
+    }
+
+    svg.appendChild(nodesGroup);
+
+    // Add to container
+    container.appendChild(svg);
+
+    // Add legend
+    const legend = document.createElement('div');
+    legend.className = 'graph-legend';
+    legend.innerHTML = `
+        <div class="legend-title">Status Legend:</div>
+        <div class="legend-items">
+            <div class="legend-item">
+                <span class="legend-color pending"></span>
+                <span>Pending</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color in_progress"></span>
+                <span>In Progress</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color completed"></span>
+                <span>Completed</span>
+            </div>
+        </div>
+    `;
+    container.appendChild(legend);
 }

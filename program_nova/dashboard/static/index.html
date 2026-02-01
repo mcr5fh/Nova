@@ -53,9 +53,19 @@
 
                 <!-- Tree View -->
                 <div class="tree-view" id="tree-view">
-                    <h3>Hierarchy View</h3>
-                    <div id="tree-container">
-                        <!-- Will be populated by JavaScript -->
+                    <div class="view-tabs">
+                        <button class="view-tab active" data-view="hierarchy">Hierarchy</button>
+                        <button class="view-tab" data-view="dependencies">Dependencies</button>
+                    </div>
+                    <div id="hierarchy-view" class="tab-content active">
+                        <div id="tree-container">
+                            <!-- Will be populated by JavaScript -->
+                        </div>
+                    </div>
+                    <div id="dependency-view" class="tab-content">
+                        <div id="dependency-graph-container">
+                            <!-- Will be populated by JavaScript -->
+                        </div>
                     </div>
                 </div>
 
