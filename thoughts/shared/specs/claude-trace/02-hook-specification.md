@@ -1,7 +1,11 @@
 # nova-go trace - Hook Handler Specification
 
+> **⚠️ DEPRECATED:** This specification describes the old per-tool-use hook architecture
+> which has been replaced by session-based transcript parsing. See the updated architecture
+> in the main README and `nova-trace-refactor/plan.md`.
+
 **Version:** 2.0
-**Status:** Draft
+**Status:** Deprecated (replaced by session-based architecture)
 **Last Updated:** 2026-01-31
 
 ## Overview
