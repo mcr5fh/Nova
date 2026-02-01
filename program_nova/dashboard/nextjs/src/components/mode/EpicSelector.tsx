@@ -79,11 +79,11 @@ export function EpicSelector({ className = '' }: EpicSelectorProps) {
       {selectedEpic && (
         <div className="flex items-center gap-2">
           <span className={`text-xs px-2 py-0.5 rounded ${getStatusColor(selectedEpic.status)}`}>
-            {selectedEpic.type}
+            {selectedEpic.issue_type}
           </span>
-          {selectedEpic.priority && (
+          {selectedEpic.priority !== undefined && (
             <span className="text-xs text-text-secondary">
-              {selectedEpic.priority}
+              P{selectedEpic.priority}
             </span>
           )}
           {selectedEpic.status === 'open' && (
