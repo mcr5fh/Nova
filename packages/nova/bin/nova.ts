@@ -3,6 +3,7 @@
 import { Command } from 'commander';
 import { runCLI as runProblemCLI } from '../src/problem/cli/index.js';
 import { runCLI as runSolutionCLI } from '../src/solution/cli/index.js';
+import { runCLIV2 as runSolutionV2CLI } from '../src/solution-v2/cli/index.js';
 
 const program = new Command();
 
@@ -81,6 +82,51 @@ solution
 solution
   .command('resume <sessionId>')
   .description('Resume a saved solution session')
+  .option('-k, --api-key <key>', 'Anthropic API key (or set ANTHROPIC_API_KEY)')
+  .action(async (sessionId, options) => {
+    const apiKey = options.apiKey || process.env.ANTHROPIC_API_KEY;
+
+    if (!apiKey) {
+      console.error('Error: API key required. Set ANTHROPIC_API_KEY or use --api-key');
+      process.exit(1);
+    }
+
+    // TODO: Load session from storage
+    console.error('Session resume not yet implemented');
+    process.exit(1);
+  });
+
+// Solution v2 subcommand (codebase-aware)
+const solutionV2 = program
+  .command('solution-v2')
+  .description('Solution design workflow v2 (codebase-aware)');
+
+solutionV2
+  .command('start')
+  .description('Start a new codebase-aware solution design session')
+  .option('-m, --model <model>', 'Model to use', 'claude-sonnet-4-20250514')
+  .option('-k, --api-key <key>', 'Anthropic API key (or set ANTHROPIC_API_KEY)')
+  .option('-l, --load <path>', 'Load problem statement from file')
+  .option('-c, --context <path>', 'Load codebase context from JSON file')
+  .action(async (options) => {
+    const apiKey = options.apiKey || process.env.ANTHROPIC_API_KEY;
+
+    if (!apiKey) {
+      console.error('Error: API key required. Set ANTHROPIC_API_KEY or use --api-key');
+      process.exit(1);
+    }
+
+    await runSolutionV2CLI({
+      apiKey,
+      modelId: options.model,
+      loadPath: options.load,
+      contextPath: options.context,
+    });
+  });
+
+solutionV2
+  .command('resume <sessionId>')
+  .description('Resume a saved v2 solution session')
   .option('-k, --api-key <key>', 'Anthropic API key (or set ANTHROPIC_API_KEY)')
   .action(async (sessionId, options) => {
     const apiKey = options.apiKey || process.env.ANTHROPIC_API_KEY;
