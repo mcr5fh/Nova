@@ -59,6 +59,16 @@ export interface UseAgentChatOptions {
    * Callback fired on connection error
    */
   onError?: (error: Event) => void;
+
+  /**
+   * Callback fired when a diagram update is received
+   */
+  onDiagramUpdate?: (diagram: string) => void;
+
+  /**
+   * Callback fired when a diagram error occurs
+   */
+  onDiagramError?: (error: string) => void;
 }
 
 export interface UseAgentChatReturn {
@@ -147,6 +157,8 @@ export function useAgentChat(
     onConnectionStateChange,
     onMessage,
     onError,
+    onDiagramUpdate,
+    onDiagramError,
   } = options;
 
   const [messages, setMessages] = useState<ServerEvent[]>([]);
@@ -261,6 +273,16 @@ export function useAgentChat(
           if (data.type === "agent_message" || data.type === "error") {
             setIsLoading(false);
           }
+
+          // Handle diagram_update event
+          if (data.type === "diagram_update") {
+            onDiagramUpdate?.(data.diagram);
+          }
+
+          // Handle diagram_error event
+          if (data.type === "diagram_error") {
+            onDiagramError?.(data.error);
+          }
         } catch (error) {
           console.error("Failed to parse WebSocket message:", error);
         }
@@ -284,6 +306,8 @@ export function useAgentChat(
     cleanup,
     onMessage,
     onError,
+    onDiagramUpdate,
+    onDiagramError,
   ]);
 
   // Store connect in ref for use in timeouts
