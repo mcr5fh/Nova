@@ -1,32 +1,34 @@
 // LLM Client Configurations for Nova Orchestrator
 
 // Primary client for complex planning and reasoning
-client<llm> GPT4 {
+client<llm> GPT5 {
   provider openai
   options {
-    model "gpt-4o"
+    model "gpt-5"
     api_key env.OPENAI_API_KEY
-    temperature 0.7
-    max_tokens 4096
+    temperature 0.0
+    reasoning_effort "low"
+    max_completion_tokens 4096
   }
 }
 
 // Fast, cost-effective client for simple worker tasks
-client<llm> GPT4Mini {
+client<llm> GPT5Mini {
   provider openai
   options {
-    model "gpt-4o-mini"
+    model "gpt-5-mini"
     api_key env.OPENAI_API_KEY
-    temperature 0.3
-    max_tokens 2048
+    temperature 0.0
+    reasoning_effort "minimal"
+    max_completion_tokens 2048
   }
 }
 
 // Alternative provider for fallback
-client<llm> Claude {
+client<llm> Sonnet {
   provider anthropic
   options {
-    model "claude-sonnet-4-20250514"
+    model "claude-sonnet-4-5-20250929"
     api_key env.ANTHROPIC_API_KEY
     max_tokens 4096
   }
@@ -37,8 +39,8 @@ client<llm> ResilientPlanner {
   provider fallback
   options {
     strategy [
-      GPT4
-      Claude
+      Sonnet,
+      GPT5
     ]
   }
 }
