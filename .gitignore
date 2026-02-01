@@ -51,3 +51,7 @@ htmlcov/
 # program nova
 cascade_state.json
 example_state.json
+
+# tracking
+.beads/
+.thevillage/
