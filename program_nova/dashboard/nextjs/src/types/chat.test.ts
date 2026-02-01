@@ -11,6 +11,8 @@ import type {
   ToolResultEvent,
   AgentThinkingEvent,
   ErrorEvent,
+  DiagramUpdateEvent,
+  DiagramErrorEvent,
   ServerEvent,
 } from './chat';
 
@@ -21,6 +23,8 @@ import {
   isToolResultEvent,
   isAgentThinkingEvent,
   isErrorEvent,
+  isDiagramUpdateEvent,
+  isDiagramErrorEvent,
 } from './chat';
 
 describe('Chat Types - Type Guards', () => {
@@ -189,6 +193,64 @@ describe('Chat Types - Type Guards', () => {
     });
   });
 
+  describe('isDiagramUpdateEvent', () => {
+    it('should return true for valid diagram update event', () => {
+      const event: ServerEvent = {
+        type: 'diagram_update',
+        diagram: 'graph TD; A-->B;',
+      };
+      expect(isDiagramUpdateEvent(event)).toBe(true);
+    });
+
+    it('should return false for other event types', () => {
+      const event: ServerEvent = {
+        type: 'agent_message',
+        message: 'Hello',
+      };
+      expect(isDiagramUpdateEvent(event)).toBe(false);
+    });
+
+    it('should narrow type correctly', () => {
+      const event: ServerEvent = {
+        type: 'diagram_update',
+        diagram: 'graph LR; Start-->End;',
+      };
+
+      if (isDiagramUpdateEvent(event)) {
+        expect(event.diagram).toBe('graph LR; Start-->End;');
+      }
+    });
+  });
+
+  describe('isDiagramErrorEvent', () => {
+    it('should return true for valid diagram error event', () => {
+      const event: ServerEvent = {
+        type: 'diagram_error',
+        error: 'Invalid Mermaid syntax',
+      };
+      expect(isDiagramErrorEvent(event)).toBe(true);
+    });
+
+    it('should return false for other event types', () => {
+      const event: ServerEvent = {
+        type: 'error',
+        error: 'Generic error',
+      };
+      expect(isDiagramErrorEvent(event)).toBe(false);
+    });
+
+    it('should narrow type correctly', () => {
+      const event: ServerEvent = {
+        type: 'diagram_error',
+        error: 'Rendering failed',
+      };
+
+      if (isDiagramErrorEvent(event)) {
+        expect(event.error).toBe('Rendering failed');
+      }
+    });
+  });
+
   describe('Type Guard Coverage', () => {
     it('should handle all ServerEvent types', () => {
       const events: ServerEvent[] = [
@@ -198,6 +260,8 @@ describe('Chat Types - Type Guards', () => {
         { type: 'tool_result', tool_name: 'Tool', result: 'Result', success: true },
         { type: 'agent_thinking', reasoning: 'Thinking' },
         { type: 'error', error: 'Error' },
+        { type: 'diagram_update', diagram: 'graph TD; A-->B;' },
+        { type: 'diagram_error', error: 'Diagram error' },
       ];
 
       events.forEach((event) => {
@@ -207,7 +271,9 @@ describe('Chat Types - Type Guards', () => {
           isToolCallEvent(event) ||
           isToolResultEvent(event) ||
           isAgentThinkingEvent(event) ||
-          isErrorEvent(event);
+          isErrorEvent(event) ||
+          isDiagramUpdateEvent(event) ||
+          isDiagramErrorEvent(event);
 
         expect(isRecognized).toBe(true);
       });
@@ -315,5 +381,25 @@ describe('Chat Types - Type Structure', () => {
 
     expect(event.type).toBe('error');
     expect(event.error).toBe('WebSocket connection lost');
+  });
+
+  it('should create valid DiagramUpdateEvent', () => {
+    const event: DiagramUpdateEvent = {
+      type: 'diagram_update',
+      diagram: 'graph TD;\n    A-->B;\n    B-->C;',
+    };
+
+    expect(event.type).toBe('diagram_update');
+    expect(event.diagram).toBe('graph TD;\n    A-->B;\n    B-->C;');
+  });
+
+  it('should create valid DiagramErrorEvent', () => {
+    const event: DiagramErrorEvent = {
+      type: 'diagram_error',
+      error: 'Failed to parse Mermaid syntax',
+    };
+
+    expect(event.type).toBe('diagram_error');
+    expect(event.error).toBe('Failed to parse Mermaid syntax');
   });
 });

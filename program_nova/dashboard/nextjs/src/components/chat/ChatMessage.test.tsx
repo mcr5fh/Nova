@@ -7,6 +7,8 @@ import type {
   ToolResultEvent,
   AgentThinkingEvent,
   ErrorEvent,
+  DiagramUpdateEvent,
+  DiagramErrorEvent,
 } from '@/types/chat';
 
 describe('ChatMessage', () => {
@@ -191,6 +193,74 @@ describe('ChatMessage', () => {
       expect(errorDiv).toBeInTheDocument();
       const errorBorder = container.querySelector('.border-status-failed');
       expect(errorBorder).toBeInTheDocument();
+    });
+  });
+
+  describe('DiagramUpdateEvent', () => {
+    it('renders diagram update with diagram content', () => {
+      const event: DiagramUpdateEvent = {
+        type: 'diagram_update',
+        diagram: 'graph TD;\n    A-->B;\n    B-->C;',
+      };
+
+      const { container } = render(<ChatMessage event={event} />);
+
+      expect(screen.getByText('Diagram Updated')).toBeInTheDocument();
+
+      // Check for code/pre element with diagram content
+      const preElement = container.querySelector('pre');
+      expect(preElement).toBeInTheDocument();
+      expect(preElement).toHaveClass('whitespace-pre-wrap');
+      expect(preElement?.textContent).toBe('graph TD;\n    A-->B;\n    B-->C;');
+    });
+
+    it('renders diagram with proper styling', () => {
+      const event: DiagramUpdateEvent = {
+        type: 'diagram_update',
+        diagram: 'graph LR; Start-->End;',
+      };
+
+      const { container } = render(<ChatMessage event={event} />);
+
+      // Check for secondary background
+      const bubble = container.querySelector('.bg-bg-secondary');
+      expect(bubble).toBeInTheDocument();
+
+      // Check for left-aligned layout
+      const messageContainer = container.querySelector('.justify-start');
+      expect(messageContainer).toBeInTheDocument();
+    });
+  });
+
+  describe('DiagramErrorEvent', () => {
+    it('renders diagram error message with error styling', () => {
+      const event: DiagramErrorEvent = {
+        type: 'diagram_error',
+        error: 'Failed to parse Mermaid syntax',
+      };
+
+      const { container } = render(<ChatMessage event={event} />);
+
+      expect(screen.getByText('Diagram Error')).toBeInTheDocument();
+      expect(screen.getByText('Failed to parse Mermaid syntax')).toBeInTheDocument();
+
+      // Check for error colors
+      const errorDiv = container.querySelector('.text-status-failed');
+      expect(errorDiv).toBeInTheDocument();
+      const errorBorder = container.querySelector('.border-status-failed');
+      expect(errorBorder).toBeInTheDocument();
+    });
+
+    it('preserves whitespace in diagram error messages', () => {
+      const event: DiagramErrorEvent = {
+        type: 'diagram_error',
+        error: 'Line 1\nLine 2\n\nLine 3',
+      };
+
+      render(<ChatMessage event={event} />);
+
+      const messageDiv = screen.getByText(/Line 1/);
+      expect(messageDiv).toHaveClass('whitespace-pre-wrap');
     });
   });
 

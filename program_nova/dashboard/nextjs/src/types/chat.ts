@@ -72,6 +72,22 @@ export interface ErrorEvent {
 }
 
 /**
+ * Diagram update event with Mermaid diagram string
+ */
+export interface DiagramUpdateEvent {
+  type: "diagram_update";
+  diagram: string;
+}
+
+/**
+ * Diagram rendering error
+ */
+export interface DiagramErrorEvent {
+  type: "diagram_error";
+  error: string;
+}
+
+/**
  * Union type of all possible server-to-client events
  */
 export type ServerEvent =
@@ -80,7 +96,9 @@ export type ServerEvent =
   | ToolCallEvent
   | ToolResultEvent
   | AgentThinkingEvent
-  | ErrorEvent;
+  | ErrorEvent
+  | DiagramUpdateEvent
+  | DiagramErrorEvent;
 
 /**
  * Union type of all possible client-to-server messages
@@ -131,4 +149,18 @@ export function isAgentThinkingEvent(event: ServerEvent): event is AgentThinking
  */
 export function isErrorEvent(event: ServerEvent): event is ErrorEvent {
   return event.type === "error";
+}
+
+/**
+ * Type guard to check if an event is a DiagramUpdateEvent
+ */
+export function isDiagramUpdateEvent(event: ServerEvent): event is DiagramUpdateEvent {
+  return event.type === "diagram_update";
+}
+
+/**
+ * Type guard to check if an event is a DiagramErrorEvent
+ */
+export function isDiagramErrorEvent(event: ServerEvent): event is DiagramErrorEvent {
+  return event.type === "diagram_error";
 }
