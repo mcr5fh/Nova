@@ -1,22 +1,38 @@
+'use client';
+
+import { useStatus } from '@/hooks';
+import { Header, Breadcrumbs, BackButton, StatusIndicator } from '@/components/layout';
+import { ViewRouter } from '@/components/views';
+
 export default function Home() {
+  const { data: status, isLoading, error } = useStatus();
+
+  const allTasksCompleted = status?.all_tasks_completed ?? false;
+
   return (
-    <main className="max-w-[1400px] mx-auto p-6">
-      <header className="flex justify-between items-center mb-8 pb-6 border-b-2 border-border-color">
-        <h1 className="text-3xl font-bold text-text-primary">
-          Program Nova Dashboard
-        </h1>
-        <div className="flex gap-8">
-          <div className="flex flex-col items-end">
-            <span className="text-sm text-text-secondary mb-1">Status</span>
-            <span className="text-xl font-semibold text-text-primary">Ready</span>
-          </div>
-        </div>
-      </header>
-      <div className="bg-bg-secondary border border-border-color rounded-lg p-6">
-        <p className="text-text-secondary">
-          Dashboard initialized. Phase 2 will add core infrastructure.
-        </p>
-      </div>
+    <main className="max-w-[1600px] mx-auto p-6">
+      {/* Connection status indicator */}
+      <StatusIndicator
+        isConnected={!isLoading && !error}
+        isCompleted={allTasksCompleted}
+        isError={!!error}
+      />
+
+      {/* Header with project info and mode selector */}
+      <Header status={status} />
+
+      {/* Navigation breadcrumbs */}
+      <Breadcrumbs />
+
+      {/* Back button for nested views */}
+      <BackButton />
+
+      {/* Main content - view router switches between L0/L1/L2/L3 */}
+      <ViewRouter
+        status={status}
+        isLoading={isLoading}
+        error={error as Error | null}
+      />
     </main>
   );
 }
