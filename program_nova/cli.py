@@ -295,16 +295,23 @@ def run() -> int:
         print()
 
         # Monitor both processes
+        orchestrator_completed = False
         while True:
             # Check if either process has exited
             orch_status = orchestrator_process.poll()
             dash_status = dashboard_process.poll()
 
-            if orch_status is not None:
-                print(f"Orchestrator exited with code {orch_status}", file=sys.stderr)
-                if dashboard_process and dashboard_process.poll() is None:
-                    dashboard_process.terminate()
-                return orch_status
+            if orch_status is not None and not orchestrator_completed:
+                orchestrator_completed = True
+                if orch_status == 0:
+                    # Orchestrator completed successfully - keep dashboard running
+                    print("Orchestrator complete! Dashboard still running at http://localhost:8000 - Press Ctrl+C to stop")
+                else:
+                    # Orchestrator failed - shutdown everything
+                    print(f"Orchestrator exited with code {orch_status}", file=sys.stderr)
+                    if dashboard_process and dashboard_process.poll() is None:
+                        dashboard_process.terminate()
+                    return orch_status
 
             if dash_status is not None:
                 print(f"Dashboard exited with code {dash_status}", file=sys.stderr)

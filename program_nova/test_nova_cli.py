@@ -397,6 +397,109 @@ class TestNovaCLI:
         finally:
             os.chdir(original_cwd)
 
+    @patch('program_nova.cli.subprocess.Popen')
+    def test_run_keeps_dashboard_running_after_orchestrator_success(self, mock_popen, tmp_path, capsys):
+        """Test that dashboard keeps running when orchestrator exits with code 0."""
+        original_cwd = Path.cwd()
+        try:
+            import os
+            os.chdir(tmp_path)
+
+            # Create CASCADE.md
+            cascade_file = tmp_path / "CASCADE.md"
+            cascade_file.write_text(cli.CASCADE_TEMPLATE)
+
+            # Mock the Popen processes
+            mock_orch = Mock()
+            mock_dash = Mock()
+
+            # Orchestrator exits successfully (code 0)
+            poll_count = [0]
+            def orch_poll():
+                poll_count[0] += 1
+                if poll_count[0] > 2:
+                    return 0  # Exit with code 0 after a few polls
+                return None
+
+            mock_orch.poll = Mock(side_effect=orch_poll)
+            mock_dash.poll.return_value = None  # Dashboard keeps running
+
+            mock_popen.side_effect = [mock_orch, mock_dash]
+
+            # Simulate KeyboardInterrupt after orchestrator exits to stop the dashboard
+            sleep_count = [0]
+            def sleep_side_effect(duration):
+                sleep_count[0] += 1
+                if sleep_count[0] > 5:  # After orchestrator exits and message is printed
+                    raise KeyboardInterrupt
+
+            with patch('program_nova.cli.time.sleep', side_effect=sleep_side_effect):
+                with patch('sys.argv', ['nova', 'run']):
+                    result = cli.main()
+
+            # Should return 1 due to KeyboardInterrupt
+            assert result == 1
+
+            # Verify message was printed about orchestrator completing
+            captured = capsys.readouterr()
+            assert "Orchestrator complete" in captured.out
+            assert "Dashboard still running at http://localhost:8000" in captured.out
+            assert "Press Ctrl+C to stop" in captured.out
+
+            # Verify dashboard was NOT terminated when orchestrator exited
+            # It should only be terminated by KeyboardInterrupt
+            mock_orch.terminate.assert_called_once()  # Terminated by KeyboardInterrupt
+            mock_dash.terminate.assert_called_once()  # Terminated by KeyboardInterrupt
+
+        finally:
+            os.chdir(original_cwd)
+
+    @patch('program_nova.cli.subprocess.Popen')
+    def test_run_stops_dashboard_when_orchestrator_fails(self, mock_popen, tmp_path, capsys):
+        """Test that dashboard is stopped when orchestrator exits with non-zero code."""
+        original_cwd = Path.cwd()
+        try:
+            import os
+            os.chdir(tmp_path)
+
+            # Create CASCADE.md
+            cascade_file = tmp_path / "CASCADE.md"
+            cascade_file.write_text(cli.CASCADE_TEMPLATE)
+
+            # Mock the Popen processes
+            mock_orch = Mock()
+            mock_dash = Mock()
+
+            # Orchestrator exits with error (code 1)
+            poll_count = [0]
+            def orch_poll():
+                poll_count[0] += 1
+                if poll_count[0] > 2:
+                    return 1  # Exit with code 1 after a few polls
+                return None
+
+            mock_orch.poll = Mock(side_effect=orch_poll)
+            mock_dash.poll.return_value = None  # Dashboard keeps running
+
+            mock_popen.side_effect = [mock_orch, mock_dash]
+
+            with patch('program_nova.cli.time.sleep'):
+                with patch('sys.argv', ['nova', 'run']):
+                    result = cli.main()
+
+            # Should return the orchestrator's exit code
+            assert result == 1
+
+            # Verify error message was printed
+            captured = capsys.readouterr()
+            assert "Orchestrator exited with code 1" in captured.err
+
+            # Verify dashboard WAS terminated when orchestrator failed
+            mock_dash.terminate.assert_called_once()
+
+        finally:
+            os.chdir(original_cwd)
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
