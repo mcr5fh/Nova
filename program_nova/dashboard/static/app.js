@@ -291,7 +291,7 @@ function renderL0View() {
         }
 
         // Render dependency view if that tab is active
-        const dependencyTab = document.querySelector('.tab-content#dependency-view');
+        const dependencyTab = document.querySelector('.tab-content#dependencies-view');
         if (dependencyTab && dependencyTab.classList.contains('active')) {
             try {
                 renderDependencyView();
