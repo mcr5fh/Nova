@@ -3,7 +3,6 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   output: 'export',
   distDir: 'out',
-  trailingSlash: true,
   images: { unoptimized: true },
 
   // Dev proxy for API calls (only works in `npm run dev`, not static export)
